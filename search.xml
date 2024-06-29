@@ -1546,6 +1546,8 @@
     <title>GC优化案例</title>
     <url>/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/GC%E4%BC%98%E5%8C%96%E6%A1%88%E4%BE%8B/</url>
     <content><![CDATA[<h2 id="案例一-Major-GC和Minor-GC频繁"><a href="#案例一-Major-GC和Minor-GC频繁" class="headerlink" title="案例一 Major GC和Minor GC频繁"></a><strong>案例一 Major GC和Minor GC频繁</strong></h2><p>服务情况：Minor GC每分钟100次 ，Major GC每4分钟一次，单次Minor GC耗时25ms，单次Major GC耗时200ms，接口响应时间50ms。</p>
+<span id="more"></span>
+
 <p><strong>优化</strong></p>
 <p>首先优化Minor GC频繁问题。通常情况下，由于新生代空间较小，Eden区很快被填满，就会导致频繁Minor GC，因此可以通过增大新生代空间来降低Minor GC的频率。例如在相同的内存分配率的前提下，新生代中的Eden区增加一倍，Minor GC的次数就会减少一半。</p>
 <p>这时很多人有这样的疑问，扩容Eden区虽然可以减少Minor GC的次数，但会增加单次Minor GC时间么？根据上面公式，如果单次Minor GC时间也增加，很难保证最后的优化效果。我们结合下面情况来分析，单次Minor GC时间主要受哪些因素影响？是否和新生代大小存在线性关系？<br>首先，单次Minor GC时间由以下两部分组成：T1（扫描新生代）和 T2（复制存活对象到Survivor区）。（注：这里为了简化问题，我们认为T1只扫描新生代判断对象是否存活的时间，其实该阶段还需要扫描部分老年代，后面案例中有详细描述。）</p>
@@ -1657,6 +1659,8 @@
 <li><p>升级ZGC效果：展示在生产环境应用ZGC取得的效果。</p>
 </li>
 </ul>
+<span id="more"></span>
+
 <h2 id="GC之痛"><a href="#GC之痛" class="headerlink" title="GC之痛"></a>GC之痛</h2><p>很多低延迟高可用Java服务的系统可用性经常受GC停顿的困扰。GC停顿指垃圾回收期间STW，当STW时，所有应用线程停止活动，等待GC停顿结束。GC停顿对响应时间的影响较大。为了降低GC停顿对系统可用性的影响，我们从降低单次GC时间和降低GC频率两个角度出发进行了调优，还测试过G1垃圾回收器，但这三项措施均未能降低GC对服务可用性的影响。</p>
 <h3 id="CMS与G1停顿时间瓶颈"><a href="#CMS与G1停顿时间瓶颈" class="headerlink" title="CMS与G1停顿时间瓶颈"></a>CMS与G1停顿时间瓶颈</h3><p>在介绍ZGC之前，首先回顾一下CMS和G1的GC过程以及停顿时间的瓶颈。CMS新生代的Young GC、G1和ZGC都基于标记-复制算法，但算法具体实现的不同就导致了巨大的性能差异。</p>
 <p>标记-复制算法应用在CMS新生代（ParNew是CMS默认的新生代垃圾回收器）和G1垃圾回收器中。标记-复制算法可以分为三个阶段：</p>
@@ -1793,6 +1797,68 @@
 </ul>
 <hr>
 <p>转载自：<br><a href="https://blog.csdn.net/MeituanTech/article/details/107853015">https://blog.csdn.net/MeituanTech/article/details/107853015</a><br><a href="https://www.jianshu.com/p/ab457e102bdd">https://www.jianshu.com/p/ab457e102bdd</a></p>
+]]></content>
+      <categories>
+        <category>Java</category>
+        <category>JVM</category>
+        <category>GC相关</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>CMS垃圾收集器</title>
+    <url>/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/CMS%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E5%99%A8/</url>
+    <content><![CDATA[<ul>
+<li><p>初始标记（CMS initial mark）只是标记一下GC Roots能直接关联的对象，速度很快，仍然需要暂停所有的工作线程。</p>
+</li>
+<li><p>并发标记（CMS concurrent mark）进行GC Roots跟踪的过程，和用户线程一起工作，不需要暂停工作线程。</p>
+</li>
+<li><p>重新标记（CMS remark）为了修正在并发标记期间，因用户程序继续运行而导致标记产生变动的那一部分对象的标记记录，仍然需要暂停所有的工作线程。</p>
+</li>
+<li><p>并发清除（CMS concurrent sweep）清除GC Roots不可达对象，和用户线程一起工作，不需要暂停工作线程。</p>
+</li>
+<li><p>重置(CMS concurrent reset) 清理数据结构,为下一个并发收集做准备.</p>
+</li>
+</ul>
+ <span id="more"></span>
+
+<p>​      由于耗时最长的并发标记和并发清除过程中，垃圾收集线程可以和用户现在一起并发工作，所以总体上来看CMS收集器的内存回收和用户线程是一起并发地执行。</p>
+<p><strong>CMS收集器有以下三个不足：</strong></p>
+<p>a.   CMS收集器对CPU资源非常敏感。在并发阶段虽然不会导致用户线程停顿，但是会因为占用了一部分线程（或者说CPU资源而导致应用程序变慢），总吞吐量会降低。CMS默认启动的回收线程数&#x3D;(CPU数量+3)&#x2F;4，在用户程序本来CPU负荷已经比较高的情况下，如果还要分出CPU资源用来运行垃圾收集器线程，会使得CPU负载加重。</p>
+<p>b.   CMS无法处理浮动垃圾(Floating Garbage)，可能会导致“Concurrent Mode Failure“而导致另一次Full GC的产生。在与用户线程并发运行的过程中，不断会有新的垃圾产生，这部分垃圾出现在标记过程之后，CMS无法在当次收集中处理掉它们，只能留待下一次GC时再清理，这部分垃圾就称为“浮动垃圾”。 CMS垃圾收集器不能像其它垃圾收集器那样等待年老代几乎完全被填满之后再进行收集，需要预留一部分空间供并发收集时的使用，可以通过参数<code>-XX:CMSInitiatingOccupancyFraction</code>来设置年老代空间达到多少的百分比时触发CMS进行垃圾收集。如果在CMS运行期间，预留的内存无法满足程序需要，就会出现一次“ConcurrentMode Failure“，此时虚拟机将启动预备方案，临时使用Serial Old收集器重新进行年老代垃圾回收。</p>
+<p>c.   CMS收集器是基于标记-清除算法，因此不可避免会产生大量不连续的内存碎片，空间碎片过多时，将会给大对象分配带来很大麻烦。如果无法找到足够大的连续内存来分配对象时，将会触发因此Full GC。CMS提供一个开关参数<code>-XX:+UseCMSCompactAtFullCollection</code>，用于指定在Full GC之后进行内存整理，这个过程无法并发，会导致垃圾收集停顿时间变长，CMS提供了另外一个参数<code>-XX:CMSFullGCsBeforeCompaction</code>，用于设置在执行多少次不压缩的Full GC之后，跟着来一次带压缩的Full GC。</p>
+<p>相关的参数配置可以参考<a href="http://blog.csdn.net/zero__007/article/details/49278849%E4%B8%AD%E5%85%B3%E4%BA%8ECMS%E7%9A%84%E4%BB%8B%E7%BB%8D%E3%80%82">http://blog.csdn.net/zero__007/article/details/49278849中关于CMS的介绍。</a></p>
+]]></content>
+      <categories>
+        <category>Java</category>
+        <category>JVM</category>
+        <category>GC相关</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>G1对比CMS</title>
+    <url>/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/G1%E5%AF%B9%E6%AF%94CMS/</url>
+    <content><![CDATA[<p>[toc]</p>
+<h2 id="如何处理跨代引用"><a href="#如何处理跨代引用" class="headerlink" title="如何处理跨代引用"></a>如何处理跨代引用</h2><p>​        在垃圾回收的时候都是从Root开始搜索，这会先经过年轻代再到老年代，对于年轻代引用老年代的这种跨代不需要单独处理。但是老年代引用年轻代的会影响young gc，这种跨代需要处理。<br>​        为了避免在回收年轻代的时候扫描整个老年代，需要记录老年代对年轻代的引用，young gc的时候只要扫描这个记录。</p>
+<p>​        CMS和G1都用到了<strong>Card Table</strong>，但是用法不太一样。JVM将内存分成一个个固定大小的card，然后有一个专门的数据结构(即这里的Card Table)维护每个Card的状态，一个字节对应一个Card，有点像内存page的概念，只是page是硬件上的，Card Table是软件上的。当一个Card上的对象的引用发生变化的时候，就将这个Card对应的Card Table上的状态置为dirty，young gc的时候扫描状态是dirty的Card即可。这是基本的用法，CMS基本上就是这么使用。<br>​        G1在Card Table的基础上引入的Remembered Set(下面简称RSet)。每个region都会维护一个RSet，记录着引用到本region中的对象的其他region的Card。比如A对象在regionA，B对象在regionB，且B.f &#x3D; A，则在regionA的RSet中需要记录B所在的Card的地址。这样的好处是可以对region进行单独回收，这要求RSet不只是维护老年代到年轻代的引用，也要维护这老年代到老年代的引用，对于跨代引用的每次只要扫描这个region的RSet上的Card即可。<br>​       上面说过年轻代到老年代的引用不需要单独处理，这带来了很大的性能上的提升，因为年轻代的对象引用变化很大，如果都需要记录下来成本会很高。同时也说明只需要在老年代维护Card Table。</p>
+<span id="more"></span>
+
+<h2 id="如何处理并发过程的对象变化"><a href="#如何处理并发过程的对象变化" class="headerlink" title="如何处理并发过程的对象变化"></a>如何处理并发过程的对象变化</h2><p>​        CMS和G1都有并发处理过程，这个过程应用程序跟着gc线程一起运行，会产生新对象，也会有旧的对象死去，对象之间的引用关系也会发生变化。这部分数据可以暂时不处理，留到下一次再处理吗？如果可以这样的话问题就会变得很简单，但是答案是不行。</p>
+<p>​        考虑下图的场景(图中每一行表示一个内存状态，每一列表示一个Card，这里有4个)：</p>
+<blockquote>
+<p>第一步a是并发标记中途的一个状态，标记了a b c e四个对象，0 1两个Card已经标记好；</p>
+<p>第二步b并发标记的同时引用发生变化，g不再指向d，而b不再指向c，变成指向d，这个时候处理Card 2，会标记到g，然后就标记结束了，导致d对象丢失。</p>
+</blockquote>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291347046.png" alt="img"></p>
+<p>​        CMS初始标记的时候会标记所有从root直接可达的对象，并发标记的时候再从这些对象进一步搜索其他可达对象，最终构成一个存活的对象图。并发标记过程中引用发生变化的也是通过Card Table来记录。但是young gc的时候如果一个dirty card没有包含到年轻代的引用，这个card会重新标记为clean，这有可能将并发标记过程产生的dirty card错误清除，因此CMS引入了另一个数据结构mod union table，这里一个bit对应一个Card，young gc在将Card Table设置为clean的时候会将对应的mod union table置为dirty。最终标记的时候会将Card Table或者mod union table是dirty的Card也作为root去扫描，从而解决并发标记过程产生的引用变化。CMS还需要处理并发过程从年轻代晋升到老年代的对象，处理方式是将这部分对象也作为root去扫描。<br>​        G1使用一个称为snapshot at the beginning(下面简称SATB)的算法，在初始标记的时候得到一个从root直接可达的snapshot，之后从这个snapshot不可达的对象都是可以回收的垃圾，并发过程产生的对象都默认是活的对象，留到下一次再处理。对于引用关系发生变化的，将这个对象对应的Card放到一个SATB队列里，在最终标记的时候进行处理(如果超过一定的阈值并发标记的时候也会处理一部分)，处理的过程就是以队列中的Card作为root进行扫描。</p>
+<h2 id="Write-Barrier"><a href="#Write-Barrier" class="headerlink" title="Write Barrier"></a>Write Barrier</h2><p>Write Barrier可以理解为在写的时候插入一条特定的操作。<br>在CMS中老年代引用年轻代的时候就是通过触发一个Write Barrier来更新Card Table的标志位。这是一个同步操作，在更新引用的时候顺带执行，只需要两个指令，引入的消耗不大。</p>
+<p>G1比较复杂，在两个地方用到了Write Barrier，分别是更新RSet的rememberd set Write Barrier和记录引用变化的Concurrent Marking Write Barrier，前者发生在引用更新之后，称为Post Write Barrier，后者发生在引用变化之前，称为Pre Write Barrier。G1为了提高性能，这两个Write Barrier都是先放到队列中，再异步进行处理。</p>
+<h2 id="Full-GC"><a href="#Full-GC" class="headerlink" title="Full GC"></a>Full GC</h2><p>导致CMS Full GC的可能原因主要有两个：Promotion Failure和Concurrent Mode Failure，前者是在年轻代晋升的时候老年代没有足够的连续空间容纳，很有可能是内存碎片导致的；后者是在并发过程中jvm觉得在并发过程结束前堆就会满了，需要提前触发Full GC。</p>
+<p>CMS的Full GC是一个多线程STW的Mark-Compact过程，，需要尽量避免或者降低频率。</p>
+<p>G1的初衷就是要避免Full GC的出现，Full GC会会对所有region做Evacuation-Compact，而且是单线程的STW，非常耗时间。导致G1 Full GC的原因可能有两个：1. Evacuation的时候没有足够的to-space来存放晋升的对象；2. 并发处理过程完成之前空间耗尽。这两个原因跟CMS类似。</p>
+<hr>
+<p>卡表(Card Table)<br>       有个场景，老年代的对象可能引用新生代的对象，那标记存活对象的时候，需要扫描老年代中的所有对象。因为该对象拥有对新生代对象的引用，那么这个引用也会被称为GC Roots。那不是得又做全堆扫描？成本太高了吧。<br>        HotSpot给出的解决方案是一项叫做卡表(Card Table)的技术。该技术将整个堆划分为一个个大小为512字节的卡，并且维护一个卡表，用来存储每张卡的一个标识位。这个标识位代表对应的卡是否可能存有指向新生代对象的引用。如果可能存在，那么我们就认为这张卡是脏的。<br>        在进行Minor GC的时候，我们便可以不用扫描整个老年代，而是在卡表中寻找脏卡，并将脏卡中的对象加入到Minor GC的GC Roots里。当完成所有脏卡的扫描之后，Java虚拟机便会将所有脏卡的标识位清零。<br>        想要保证每个可能有指向新生代对象引用的卡都被标记为脏卡，那么]v虚拟机需要截获每个引用型实例变量的写操作，并作出对应的写标识位操作。卡表能用于减少老年代的全堆空间扫描，这能很大的提升GC效率。</p>
+<hr>
+<p>转载自：<br><a href="https://blog.csdn.net/kuaipao19950507/article/details/105809365">https://blog.csdn.net/kuaipao19950507/article/details/105809365</a></p>
 ]]></content>
       <categories>
         <category>Java</category>
