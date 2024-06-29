@@ -31,7 +31,7 @@
 <meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291402967.png">
 <meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291403799.png">
 <meta property="article:published_time" content="2024-03-31T16:00:00.000Z">
-<meta property="article:modified_time" content="2024-06-29T06:04:37.786Z">
+<meta property="article:modified_time" content="2024-06-29T06:04:51.679Z">
 <meta property="article:author" content="jianjia">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291400583.png">
@@ -264,6 +264,8 @@
 <li><p>GCLocker Initiated GC：如果线程执行在 JNI 临界区时，刚好需要进行 GC，此时 GC Locker 将会阻止 GC 的发生，同时阻止其他线程进入 JNI 临界区，直到最后一个线程退出临界区时触发一次 GC。</p>
 </li>
 </ul>
+<span id="more"></span>
+
 <h1 id="GC-问题分类"><a href="#GC-问题分类" class="headerlink" title="GC 问题分类"></a>GC 问题分类</h1><p>笔者选取了九种不同类型的 GC 问题，覆盖了大部分场景，如果有更好的场景，欢迎在评论区给出。</p>
 <ul>
 <li><p>Unexpected GC：意外发生的 GC，实际上不需要发生，我们可以通过一些手段去避免。</p>
