@@ -22,13 +22,13 @@
 
   <meta name="description" content="java.lang.OutOfMemoryError: …java heap space… 也就是当你看到heap相关的时候就肯定是堆栈溢出了，此时如果代码没有问题的情况下，适当调整-Xmx和-Xms是可以避免的，不过一定是代码没有问题的前提，为什么会溢出呢，要么代码有问题，要么访问量太多并且每个访问的时间太长或者数据太多，导致数据释放不掉，因为垃圾回收器是要找到那些是垃圾才能回收，这里它不会认为">
 <meta property="og:type" content="article">
-<meta property="og:title" content="三色标记法与读写屏障">
+<meta property="og:title" content="内存溢出的几种原因和解决办法.md">
 <meta property="og:url" content="http://example.com/2024/04/01/Java/JVM/%E5%86%85%E5%AD%98%E6%BA%A2%E5%87%BA%E7%9A%84%E5%87%A0%E7%A7%8D%E5%8E%9F%E5%9B%A0%E5%92%8C%E8%A7%A3%E5%86%B3%E5%8A%9E%E6%B3%95/index.html">
 <meta property="og:site_name" content="zero&#39;s Blog">
 <meta property="og:description" content="java.lang.OutOfMemoryError: …java heap space… 也就是当你看到heap相关的时候就肯定是堆栈溢出了，此时如果代码没有问题的情况下，适当调整-Xmx和-Xms是可以避免的，不过一定是代码没有问题的前提，为什么会溢出呢，要么代码有问题，要么访问量太多并且每个访问的时间太长或者数据太多，导致数据释放不掉，因为垃圾回收器是要找到那些是垃圾才能回收，这里它不会认为">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2024-03-31T16:00:00.000Z">
-<meta property="article:modified_time" content="2024-06-29T03:59:13.693Z">
+<meta property="article:modified_time" content="2024-06-29T04:07:38.964Z">
 <meta property="article:author" content="jianjia">
 <meta name="twitter:card" content="summary">
 
@@ -45,7 +45,7 @@
   };
 </script>
 
-  <title>三色标记法与读写屏障 | zero's Blog</title>
+  <title>内存溢出的几种原因和解决办法.md | zero's Blog</title>
   
 
 
@@ -203,7 +203,7 @@
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          三色标记法与读写屏障
+          内存溢出的几种原因和解决办法.md
         </h1>
 
         <div class="post-meta">
