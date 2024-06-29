@@ -494,7 +494,7 @@
 
       
           <p>[toc]</p>
-<h1 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h1><p>&emsp;&emsp;G1垃圾收集器（Garbage First）是一个并行的、并发的、面向服务器的垃圾收集器的垃圾收集器。G1在Oracle JDK 7 update 4 及以上版本中得到完全支持，它的长远目标时代替CMS收集器。相较于CMS，G1是一款压缩型的收集器，不会产生内存碎片；可以极高概率满足GC停顿时间，实现低停顿垃圾回收。</p>
+<h1 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h1><p>&emsp;&emsp;G1垃圾收集器（Garbage First）是一个并行的、并发的、面向服务器的垃圾收集器的垃圾收集器。G1在Oracle JDK 7 update 4 及以上版本中得到完全支持，它的长远目标时代替CMS收集器。相较于CMS，G1是一款压缩型的收集器，不会产生内存碎片；可以极高概率满足GC停顿时间，实现低停顿垃圾回收。G1优先回收存活数据较少的区域。存活数据少就表示里面的垃圾对象多，这也是名字 Garbage First 的由来。</p>
           <!--noindex-->
             <div class="post-button">
               <a class="btn" href="/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/G1%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E5%99%A8/#more" rel="contents">
@@ -777,6 +777,85 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Java/JVM/stop%20the%20world%E6%A1%88%E4%BE%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/01/Java/JVM/stop%20the%20world%E6%A1%88%E4%BE%8B/" class="post-title-link" itemprop="url">stop the world案例</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/JVM/" itemprop="url" rel="index"><span itemprop="name">JVM</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>[toc]</p>
+<h3 id="一、遇到的问题"><a href="#一、遇到的问题" class="headerlink" title="一、遇到的问题"></a>一、遇到的问题</h3><p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291316004.webp"><br>Total time for which application threads were stop 超级长时间，这行日志代表什么，以及为什么时间会这么长 ?</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/04/01/Java/JVM/stop%20the%20world%E6%A1%88%E4%BE%8B/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
     <link itemprop="mainEntityOfPage" href="http://example.com/2015/09/23/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/Archetype&Specification&Publish-Subscribe/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -917,7 +996,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">18</span>
+          <span class="site-state-item-count">19</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
