@@ -28,7 +28,7 @@
 <meta property="og:description" content="[toc] 概述&emsp;&emsp;G1垃圾收集器（Garbage First）是一个并行的、并发的、面向服务器的垃圾收集器的垃圾收集器。G1在Oracle JDK 7 update 4 及以上版本中得到完全支持，它的长远目标时代替CMS收集器。相较于CMS，G1是一款压缩型的收集器，不会产生内存碎片；可以极高概率满足GC停顿时间，实现低停顿垃圾回收。G1优先回收存活数据较少的区域。存活数据少">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2024-03-31T16:00:00.000Z">
-<meta property="article:modified_time" content="2024-06-29T05:44:32.512Z">
+<meta property="article:modified_time" content="2024-06-29T05:58:08.277Z">
 <meta property="article:author" content="jianjia">
 <meta name="twitter:card" content="summary">
 
@@ -333,11 +333,11 @@
 <li>-XX:G1ReservePercent&#x3D;10</li>
 </ul>
 <p>作为空闲空间的预留内存百分比，以降低 to空间内存不足的风险。默认值是10%。</p>
-<p>保留的空间用于年代之间的提升，注意这个空间保留后就不会用在年轻代。</p>
+<p>保留的空间用于年代之间的提升，注意这个空间保留后就不会用在年轻代。调高此值同时也意味着降低了老年代的实际可用空间。</p>
 <ul>
 <li>-XX:G1HeapWastePercent&#x3D;5</li>
 </ul>
-<p>可容忍的浪费堆空间百分比。如果可回收百分比小于该设置的百分比，JVM不会启动混合垃圾回收周期。默认值为10％。</p>
+<p>可容忍的浪费堆空间百分比（触发Mixed GC的堆垃圾占比）。如果可回收百分比小于该设置的百分比，JVM不会启动混合垃圾回收周期。默认值为10％。</p>
 <ul>
 <li>-XX:G1MixedGCCountTarget&#x3D;8</li>
 </ul>
@@ -381,6 +381,12 @@
 </ul>
 <p>&emsp;&emsp;在并发标记阶段怎么识别old region需要被回收而标记成candidate old region，以便在Mixed GC阶段进入CSet而被回收呢？是通过G1MixedGCLiveThresholdPercent来控制的，当region中的存活数据占比率不超过该阈值时，则表示要被回收，默认占用率为85%。</p>
 <p>&emsp;&emsp;在并发标记阶段每个region中的存活数据占比率会被重新计算，那些存活数据占比较多的region，疏散时的代价相对较昂贵，它们还会被标记为expensive region。如果在MixedGC阶段这种region大量进入CSet中可能会导致MixedGC的停顿时间过长。G1为了区分开这些region而做了分开标记，在MixedGC阶段优先回收candidate old region，如果代价许可，会尝试回收expensive region。</p>
+<p>​	在全局并发标记阶段，如果一个Region的存活对象的空间占比低于此值，则会被纳入Cset。此值直接影响到Mixed GC选择回收的区域，当发现GC时间较长时，可以尝试调低此阈值，尽量优先选择回收垃圾占比高的Region，但此举也可能导致垃圾回收的不够彻底，最终触发Full GC。</p>
+<ul>
+<li><p>-XX:SoftRefLRUPolicyMSPerMB</p>
+<p>谨慎使用Soft Reference。如果SoftReference过多，会有频繁的老年代收集。-XX:SoftRefLRUPolicyMSPerMB参数，可以指定每兆堆空闲空间的软引用的存活时间，默认值是1000，也就是1秒。可以调低这个参数来触发更早的回收软引用。如果调高的话会有更多的存活数据，可能在GC后堆占用空间比会增加。 对于软引用，还是建议尽量少用，会增加存活数据量，增加GC的处理时间。</p>
+</li>
+</ul>
 <h2 id="注意事项"><a href="#注意事项" class="headerlink" title="注意事项"></a>注意事项</h2><ul>
 <li>年轻代大小：避免使用-Xmn 选项或 -XX:NewRatio 等其他相关选项显式设置年轻代大小，这会干扰到 G1收集器的默认行为，G1在垃圾收集时将不再关心暂停时间指标. 所以从本质上说,设置年轻代的大小将禁用暂停时间目标.G1在必要时也不能够增加或者缩小年轻代的空间. 因为大小是固定的,所以对更改大小无能为力。</li>
 <li>暂停时间目标：每当对垃圾回收进行评估或调优时，都会涉及到延迟与吞吐量的权衡。G1是增量垃圾回收器， 其吞吐量目标是 90% 的应用程序时间和 10%的垃圾回收时间。因此，暂停时间目标不要太严苛。目标太过严苛表示愿意承受更多的垃圾回收开销，而这会直接影响到吞吐量。</li>
@@ -492,7 +498,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">23</span>
+          <span class="site-state-item-count">24</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
