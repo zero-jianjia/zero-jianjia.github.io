@@ -605,6 +605,97 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Java/JVM/%E4%B8%89%E8%89%B2%E6%A0%87%E8%AE%B0%E6%B3%95%E4%B8%8E%E8%AF%BB%E5%86%99%E5%B1%8F%E9%9A%9C/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/01/Java/JVM/%E4%B8%89%E8%89%B2%E6%A0%87%E8%AE%B0%E6%B3%95%E4%B8%8E%E8%AF%BB%E5%86%99%E5%B1%8F%E9%9A%9C/" class="post-title-link" itemprop="url">三色标记法与读写屏障</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/JVM/" itemprop="url" rel="index"><span itemprop="name">JVM</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>[toc]</p>
+<h2 id="1-垃圾回收的简单回顾"><a href="#1-垃圾回收的简单回顾" class="headerlink" title="1. 垃圾回收的简单回顾"></a>1. 垃圾回收的简单回顾</h2><p>关于垃圾回收算法，基本就是那么几种：标记-清除、标记-复制、标记-整理。在此基础上可以增加分代（新生代&#x2F;老年代），每代采取不同的回收算法，以提高整体的分配和回收效率。</p>
+<p>无论使用哪种算法，<strong>标记总是必要的一步</strong>。垃圾回收器的工作流程大体如下：</p>
+<ul>
+<li><ol>
+<li><strong>标记</strong>出哪些对象是存活的，哪些是垃圾（可回收）；</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>进行<strong>回收</strong>（清除&#x2F;复制&#x2F;整理），如果有移动过对象（复制&#x2F;整理），还需要更新引用。</li>
+</ol>
+</li>
+</ul>
+<p>本文着重来看下<strong>标记</strong>的部分的。CMS和G1都使用了三色标记法。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/04/01/Java/JVM/%E4%B8%89%E8%89%B2%E6%A0%87%E8%AE%B0%E6%B3%95%E4%B8%8E%E8%AF%BB%E5%86%99%E5%B1%8F%E9%9A%9C/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
     <link itemprop="mainEntityOfPage" href="http://example.com/2015/09/23/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/Archetype&Specification&Publish-Subscribe/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -745,7 +836,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">16</span>
+          <span class="site-state-item-count">17</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
