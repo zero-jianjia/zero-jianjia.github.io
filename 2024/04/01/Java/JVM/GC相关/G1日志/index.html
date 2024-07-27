@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="Young Collection日志 12345678910111213141516171819202122232425262016-09-29T16:58:43.298+0800: 84662.983: [GC pause (G1 Evacuation Pause) (young)   [Parallel Time: 39.5 ms, GC Workers: 13]      [GC Worke">
+<meta property="og:type" content="article">
+<meta property="og:title" content="G1日志">
+<meta property="og:url" content="http://example.com/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/G1%E6%97%A5%E5%BF%97/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="Young Collection日志 12345678910111213141516171819202122232425262016-09-29T16:58:43.298+0800: 84662.983: [GC pause (G1 Evacuation Pause) (young)   [Parallel Time: 39.5 ms, GC Workers: 13]      [GC Worke">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2024-03-31T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.314Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/G1%E6%97%A5%E5%BF%97/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>G1日志 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/G1%E6%97%A5%E5%BF%97/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          G1日志
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/JVM/" itemprop="url" rel="index"><span itemprop="name">JVM</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/JVM/GC%E7%9B%B8%E5%85%B3/" itemprop="url" rel="index"><span itemprop="name">GC相关</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="Young-Collection日志"><a href="#Young-Collection日志" class="headerlink" title="Young Collection日志"></a>Young Collection日志</h1> <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">2016-09-29T16:58:43.298+0800: 84662.983: [GC pause (G1 Evacuation Pause) (young)</span><br><span class="line">   [Parallel Time: 39.5 ms, GC Workers: 13]</span><br><span class="line">      [GC Worker Start (ms): Min: 84662997.2, Avg: 84662997.6, Max: 84662997.8, Diff: 0.6]</span><br><span class="line">      [Ext Root Scanning (ms): Min: 1.0, Avg: 1.6, Max: 6.2, Diff: 5.2, Sum: 21.0]</span><br><span class="line">      [Update RS (ms): Min: 8.1, Avg: 12.4, Max: 13.1, Diff: 5.0, Sum: 161.1]</span><br><span class="line">         [Processed Buffers: Min: 9, Avg: 17.8, Max: 26, Diff: 17, Sum: 231]</span><br><span class="line">      [Scan RS (ms): Min: 5.8, Avg: 6.2, Max: 6.3, Diff: 0.5, Sum: 80.2]</span><br><span class="line">      [Code Root Scanning (ms): Min: 0.0, Avg: 0.0, Max: 0.0, Diff: 0.0, Sum: 0.0]</span><br><span class="line">      [Object Copy (ms): Min: 18.4, Avg: 18.6, Max: 18.7, Diff: 0.3, Sum: 241.2]</span><br><span class="line">      [Termination (ms): Min: 0.0, Avg: 0.2, Max: 0.2, Diff: 0.2, Sum: 2.1]</span><br><span class="line">         [Termination Attempts: Min: 1, Avg: 149.4, Max: 197, Diff: 196, Sum: 1942]</span><br><span class="line">      [GC Worker Other (ms): Min: 0.0, Avg: 0.1, Max: 0.1, Diff: 0.1, Sum: 1.1]</span><br><span class="line">      [GC Worker Total (ms): Min: 38.7, Avg: 39.0, Max: 39.3, Diff: 0.6, Sum: 506.8]</span><br><span class="line">      [GC Worker End (ms): Min: 84663036.5, Avg: 84663036.5, Max: 84663036.6, Diff: 0.1]</span><br><span class="line">   [Code Root Fixup: 0.1 ms]</span><br><span class="line">   [Code Root Purge: 0.0 ms]</span><br><span class="line">   [Clear CT: 1.1 ms]</span><br><span class="line">   [Other: 17.8 ms]</span><br><span class="line">      [Choose CSet: 0.0 ms]</span><br><span class="line">      [Ref Proc: 1.9 ms]</span><br><span class="line">      [Ref Enq: 0.1 ms]</span><br><span class="line">      [Redirty Cards: 0.4 ms]</span><br><span class="line">      [Humongous Register: 11.8 ms]</span><br><span class="line">      [Humongous Reclaim: 0.1 ms]</span><br><span class="line">      [Free CSet: 1.1 ms]</span><br><span class="line">   [Eden: 7968.0M(7968.0M)-&gt;0.0B(13.8G) Survivors: 0.0B-&gt;0.0B Heap: 31.9G(96.0G)-&gt;24.3G(96.0G)]</span><br></pre></td></tr></table></figure>
+
+<p>GC pause (G1 Evacuation Pause) (young) - 表示此时GC暂停是YGC。</p>
+<span id="more"></span>
+
+<p>Parallel Time与GC Workers  – 并行阶段总的停顿时间和GC工作线程数量。紧跟着的几行显示并行阶段的执行任务。</p>
+<blockquote>
+<p>GC Worker Start与GC Worker End – 各个工作线程(workers)启动和结束的时间戳(Timestamp)的统计值</p>
+<p>External Root Scanning - 扫描外部根花费的时间统计值</p>
+<p>Update RS - 更新Remembered Set。</p>
+<p>Scan RS - 扫描CSet中的region的Remembered Sets，查找指向Collection Set的references。</p>
+<p>Code Root Scanning – 扫描code root set查找指向CSet的引用。</p>
+<p>Object copy – 每个独立的线程在拷贝和转移对象时所消耗的时间.</p>
+<p>Termination time - 结束时间，当worker线程完成了自己那部分对象的复制和扫描任务,就进入终止协议(termination protocol)。它会查找未完成的工作(looks for work to steal), 一旦它完成就会再进入终止协议。终止尝试记录(Termination attempt counts)所有查找工作的尝试次数(attempts to steal work).</p>
+<p>GC worker other – 每个GC线程中不能归属到之前列出的阶段任务（usual task）的其他时间。</p>
+<p>GC Worker Total -每个独立的 GC worker 线程消耗的时间，包含“usual” and “unusual”任务的执行时间。并行任务完成之后将开始串行任务，该阶段主GC线程updates code roots with the new location of evacuated objects and also purges the code root set table. clear CT phase (which is carried out in parallel with the help of parallel worker threads) clears the card table marks。</p>
+</blockquote>
+<p>[Code Root Fixup: 0.1 ms]</p>
+<p>[Code Root Purge: 0.0 ms]</p>
+<p>[Clear CT: 1.1 ms]</p>
+<blockquote>
+<p>Choose CSet – 确定要进行垃圾回收的region集合时消耗的时间. 通常很小,在必须选择 old 区时会稍微长一点点。</p>
+<p>Ref Proc -处理GC前面阶段产生的sofe、weak等引用所使用的时间</p>
+<p>Ref Enq -将soft, weak, 等引用放置到待处理列表(pending list)花费的时间.</p>
+<p>Free CSet -释放刚被垃圾收集的 heap区所消耗的时间,包括对应的remembered sets。</p>
+</blockquote>
+<h1 id="concurrent-mark-日志"><a href="#concurrent-mark-日志" class="headerlink" title="concurrent mark 日志"></a>concurrent mark 日志</h1><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line">2016-10-10T17:14:28.807+0800: 12.742: [GC pause (Metadata GC Threshold) (young) (initial-mark)</span><br><span class="line">12.742: [G1Ergonomics (CSet Construction) start choosing CSet, _pending_cards: 3712, predicted base time: 49.13 ms, remaining time: 50.87 ms, target pause time: 100.00 ms]</span><br><span class="line"> 12.742: [G1Ergonomics (CSet Construction) add young regions to CSet, eden: 61 regions, survivors: 0 regions, predicted young region time: 4418.18 ms]</span><br><span class="line"> 12.742: [G1Ergonomics (CSet Construction) finish choosing CSet, eden: 61 regions, survivors: 0 regions, old: 0 regions, predicted pause time: 4467.31 ms, target pause time: 100.00 ms]</span><br><span class="line">2016-10-10T17:14:29.002+0800: 12.936: [SoftReference, 0 refs, 0.0003939 secs]2016-10-10T17:14:29.002+0800: 12.937: [WeakReference, 233 refs, 0.0003051 secs]2016-10-10T17:14:29.002+0800: 12.937: [FinalReference, 4741 refs, 0.0025090 secs]2016-10-10T17:14:29.005+0800: 12.940: [PhantomReference, 0 refs, 0 refs, 0.0004143 secs]2016-10-10T17:14:29.005+0800: 12.940: [JNI Weak Reference, 0.0010498 secs] 12.944: [G1Ergonomics (Mixed GCs) do not start mixed GCs, reason: concurrent cycle is about to start]</span><br><span class="line">, 0.2020456 secs]</span><br><span class="line">   [Parallel Time: 193.9 ms, GC Workers: 13]</span><br><span class="line">      [GC Worker Start (ms): Min: 12742.2, Avg: 12742.3, Max: 12742.5, Diff: 0.4]</span><br><span class="line">      [Ext Root Scanning (ms): Min: 5.5, Avg: 6.8, Max: 8.5, Diff: 2.9, Sum: 88.7]</span><br><span class="line">      [Update RS (ms): Min: 0.4, Avg: 0.8, Max: 1.3, Diff: 0.9, Sum: 9.8]</span><br><span class="line">         [Processed Buffers: Min: 1, Avg: 1.9, Max: 3, Diff: 2, Sum: 25]</span><br><span class="line">      [Scan RS (ms): Min: 19.9, Avg: 20.4, Max: 20.7, Diff: 0.9, Sum: 265.1]</span><br><span class="line">      [Code Root Scanning (ms): Min: 0.0, Avg: 0.1, Max: 0.9, Diff: 0.9, Sum: 1.9]</span><br><span class="line">      [Object Copy (ms): Min: 161.0, Avg: 162.9, Max: 166.0, Diff: 5.0, Sum: 2117.1]</span><br><span class="line">      [Termination (ms): Min: 0.0, Avg: 2.5, Max: 3.2, Diff: 3.2, Sum: 32.8]</span><br><span class="line">         [Termination Attempts: Min: 1, Avg: 2354.8, Max: 2844, Diff: 2843, Sum: 30612]</span><br><span class="line">      [GC Worker Other (ms): Min: 0.0, Avg: 0.0, Max: 0.1, Diff: 0.0, Sum: 0.4]</span><br><span class="line">      [GC Worker Total (ms): Min: 193.3, Avg: 193.5, Max: 193.7, Diff: 0.3, Sum: 2515.7]</span><br><span class="line">      [GC Worker End (ms): Min: 12935.8, Avg: 12935.9, Max: 12935.9, Diff: 0.0]</span><br><span class="line">   [Code Root Fixup: 0.4 ms]</span><br><span class="line">   [Code Root Purge: 0.2 ms]</span><br><span class="line">   [Clear CT: 0.3 ms]</span><br><span class="line">   [Other: 7.3 ms]</span><br><span class="line">      [Choose CSet: 0.0 ms]</span><br><span class="line">      [Ref Proc: 4.9 ms]</span><br><span class="line">      [Ref Enq: 0.3 ms]</span><br><span class="line">      [Redirty Cards: 0.5 ms]</span><br><span class="line">      [Humongous Register: 0.0 ms]</span><br><span class="line">      [Humongous Reclaim: 0.1 ms]</span><br><span class="line">      [Free CSet: 0.2 ms]</span><br><span class="line">   [Eden: 1952.0M(3904.0M)-&gt;0.0B(3904.0M) Survivors: 0.0B-&gt;0.0B Heap: 2391.8M(96.0G)-&gt;1067.5M(96.0G)]</span><br><span class="line">Heap after GC invocations=3 (full 0):</span><br><span class="line"> garbage-first heap   total 100663296K, used 1093164K [0x00007f6a8c000000, 0x00007f6a8e006000, 0x00007f828c000000)</span><br><span class="line">  region size 32768K, 0 young (0K), 0 survivors (0K)</span><br><span class="line"> Metaspace       used 35815K, capacity 36387K, committed 36476K, reserved 36864K</span><br><span class="line">&#125;</span><br><span class="line"> [Times: user=2.19 sys=0.19, real=0.20 secs] </span><br><span class="line">2016-10-10T17:14:29.009+0800: 12.944: [GC concurrent-root-region-scan-start]</span><br><span class="line">2016-10-10T17:14:29.009+0800: 12.944: [GC concurrent-root-region-scan-end, 0.0000715 secs]</span><br><span class="line">2016-10-10T17:14:29.009+0800: 12.944: [GC concurrent-mark-start]</span><br><span class="line">2016-10-10T17:14:29.391+0800: 13.325: [GC concurrent-mark-end, 0.3816054 secs]</span><br><span class="line">2016-10-10T17:14:29.391+0800: 13.326: [GC remark 2016-10-10T17:14:29.391+0800: 13.326: [Finalize Marking, 0.0003442 secs] 2016-10-10T17:14:29.391+0800: 13.326: [GC ref-proc2016-10-10T17:14:29.391+0800: 13.326: [SoftReference, 0 refs, 0.0008952 secs]2016-10-10T17:14:29.392+0800: 13.327: [WeakReference, 210 refs, 0.0006089 secs]2016-10-10T17:14:29.393+0800: 13.328: [FinalReference, 403 refs, 0.0005809 secs]2016-10-10T17:14:29.393+0800: 13.328: [PhantomReference, 0 refs, 1 refs, 0.0009118 secs]2016-10-10T17:14:29.394+0800: 13.329: [JNI Weak Reference, 0.0000346 secs], 0.0031823 secs] 2016-10-10T17:14:29.394+0800: 13.329: [Unloading, 0.0073561 secs], 0.0128419 secs]</span><br><span class="line"> [Times: user=0.16 sys=0.01, real=0.02 secs] </span><br><span class="line">2016-10-10T17:14:29.404+0800: 13.339: [GC cleanup 1379M-&gt;1119M(96G), 0.0030896 secs]</span><br><span class="line"> [Times: user=0.04 sys=0.00, real=0.00 secs] </span><br><span class="line">2016-10-10T17:14:29.407+0800: 13.342: [GC concurrent-cleanup-start]</span><br><span class="line">2016-10-10T17:14:29.407+0800: 13.342: [GC concurrent-cleanup-end, 0.0001273 secs]</span><br></pre></td></tr></table></figure>
+
+<p>GC pause (Metadata GC Threshold) (young) (initial-mark) — 显示本次GC暂停是由于Metadata空间不足引发初始标记阶段。除了Metadata GC Threshold触发并发标记，还可能会有G1 Humongous Allocation、G1 Evacuation Pause（主要是该原因触发），以上两者本质上貌似还是occupancy higher than threshold。initial-mark实质上是一次YGC，有STW，暂停时间为real&#x3D;0.20 secs。</p>
+<p>concurrent-root-region-scan — 并发根扫描阶段。</p>
+<p>concurrent-mark — 并发标记阶段。</p>
+<p>remark — 重新标记阶段，会有STW，暂停时间为real&#x3D;0. 02 secs。</p>
+<p>cleanup — 清除阶段，会有STW，暂停时间为real&#x3D;0. 00 secs（因为显示的值是保留了两位小数后的值，real值可能很小）。清除阶段显示会将260M空间清理，于是紧接着会有额外的concurrent-cleanup阶段。倘若没有空间清理，concurrent-cleanup就不会存在。</p>
+<h1 id="Mixed-GC日志"><a href="#Mixed-GC日志" class="headerlink" title="Mixed GC日志"></a>Mixed GC日志</h1><p>​    在分析MixedGC前，先看下配置的JVM参数：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">-Xms96g </span><br><span class="line">-Xmx96g </span><br><span class="line">-XX:+UseG1GC </span><br><span class="line">-XX:MaxGCPauseMillis=100 </span><br><span class="line">-XX:G1HeapRegionSize=32m </span><br><span class="line">-XX:InitiatingHeapOccupancyPercent=70 </span><br><span class="line">-XX:G1HeapWastePercent=5 </span><br><span class="line">-XX:G1MixedGCCountTarget=16 </span><br><span class="line">-XX:+UnlockExperimentalVMOptions </span><br><span class="line">-XX:G1OldCSetRegionThresholdPercent=5 </span><br><span class="line">-XX:G1NewSizePercent=4</span><br><span class="line">-XX:G1MaxNewSizePercent=15</span><br></pre></td></tr></table></figure>
+
+<p>​    堆空间是96G,每个region大小32M，那么G1会划分出3072个region，G1OldCSetRegionThresholdPercent限制每次能进入CSet的old region容量最大为5%的堆空间，即4915.2M，合计153.6个old region，四舍五入为154。</p>
+<p>接下来分析日志。</p>
+<p>在每次并发标记阶段会紧接着一次YGC，来决定是否触发Mixed GC。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">2016-10-11T08:26:26.848+0800: 54730.783: [GC pause (G1 Evacuation Pause) (young)</span><br><span class="line">Desired survivor size 973078528 bytes, new threshold 0 (max 0)</span><br><span class="line"> 54730.783: [G1Ergonomics (CSet Construction) start choosing CSet, _pending_cards: 43647, predicted base time: 22.69 ms, remaining time: 77.31 ms, target pause time: 100.00 ms]</span><br><span class="line"> 54730.783: [G1Ergonomics (CSet Construction) add young regions to CSet, eden: 460 regions, survivors: 0 regions, predicted young region time: 51.94 ms]</span><br><span class="line"> 54730.783: [G1Ergonomics (CSet Construction) finish choosing CSet, eden: 460 regions, survivors: 0 regions, old: 0 regions, predicted pause time: 74.63 ms, target pause time: 100.00 ms]</span><br><span class="line">2016-10-11T08:26:26.885+0800: 54730.819: [SoftReference, 0 refs, 0.0004022 secs]2016-10-11T08:26:26.885+0800: 54730.820: [WeakReference, 2 refs, 0.0002807 secs]2016-10-11T08:26:26.885+0800: 54730.820: [FinalReference, 1882 refs, 0.0003305 secs]2016-10-11T08:26:26.886+0800: 54730.820: [PhantomReference, 0 refs, 0 refs, 0.0005704 secs]2016-10-11T08:26:26.886+0800: 54730.821: [JNI Weak Reference, 0.0000176 secs] 54730.825: [G1Ergonomics (Mixed GCs) start mixed GCs, reason: candidate old regions available, candidate old regions: 1509 regions, reclaimable: 48974333808 bytes (47.51 %), threshold: 5.00 %]</span><br><span class="line">, 0.0423105 secs]</span><br><span class="line">……</span><br></pre></td></tr></table></figure>
+
+<p>从第四行可以看出，这次YGC后发现并发标记阶段选出的可以进行垃圾回收的old region数量有1509个，可回收空间占47.51 %，大于能容忍浪费的5%，于是需要开始 mixed GC。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line">2016-10-11T08:26:34.619+0800: 54738.554: [GC pause (G1 Evacuation Pause) (mixed)</span><br><span class="line">Desired survivor size 268435456 bytes, new threshold 0 (max 0)</span><br><span class="line"> 54738.554: [G1Ergonomics (CSet Construction) start choosing CSet, _pending_cards: 39963, predicted base time: 19.99 ms, remaining time: 80.01 ms, target pause time: 100.00 ms]</span><br><span class="line"> 54738.554: [G1Ergonomics (CSet Construction) add young regions to CSet, eden: 122 regions, survivors: 0 regions, predicted young region time: 7.65 ms]</span><br><span class="line"> 54738.554: [G1Ergonomics (CSet Construction) finish adding old regions to CSet, reason: old CSet region num reached max, old: 154 regions, max: 154 regions]</span><br><span class="line"> 54738.554: [G1Ergonomics (CSet Construction) finish choosing CSet, eden: 122 regions, survivors: 0 regions, old: 154 regions, predicted pause time: 40.99 ms, target pause time: 100.00 ms]</span><br><span class="line">2016-10-11T08:26:34.643+0800: 54738.578: [SoftReference, 0 refs, 0.0004954 secs]2016-10-11T08:26:34.644+0800: 54738.579: [WeakReference, 2 refs, 0.0002238 secs]2016-10-11T08:26:34.644+0800: 54738.579: [FinalReference, 654 refs, 0.0003230 secs]2016-10-11T08:26:34.645+0800: 54738.579: [PhantomReference, 0 refs, 0 refs, 0.0004906 secs]2016-10-11T08:26:34.645+0800: 54738.580: [JNI Weak Reference, 0.0000171 secs] 54738.586: [G1Ergonomics (Mixed GCs) continue mixed GCs, reason: candidate old regions available, candidate old regions: 1355 regions, reclaimable: 43813651360 bytes (42.50 %), threshold: 5.00 %]</span><br><span class="line">, 0.0325863 secs]</span><br><span class="line">   [Parallel Time: 23.8 ms, GC Workers: 13]</span><br><span class="line">      [GC Worker Start (ms): Min: 54738554.3, Avg: 54738554.5, Max: 54738554.6, Diff: 0.4]</span><br><span class="line">      [Ext Root Scanning (ms): Min: 0.6, Avg: 0.9, Max: 1.4, Diff: 0.8, Sum: 11.1]</span><br><span class="line">      [Update RS (ms): Min: 6.5, Avg: 6.8, Max: 7.0, Diff: 0.5, Sum: 89.0]</span><br><span class="line">         [Processed Buffers: Min: 12, Avg: 16.5, Max: 29, Diff: 17, Sum: 214]</span><br><span class="line">      [Scan RS (ms): Min: 5.5, Avg: 5.7, Max: 5.8, Diff: 0.4, Sum: 73.5]</span><br><span class="line">      [Code Root Scanning (ms): Min: 0.0, Avg: 0.0, Max: 0.0, Diff: 0.0, Sum: 0.0]</span><br><span class="line">      [Object Copy (ms): Min: 6.5, Avg: 7.0, Max: 10.0, Diff: 3.5, Sum: 90.4]</span><br><span class="line">      [Termination (ms): Min: 0.0, Avg: 3.2, Max: 3.5, Diff: 3.5, Sum: 42.1]</span><br><span class="line">         [Termination Attempts: Min: 1, Avg: 7.6, Max: 11, Diff: 10, Sum: 99]</span><br><span class="line">      [GC Worker Other (ms): Min: 0.0, Avg: 0.0, Max: 0.0, Diff: 0.0, Sum: 0.2]</span><br><span class="line">      [GC Worker Total (ms): Min: 23.4, Avg: 23.6, Max: 23.7, Diff: 0.4, Sum: 306.3]</span><br><span class="line">      [GC Worker End (ms): Min: 54738578.0, Avg: 54738578.0, Max: 54738578.0, Diff: 0.0]</span><br><span class="line">   [Code Root Fixup: 0.1 ms]</span><br><span class="line">   [Code Root Purge: 0.0 ms]</span><br><span class="line">   [Clear CT: 3.3 ms]</span><br><span class="line">   [Other: 5.4 ms]</span><br><span class="line">      [Choose CSet: 0.3 ms]</span><br><span class="line">      [Ref Proc: 1.7 ms]</span><br><span class="line">      [Ref Enq: 0.1 ms]</span><br><span class="line">      [Redirty Cards: 0.3 ms]</span><br><span class="line">      [Humongous Register: 0.1 ms]</span><br><span class="line">      [Humongous Reclaim: 0.0 ms]</span><br><span class="line">      [Free CSet: 2.4 ms]</span><br><span class="line">   [Eden: 3904.0M(3904.0M)-&gt;0.0B(3904.0M) Survivors: 0.0B-&gt;0.0B Heap: 51.7G(96.0G)-&gt;43.3G(96.0G)]</span><br><span class="line">Heap after GC invocations=1403 (full 0):</span><br><span class="line"> garbage-first heap   total 100663296K, used 45351362K [0x00007f6a8c000000, 0x00007f6a8e006000, 0x00007f828c000000)</span><br><span class="line">  region size 32768K, 0 young (0K), 0 survivors (0K)</span><br><span class="line"> Metaspace       used 58740K, capacity 59866K, committed 62352K, reserved 63488K</span><br><span class="line">&#125;</span><br><span class="line"> [Times: user=0.35 sys=0.00, real=0.03 secs]</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>第一行显示这次疏散暂停的类型—混合GC，紧接着的几行中显示开始筛选CSet，predicted base time是预测花费时间，依据添加到CSet的young和old region时间。</p>
+<p>可以发现本次CSet筛选了154个old region到CSet中，这个数值就是之前计算出的最大能加入到CSet的数量（G1会尝试一次将最大数量的region加入CSet，根据暂停时间来调整下次进入CSet的old region数量）。</p>
+<p>第七行显示这次Mixed GC后，还剩1355个candidate  old region（1509-154），可回收空间占42.50%，于是G1决定将继续Mixed GC（continue mixed GCs）。垃圾收集时间0.0325863 secs，在目标停顿100ms以内，G1认为154个old region回收将是可行的数量，于是会在下一次的Mixed GC也选择这个数量的old region进入CSet。</p>
+<p>倘若超过了目标停顿时间，Mixed GC可能会在下次回收阶段只筛选95个old region。为什么是95个？因为开始MixedGC前的那次YGC，发现有1509个候选old region，设置的G1MixedGCCountTarget为16，那么每次进入CSet的old region数量最小必须是95（1509&#x2F;16 &#x3D; 94.31）。如果只筛选95个old region后暂停时间又小于目标停顿时间，G1又会适当的添加进入CSet的old region数量，来得到一个理想的old region数量。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">2016-10-11T08:27:04.339+0800: 54768.274: [GC pause (G1 Evacuation Pause) (mixed)</span><br><span class="line">Desired survivor size 268435456 bytes, new threshold 0 (max 0)</span><br><span class="line"> 54768.274: [G1Ergonomics (CSet Construction) start choosing CSet, _pending_cards: 43339, predicted base time: 25.53 ms, remaining time: 74.47 ms, target pause time: 100.00 ms]</span><br><span class="line"> 54768.274: [G1Ergonomics (CSet Construction) add young regions to CSet, eden: 122 regions, survivors: 0 regions, predicted young region time: 12.28 ms]</span><br><span class="line"> 54768.275: [G1Ergonomics (CSet Construction) finish adding old regions to CSet, reason: predicted time is too high, predicted time: 0.81 ms, remaining time: 0.00 ms, old: 95 regions, min: 95 regions]</span><br><span class="line"> 54768.275: [G1Ergonomics (CSet Construction) added expensive regions to CSet, reason: old CSet region num not reached min, old: 95 regions, expensive: 1 regions, min: 95 regions, remaining time: 0.00 ms]</span><br><span class="line"> 54768.275: [G1Ergonomics (CSet Construction) finish choosing CSet, eden: 122 regions, survivors: 0 regions, old: 95 regions, predicted pause time: 100.70 ms, target pause time: 100.00 ms]</span><br><span class="line">2016-10-11T08:27:04.395+0800: 54768.330: [SoftReference, 0 refs, 0.0004168 secs]2016-10-11T08:27:04.396+0800: 54768.331: [WeakReference, 2 refs, 0.0002792 secs]2016-10-11T08:27:04.396+0800: 54768.331: [FinalReference, 559 refs, 0.0015823 secs]2016-10-11T08:27:04.398+0800: 54768.333: [PhantomReference, 0 refs, 0 refs, 0.0004088 secs]2016-10-11T08:27:04.398+0800: 54768.333: [JNI Weak Reference, 0.0000167 secs] 54768.341: [G1Ergonomics (Mixed GCs) continue mixed GCs, reason: candidate old regions available, candidate old regions: 798 regions, reclaimable: 25241566672 bytes (24.49 %), threshold: 5.00 %]</span><br><span class="line">, 0.0676436 secs]</span><br><span class="line">……</span><br></pre></td></tr></table></figure>
+
+<p>这是期间的某一次Mixed GC日志，这一次只选择了95个old regions进入CSet，注意上次Mixed GC后还剩893 candidate old regions，并且上次Mixed GC暂停时间是0.0841628 secs，尚不清除为什么只选择了95个。但是这里关注的是added expensive regions to CSet，当进入CSet的candidate old region数量没超出最小数量阈值95时，G1会尝试回收expensive region，expensive region表示存活对象的占用空间超过G1MixedGCLiveThresholdPercent的区域，G1不会将该region标注为candidate old regions以供Mixed GC使用，因为这类region的存活率高，疏散代价较高。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">2016-10-11T08:27:55.749+0800: 54819.684: [GC pause (G1 Evacuation Pause) (mixed)</span><br><span class="line">Desired survivor size 268435456 bytes, new threshold 0 (max 0)</span><br><span class="line"> 54819.684: [G1Ergonomics (CSet Construction) start choosing CSet, _pending_cards: 40201, predicted base time: 19.36 ms, remaining time: 80.64 ms, target pause time: 100.00 ms]</span><br><span class="line"> 54819.684: [G1Ergonomics (CSet Construction) add young regions to CSet, eden: 122 regions, survivors: 0 regions, predicted young region time: 10.68 ms]</span><br><span class="line"> 54819.685: [G1Ergonomics (CSet Construction) finish adding old regions to CSet, reason: reclaimable percentage not over threshold, old: 41 regions, max: 154 regions, reclaimable: 5142537400 bytes (4.99 %), threshold: 5.00 %]</span><br><span class="line"> 54819.685: [G1Ergonomics (CSet Construction) finish choosing CSet, eden: 122 regions, survivors: 0 regions, old: 41 regions, predicted pause time: 95.51 ms, target pause time: 100.00 ms]</span><br><span class="line">2016-10-11T08:27:55.795+0800: 54819.730: [SoftReference, 0 refs, 0.0004575 secs]2016-10-11T08:27:55.796+0800: 54819.730: [WeakReference, 1 refs, 0.0002457 secs]2016-10-11T08:27:55.796+0800: 54819.731: [FinalReference, 405 refs, 0.0003508 secs]2016-10-11T08:27:55.796+0800: 54819.731: [PhantomReference, 0 refs, 0 refs, 0.0004201 secs]2016-10-11T08:27:55.797+0800: 54819.731: [JNI Weak Reference, 0.0000157 secs] 54819.739: [G1Ergonomics (Mixed GCs) do not continue mixed GCs, reason: reclaimable percentage not over threshold, candidate old regions: 187 regions, reclaimable: 5142537400 bytes (4.99 %), threshold: 5.00 %]</span><br><span class="line">, 0.0555605 secs]</span><br></pre></td></tr></table></figure>
+
+<p>这次MixedGC后，可回收空间是4.99 %，低于阈值5.00 %，G1将决定不再继续Mixed GC。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/G1%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E5%99%A8/" rel="prev" title="G1垃圾收集器">
+      <i class="fa fa-chevron-left"></i> G1垃圾收集器
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/9%E7%A7%8D%E5%B8%B8%E8%A7%81%E7%9A%84CMS%20GC%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90%E4%B8%8E%E8%A7%A3%E5%86%B3/" rel="next" title="9种常见的CMS GC问题分析与解决">
+      9种常见的CMS GC问题分析与解决 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Young-Collection%E6%97%A5%E5%BF%97"><span class="nav-number">1.</span> <span class="nav-text">Young Collection日志</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#concurrent-mark-%E6%97%A5%E5%BF%97"><span class="nav-number">2.</span> <span class="nav-text">concurrent mark 日志</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Mixed-GC%E6%97%A5%E5%BF%97"><span class="nav-number">3.</span> <span class="nav-text">Mixed GC日志</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="[toc] 一、 MySQL扩展具体的实现方式&emsp;&emsp;随着业务规模的不断扩大，需要选择合适的方案去应对数据规模的增长，以应对逐渐增长的访问压力和数据量。&emsp;&emsp;关于数据库的扩展主要包括：业务拆分、主从复制，数据库分库与分表。这篇文章主要讲述数据库分库与分表。 （1）业务拆分&emsp;&emsp;业务起步初始，为了加快应用上线和快速迭代，很多应用都采用集中式的架构。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="数据库分库分表">
+<meta property="og:url" content="http://example.com/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="[toc] 一、 MySQL扩展具体的实现方式&emsp;&emsp;随着业务规模的不断扩大，需要选择合适的方案去应对数据规模的增长，以应对逐渐增长的访问压力和数据量。&emsp;&emsp;关于数据库的扩展主要包括：业务拆分、主从复制，数据库分库与分表。这篇文章主要讲述数据库分库与分表。 （1）业务拆分&emsp;&emsp;业务起步初始，为了加快应用上线和快速迭代，很多应用都采用集中式的架构。">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407141211278.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407141211536.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407141212463.png">
+<meta property="article:published_time" content="2024-04-05T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.798Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407141211278.png">
+
+<link rel="canonical" href="http://example.com/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>数据库分库分表 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          数据库分库分表
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-06 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-06T00:00:00+08:00">2024-04-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93-%E7%BC%93%E5%AD%98/" itemprop="url" rel="index"><span itemprop="name">数据库&缓存</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>[toc]</p>
+<h3 id="一、-MySQL扩展具体的实现方式"><a href="#一、-MySQL扩展具体的实现方式" class="headerlink" title="一、 MySQL扩展具体的实现方式"></a>一、 MySQL扩展具体的实现方式</h3><p>&emsp;&emsp;随着业务规模的不断扩大，需要选择合适的方案去应对数据规模的增长，以应对逐渐增长的访问压力和数据量。<br>&emsp;&emsp;关于数据库的扩展主要包括：<strong>业务拆分</strong>、<strong>主从复制</strong>，<strong>数据库分库与分表</strong>。这篇文章主要讲述数据库分库与分表。</p>
+<p>（1）业务拆分<br>&emsp;&emsp;业务起步初始，为了加快应用上线和快速迭代，很多应用都采用集中式的架构。随着业务系统的扩大，系统变得越来越复杂，越来越难以维护，开发效率变得越来越低，并且对资源的消耗也变得越来越大，通过硬件提高系统性能的方式带来的成本也越来越高。<br>&emsp;&emsp;因此，在选型初期，一个优良的架构设计是后期系统进行扩展的重要保障。例如：电商平台，包含了用户、商品、评价、订单等几大模块，最简单的做法就是在一个数据库中分别创建users、shops、comment、order四张表。<br>&emsp;&emsp;但是，随着业务规模的增大，访问量的增大，我们不得不对业务进行拆分。每一个模块都使用单独的数据库来进行存储，不同的业务访问不同的数据库，将原本对一个数据库的依赖拆分为对4个数据库的依赖，这样的话就变成了4个数据库同时承担压力，系统的吞吐量自然就提高了。</p>
+<p>（2）主从复制<br>&emsp;&emsp;MySQL主从复制的原理：数据复制的实际就是Slave从Master获取Binary log文件，然后再本地镜像的执行日志中记录的操作。由于主从复制的过程是异步的，因此Slave和Master之间的数据有可能存在延迟的现象，此时只能保证数据最终的一致性。</p>
+<p>（3）数据库分库与分表<br>&emsp;&emsp;每台机器都有自身的物理上限，所以当应用已经能触及或远远超出单台机器的某个上限的时候，惟有寻找别的机器的帮助或者继续升级硬件，但常见的方案还是通过添加更多的机器来共同承担压力。<br>&emsp;&emsp;还得考虑当业务逻辑不断增长，机器能不能通过线性增长就能满足需求？因此，使用数据库的分库分表，能够立竿见影的提升系统的性能。</p>
+ <span id="more"></span>
+
+<h3 id="二、分表实现策略"><a href="#二、分表实现策略" class="headerlink" title="二、分表实现策略"></a>二、分表实现策略</h3><p>&emsp;&emsp;对于大部分数据库的设计和业务的操作基本都与用户的ID相关，因此使用用户ID是最常用的分库的路由策略。用户的ID可以作为贯穿整个系统用的重要字段。因此，使用用户的ID不仅可以方便查询，还可以将数据平均的分配到不同的数据库中。（当然，还可以根据类别等进行分表操作，分表的路由策略还有很多方式）<br>&emsp;&emsp;接着上述电商平台假设，订单表order存放用户的订单数据，sql脚本如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">CREATE TABLE `order` (</span><br><span class="line">  `order_id` bigint(32) primary key auto_increment,</span><br><span class="line">  `user_id` bigint(32),</span><br><span class="line">   ...</span><br><span class="line">) </span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;当数据比较大的时候，对数据进行分表操作，首先要确定需要将数据平均分配到多少张表中，也就是：<strong>表容量</strong>。</p>
+<p>&emsp;&emsp;这里假设有100张表进行存储，则我们在进行存储数据的时候，首先对用户ID进行取模操作，根据 user_id%100 获取对应的表进行存储查询操作，示意图如下：<br><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407141211278.png" width=40% higth=40%></p>
+<p>&emsp;&emsp;例如，user_id &#x3D; 101 那么在获取值的时候的操作，可以通过下边的sql语句：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">select * from order_1 where user_id= 101</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;其中，order_1是根据 101%100 计算所得，表示分表之后的第一张order表。<br>&emsp;&emsp;在实际的开发中，如果使用MyBatis做持久层的话，MyBatis已经提供了很好得支持数据库分表的功能，例如上述sql用MyBatis实现的话应该是：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line">  * 获取用户相关的订单详细信息</span><br><span class="line">  * @param tableNum 具体某一个表的编号</span><br><span class="line">  * @param userId 用户ID</span><br><span class="line">  * @return 订单列表</span><br><span class="line">    */</span><br><span class="line">public List&lt;Order&gt; getOrder(@Param(&quot;tableNum&quot;) int tableNum,@Param(&quot;userId&quot;) int userId);</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">xml配置映射文件：</span><br><span class="line"></span><br><span class="line">&lt;select id=&quot;getOrder&quot; resultMap=&quot;BaseResultMap&quot;&gt;</span><br><span class="line">    select * from order_$&#123;tableNum&#125;</span><br><span class="line">    where user_id = #&#123;userId&#125;</span><br><span class="line">  &lt;/select&gt;</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;其中 <code>$&#123;tableNum&#125;</code> 含义是直接让参数加入到sql中，这是MyBatis支持的特性。</p>
+<h3 id="三、分库实现策略"><a href="#三、分库实现策略" class="headerlink" title="三、分库实现策略"></a>三、分库实现策略</h3><p>&emsp;&emsp;数据库分表能够解决单表数据量很大的时候数据查询的效率问题，但是无法给数据库的并发操作带来效率上的提高，因为分表的实质还是在一个数据库上进行的操作，很容易受数据库IO性能的限制。<br>&emsp;&emsp;因此，如何将数据库IO性能的问题平均分配出来，很显然将数据进行分库操作可以很好地解决单台数据库的性能问题。</p>
+<p>&emsp;&emsp;分库策略与分表策略的实现很相似，最简单的都是可以通过取模的方式进行路由。还是上例，将用户ID进行取模操作，这样的话获取到具体的某一个数据库，同样关键字有：用户ID、库容量</p>
+<p>&emsp;&emsp;路由的示意图如下：<br><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407141211536.png" width=50% higth=50%></p>
+<h3 id="四、分库与分表实现策略"><a href="#四、分库与分表实现策略" class="headerlink" title="四、分库与分表实现策略"></a>四、分库与分表实现策略</h3><p>&emsp;&emsp;上述的配置中，数据库分表可以解决单表海量数据的查询性能问题，分库可以解决单台数据库的并发访问压力问题。<br>&emsp;&emsp;有时候需要同时考虑这两个问题，因此，既需要对单表进行分表操作，还需要进行分库操作，以便同时扩展系统的并发处理能力和提升单表的查询性能，就是使用到的分库分表。</p>
+<p>&emsp;&emsp;分库分表的策略相对于前边两种复杂一些，一种常见的路由策略如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">１、中间变量　＝ user_id%（库数量*每个库的表数量）;</span><br><span class="line">２、库序号　＝　取整（中间变量／每个库的表数量）;</span><br><span class="line">３、表序号　＝　中间变量％每个库的表数量;</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;例如：数据库有256 个，每一个库中有1024个数据表，用户的user_id＝262145，按照上述的路由策略，可得：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">１、中间变量　＝ 262145%（256*1024）= 1;</span><br><span class="line">２、库序号　＝　取整（1／1024）= 0;</span><br><span class="line">３、表序号　＝　1％1024 = 1;</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;这样的话，对于user_id＝262145，将被路由到第０个数据库的第１个表中。示意图如下：<br><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407141212463.png" width=50% higth=50%></p>
+<h3 id="五、分库分表总结"><a href="#五、分库分表总结" class="headerlink" title="五、分库分表总结"></a>五、分库分表总结</h3><p>&emsp;&emsp;关于分库分表策略的选择有很多种，上文中根据用户ID应该是比较简单的一种。其他方式比如使用号段进行分区或者直接使用hash进行路由等。<br>&emsp;&emsp;如果用户的ID是通过UUID的方式生成的话，需要单独的进行一次hash操作，然后在进行取模操作等，其实hash本身就是一种分库分表的策略，使用hash进行路由策略的时候，需要知道的是，也就是hash路由策略的优缺点，优点是：数据分布均匀；缺点是：数据迁移的时候麻烦，不能按照机器性能分摊数据。</p>
+<p>&emsp;&emsp;上述的分库和分表操作，查询性能和并发能力都得到了提高，但是还有一些需要注意的就是，例如：原本跨表的事物变成了分布式事物；由于记录被切分到不同的数据库和不同的数据表中，难以进行多表关联查询，并且不能不指定路由字段对数据进行查询。分库分表之后，如果需要对系统进行进一步的扩阵容（路由策略变更），将变得非常不方便，需要重新进行数据迁移。</p>
+<p>&emsp;&emsp;分库分表目前有很多的中间件可供选择，最常见的是使用淘宝的中间件Cobar。GitHub地址：<a target="_blank" rel="noopener" href="https://github.com/alibaba/cobara">https://github.com/alibaba/cobara</a> ，文档地址为：<a target="_blank" rel="noopener" href="https://github.com/alibaba/cobar/wiki">https://github.com/alibaba/cobar/wiki</a></p>
+<hr>
+<p>转载自：<br><a target="_blank" rel="noopener" href="https://blog.csdn.net/xlgen157387/article/details/53976153">https://blog.csdn.net/xlgen157387/article/details/53976153</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/%E7%BC%93%E5%AD%98%E7%A9%BF%E9%80%8F%EF%BC%8C%E7%BC%93%E5%AD%98%E5%87%BB%E7%A9%BF%EF%BC%8C%E7%BC%93%E5%AD%98%E9%9B%AA%E5%B4%A9%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88%E5%88%86%E6%9E%90/" rel="prev" title="缓存穿透，缓存击穿，缓存雪崩解决方案分析">
+      <i class="fa fa-chevron-left"></i> 缓存穿透，缓存击穿，缓存雪崩解决方案分析
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%B9%B3%E6%BB%91%E6%89%A9%E5%AE%B9%E6%96%B9%E6%A1%88/" rel="next" title="数据库平滑扩容方案">
+      数据库平滑扩容方案 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%80%E3%80%81-MySQL%E6%89%A9%E5%B1%95%E5%85%B7%E4%BD%93%E7%9A%84%E5%AE%9E%E7%8E%B0%E6%96%B9%E5%BC%8F"><span class="nav-number">1.</span> <span class="nav-text">一、 MySQL扩展具体的实现方式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E5%88%86%E8%A1%A8%E5%AE%9E%E7%8E%B0%E7%AD%96%E7%95%A5"><span class="nav-number">2.</span> <span class="nav-text">二、分表实现策略</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E5%88%86%E5%BA%93%E5%AE%9E%E7%8E%B0%E7%AD%96%E7%95%A5"><span class="nav-number">3.</span> <span class="nav-text">三、分库实现策略</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E5%88%86%E5%BA%93%E4%B8%8E%E5%88%86%E8%A1%A8%E5%AE%9E%E7%8E%B0%E7%AD%96%E7%95%A5"><span class="nav-number">4.</span> <span class="nav-text">四、分库与分表实现策略</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BA%94%E3%80%81%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8%E6%80%BB%E7%BB%93"><span class="nav-number">5.</span> <span class="nav-text">五、分库分表总结</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

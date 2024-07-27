@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="Tracer是一个用于分布式系统调用跟踪的组件，通过统一的 ID，将调用链路中的各种网络调用情况以日志的方式记录下来，以达到透视化网络调用的目的。这些日志可用于故障的快速发现，服务治理等等。    电商平台由数以百计的分布式服务构成，每一个请求路由过来后，会经过多个业务系统并留下足迹，并产生对各种Cache或DB的访问，但是这些分散的数据对于问题排查，或是流程优化都帮助有限。对于这么一个跨进程">
+<meta property="og:type" content="article">
+<meta property="og:title" content="分布式系统为什么需要 Tracing">
+<meta property="og:url" content="http://example.com/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%8F%AF%E8%A7%82%E6%B5%8B/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F%E4%B8%BA%E4%BB%80%E4%B9%88%E9%9C%80%E8%A6%81%20Tracing/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="Tracer是一个用于分布式系统调用跟踪的组件，通过统一的 ID，将调用链路中的各种网络调用情况以日志的方式记录下来，以达到透视化网络调用的目的。这些日志可用于故障的快速发现，服务治理等等。    电商平台由数以百计的分布式服务构成，每一个请求路由过来后，会经过多个业务系统并留下足迹，并产生对各种Cache或DB的访问，但是这些分散的数据对于问题排查，或是流程优化都帮助有限。对于这么一个跨进程">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291804898.jpg">
+<meta property="article:published_time" content="2024-04-04T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.717Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291804898.jpg">
+
+<link rel="canonical" href="http://example.com/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%8F%AF%E8%A7%82%E6%B5%8B/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F%E4%B8%BA%E4%BB%80%E4%B9%88%E9%9C%80%E8%A6%81%20Tracing/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>分布式系统为什么需要 Tracing | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%8F%AF%E8%A7%82%E6%B5%8B/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F%E4%B8%BA%E4%BB%80%E4%B9%88%E9%9C%80%E8%A6%81%20Tracing/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          分布式系统为什么需要 Tracing
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-05T00:00:00+08:00">2024-04-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/" itemprop="url" rel="index"><span itemprop="name">分布式与微服务</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%8F%AF%E8%A7%82%E6%B5%8B/" itemprop="url" rel="index"><span itemprop="name">可观测</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>  <strong>Tracer是一个用于分布式系统调用跟踪的组件，通过统一的 ID，将调用链路中的各种网络调用情况以日志的方式记录下来，以达到透视化网络调用的目的。这些日志可用于故障的快速发现，服务治理等等。</strong></p>
+<p>   电商平台由数以百计的分布式服务构成，每一个请求路由过来后，会经过多个业务系统并留下足迹，并产生对各种Cache或DB的访问，但是这些分散的数据对于问题排查，或是流程优化都帮助有限。对于这么一个跨进程&#x2F;跨线程的场景，汇总收集并分析海量日志就显得尤为重要。<strong>要能做到追踪每个请求的完整调用链路，收集调用链路上每个服务的性能数据，计算性能数据和比对性能指标（SLA），甚至在更远的未来能够再反馈到服务治理中，那么这就是分布式跟踪的目标了</strong>。</p>
+<span id="more"></span>  
+
+<p>  分布式系统的跟踪系统的目标要求有如下几点：</p>
+<p>  <strong>1、探针的性能消耗</strong></p>
+<p>  APM组件服务的影响应该做到足够小。<strong>服务调用埋点本身会带来性能损耗，这就需要调用跟踪的低损耗，实际中还会通过配置采样率的方式，选择一部分请求去分析请求路径</strong>。在一些高度优化过的服务，即使一点点损耗也会很容易察觉到，而且有可能迫使在线服务的部署团队不得不将跟踪系统关停。</p>
+<p>  <strong>2、代码的侵入性</strong></p>
+<p>  <strong>即也作为业务组件，应当尽可能少入侵或者无入侵其他业务系统，对于使用方透明，减少开发人员的负担</strong>。</p>
+<p>  对于应用的程序员来说，是不需要知道有跟踪系统这回事的。如果一个跟踪系统想生效，就必须需要依赖应用的开发者主动配合，那么这个跟踪系统也太脆弱了，往往由于跟踪系统在应用中植入代码的bug或疏忽导致应用出问题，这样才是无法满足对跟踪系统“无所不在的部署”这个需求。</p>
+<p>  <strong>3、可扩展性</strong></p>
+<p>  <strong>一个优秀的调用跟踪系统必须支持分布式部署，具备良好的可扩展性。能够支持的组件越多当然越好</strong>。或者提供便捷的插件开发API，对于一些没有监控到的组件，应用开发者也可以自行扩展。</p>
+<p>  <strong>4、数据的分析</strong></p>
+<p>  <strong>数据的分析要快</strong> <strong>，分析的维度尽可能多</strong>。跟踪系统能提供足够快的信息反馈，就可以对生产环境下的异常状况做出快速反应。<strong>分析的全面，能够避免二次开发</strong>。</p>
+<hr>
+<hr>
+<p>  一个请求完整的调用链可能如下图，经过多个系统服务，调用关系复杂。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291804898.jpg"></p>
+<p>   在前端请求到达服务器时，应用容器在执行实际业务处理之前，会先执行埋点逻辑（类似 Filter 的机制），埋点逻辑为这个前端请求分配一个全局唯一的调用链ID，即TraceId。埋点逻辑把TraceId放在一个调用上下文对象里面，而调用上下文对象会存储在 ThreadLocal里面。</p>
+<p>  调用上下文对象里还有一个ID非常重要，在淘宝的EagleEye里面被称作RpcId。RpcId用于区分同一个调用链下的多个网络调用的发生顺序和嵌套层次关系。对于前端收到请求，生成的RpcId固定都是0。</p>
+<p>   当这个前端执行业务处理需要发起RPC调用时，会首先从当前线程ThreadLocal上面获取之前EagleEye设置的调用上下文。然后，把RpcId递增一个序号。在 EagleEye里使用多级序号来表示RpcId，比如应用A收到请求的RpcId是0，那么它第一次调用RPC服务B时，会把RpcId改成 0.1。之后，调用上下文会作为附件随这次请求一起发送到远程服务器。</p>
+<p>   服务端收到这个请求之后，会从请求附件里取出调用上下文，并放到当前线程ThreadLocal上面。如果服务B在处理时，需要调用另一个服务，这个时候它会重复之前提到的操作，唯一的差别就是RpcId会先改成0.1.1 再传过去。服务A的逻辑全部处理完毕之后，在返回响应对象之前，会把这次调用情况以及TraceId、RpcId都打印到它的访问日志之中，同时，会从ThreadLocal 清理掉调用上下文。</p>
+<hr>
+<p>TraceId 生成规则参考</p>
+<p>Tracer 通过 TraceId 来将一个请求在各个服务器上的调用日志串联起来，TraceId一般由接收请求经过的第一个服务器产生，产生规则是：服务器IP + 进程的ID + 产生ID时候的时间 + 自增序列。产生TracerId的机器的IP可以用一个十六进制的数字，每两位代表 IP 中的一段。时间可以用毫秒数表示，自增的序列可以是四位的数字表示。</p>
+<p>RPC ID 生成规则参考</p>
+<p>  Tracer中的 RPC ID代表本次调用在整个调用链路中的位置，假设一个 Web系统A接收了一次用户请求，那么在这个系统的Tracer日志中，记录下的 RPC ID是0，代表是整个调用的根节点，如果A系统处理这次请求，需要通过 RPC依次调用B，C，D三个系统，那么在 B，C，D三个系统的Tracer服务端日志中，RPC ID也分别是0.1，0.2和0.3；如果C系统在处理请求的时候又调用了E，F两个系统，那么E，F两个系统对应的Tracer服务端日志是0.2.1 和0.2.2。</p>
+<hr>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/zhengyun_ustc/p/55solution2.html">http://www.cnblogs.com/zhengyun_ustc/p/55solution2.html</a><br><a target="_blank" rel="noopener" href="https://blog.csdn.net/u014229282/article/details/81097188">https://blog.csdn.net/u014229282/article/details/81097188</a><br><a target="_blank" rel="noopener" href="http://www.aboutyun.com/thread-20646-1-1.html">http://www.aboutyun.com/thread-20646-1-1.html</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/%E5%A6%82%E4%BD%95%E9%80%89%E6%8B%A9%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/" rel="prev" title="如何选择分布式事务">
+      <i class="fa fa-chevron-left"></i> 如何选择分布式事务
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/" rel="next" title="分布式事务">
+      分布式事务 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

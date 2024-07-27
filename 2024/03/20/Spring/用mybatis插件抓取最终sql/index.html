@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="痛点概述当我们在排查bug ，需要看执行的完整sql 时，在 console可以拿到如图的sql  然后手工一个一个的替换问号占位符后，去MySQL 执行，看sql有木有什么问题。如果sql简单，那比较好说， 如果是个复杂sql，手动替换N个问号占位符，这种痛相信大家都经历过。 今天介绍的 MybatisFinalSqlPlugin 插件 正是解决了这样的痛点，可以直接抓到最终sql。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="用mybatis插件抓取最终sql">
+<meta property="og:url" content="http://example.com/2024/03/20/Spring/%E7%94%A8mybatis%E6%8F%92%E4%BB%B6%E6%8A%93%E5%8F%96%E6%9C%80%E7%BB%88sql/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="痛点概述当我们在排查bug ，需要看执行的完整sql 时，在 console可以拿到如图的sql  然后手工一个一个的替换问号占位符后，去MySQL 执行，看sql有木有什么问题。如果sql简单，那比较好说， 如果是个复杂sql，手动替换N个问号占位符，这种痛相信大家都经历过。 今天介绍的 MybatisFinalSqlPlugin 插件 正是解决了这样的痛点，可以直接抓到最终sql。">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291722242.png">
+<meta property="article:published_time" content="2024-03-19T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.661Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291722242.png">
+
+<link rel="canonical" href="http://example.com/2024/03/20/Spring/%E7%94%A8mybatis%E6%8F%92%E4%BB%B6%E6%8A%93%E5%8F%96%E6%9C%80%E7%BB%88sql/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>用mybatis插件抓取最终sql | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/20/Spring/%E7%94%A8mybatis%E6%8F%92%E4%BB%B6%E6%8A%93%E5%8F%96%E6%9C%80%E7%BB%88sql/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          用mybatis插件抓取最终sql
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-03-20 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-20T00:00:00+08:00">2024-03-20</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="痛点概述"><a href="#痛点概述" class="headerlink" title="痛点概述"></a>痛点概述</h2><p>当我们在排查bug ，需要看执行的完整sql 时，在 console可以拿到如图的sql <img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291722242.png" alt="img"></p>
+<p>然后手工一个一个的替换问号占位符后，去MySQL 执行，看sql有木有什么问题。如果sql简单，那比较好说， 如果是个复杂sql，手动替换N个问号占位符，这种痛相信大家都经历过。 今天介绍的 MybatisFinalSqlPlugin 插件 正是解决了这样的痛点，可以直接抓到最终sql。</p>
+<span id="more"></span>
+
+<h2 id="MybatisFinalSqlPlugin插件"><a href="#MybatisFinalSqlPlugin插件" class="headerlink" title="MybatisFinalSqlPlugin插件"></a>MybatisFinalSqlPlugin插件</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">package</span> com.anuo.app.common.datalayer.mybatisplugin;</span><br><span class="line"> </span><br><span class="line"><span class="keyword">import</span> com.google.common.base.Stopwatch;</span><br><span class="line"><span class="keyword">import</span> lombok.extern.slf4j.Slf4j;</span><br><span class="line"><span class="keyword">import</span> org.apache.ibatis.executor.statement.StatementHandler;</span><br><span class="line"><span class="keyword">import</span> org.apache.ibatis.plugin.*;</span><br><span class="line"><span class="keyword">import</span> org.apache.ibatis.reflection.MetaObject;</span><br><span class="line"><span class="keyword">import</span> org.apache.ibatis.reflection.SystemMetaObject;</span><br><span class="line"> </span><br><span class="line"><span class="keyword">import</span> java.lang.reflect.Field;</span><br><span class="line"><span class="keyword">import</span> java.sql.Connection;</span><br><span class="line"><span class="keyword">import</span> java.sql.Statement;</span><br><span class="line"><span class="keyword">import</span> java.util.Properties;</span><br><span class="line"> </span><br><span class="line"><span class="meta">@Intercepts(&#123; @Signature(type = StatementHandler.class, method = &quot;prepare&quot;, args = &#123; Connection.class,Integer.class &#125;) &#125;)</span></span><br><span class="line"><span class="meta">@Slf4j</span></span><br><span class="line"><span class="keyword">public</span>  <span class="keyword">class</span> <span class="title class_">MybatisFinalSqlPlugin</span> <span class="keyword">implements</span> <span class="title class_">Interceptor</span> &#123;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> Object <span class="title function_">intercept</span><span class="params">(Invocation invocation)</span> <span class="keyword">throws</span> Throwable &#123;</span><br><span class="line">        <span class="type">Stopwatch</span> <span class="variable">stopwatch</span> <span class="operator">=</span> Stopwatch.createStarted();</span><br><span class="line"> </span><br><span class="line">        <span class="keyword">if</span> (invocation.getTarget() <span class="keyword">instanceof</span> StatementHandler) &#123;</span><br><span class="line"> </span><br><span class="line">            <span class="comment">//获取Statement 对象</span></span><br><span class="line">            <span class="type">Connection</span> <span class="variable">conn</span> <span class="operator">=</span> (Connection) invocation.getArgs()[<span class="number">0</span>];</span><br><span class="line">            <span class="type">StatementHandler</span> <span class="variable">handler</span> <span class="operator">=</span> (StatementHandler) invocation.getTarget();</span><br><span class="line">            <span class="type">Statement</span> <span class="variable">stmt</span> <span class="operator">=</span> handler.prepare(conn, <span class="number">30</span>);</span><br><span class="line">            handler.parameterize(stmt);</span><br><span class="line"> </span><br><span class="line">            <span class="comment">//获取真实对象</span></span><br><span class="line">            <span class="type">MetaObject</span> <span class="variable">metaObject</span> <span class="operator">=</span> SystemMetaObject.forObject(stmt);</span><br><span class="line"> </span><br><span class="line">            <span class="keyword">while</span> (metaObject.hasGetter(<span class="string">&quot;h&quot;</span>)) &#123;</span><br><span class="line">                <span class="type">Object</span> <span class="variable">obj</span> <span class="operator">=</span> metaObject.getValue(<span class="string">&quot;h&quot;</span>);</span><br><span class="line">                <span class="comment">// 将对象包装成MetaObject对象后就成了真实对象，然后就可以通过反射技术可以操作真实对象的所有属性</span></span><br><span class="line">                metaObject = SystemMetaObject.forObject(obj);</span><br><span class="line">            &#125;</span><br><span class="line"> </span><br><span class="line">            <span class="comment">//通过反射获取 Statement 对象上的FinalSql</span></span><br><span class="line">            <span class="comment">//todo:后续用 metaObject.getValue() 重构下面的反射代码，提升性能</span></span><br><span class="line"> </span><br><span class="line">            <span class="type">Field</span> <span class="variable">hField</span> <span class="operator">=</span> metaObject.getClass().getDeclaredField(<span class="string">&quot;originalObject&quot;</span>);</span><br><span class="line">            hField.setAccessible(<span class="literal">true</span>);</span><br><span class="line">            <span class="type">Object</span> <span class="variable">hObj</span> <span class="operator">=</span> hField.get(metaObject);</span><br><span class="line"> </span><br><span class="line">            <span class="type">Field</span> <span class="variable">statementField</span> <span class="operator">=</span> hObj.getClass().getDeclaredField(<span class="string">&quot;statement&quot;</span>);</span><br><span class="line">            statementField.setAccessible(<span class="literal">true</span>);</span><br><span class="line">            <span class="type">Object</span> <span class="variable">statementObj</span> <span class="operator">=</span> statementField.get(hObj);</span><br><span class="line"> </span><br><span class="line">            <span class="type">Field</span> <span class="variable">stmtField</span> <span class="operator">=</span> statementObj.getClass().getDeclaredField(<span class="string">&quot;stmt&quot;</span>);</span><br><span class="line">            stmtField.setAccessible(<span class="literal">true</span>);</span><br><span class="line">            <span class="type">Object</span> <span class="variable">stmtObj</span> <span class="operator">=</span> stmtField.get(statementObj);</span><br><span class="line"> </span><br><span class="line">            <span class="type">Field</span> <span class="variable">statementArrivedField</span> <span class="operator">=</span> stmtObj.getClass().getDeclaredField(<span class="string">&quot;statement&quot;</span>);</span><br><span class="line">            statementArrivedField.setAccessible(<span class="literal">true</span>);</span><br><span class="line">            <span class="type">Object</span> <span class="variable">statementArrivedFieldObj</span> <span class="operator">=</span> statementArrivedField.get(stmtObj);</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">            <span class="type">String</span> <span class="variable">finalSql</span> <span class="operator">=</span> statementArrivedFieldObj.toString();</span><br><span class="line"> </span><br><span class="line">            <span class="comment">//去掉不要的字符串</span></span><br><span class="line">            finalSql = finalSql.substring(finalSql.lastIndexOf(<span class="string">&quot;:&quot;</span>) + <span class="number">1</span>, finalSql.length() - <span class="number">1</span>);</span><br><span class="line"> </span><br><span class="line">            log.info(<span class="string">&quot;最终sql： \n &quot;</span> + finalSql);</span><br><span class="line"> </span><br><span class="line">        &#125;</span><br><span class="line"> </span><br><span class="line">        <span class="comment">//做了下性能测试 平均耗时为 1，2毫秒，非常低，不错！</span></span><br><span class="line">        log.debug(<span class="string">&quot;抓取最终sql 耗时：&quot;</span> + stopwatch);</span><br><span class="line">        <span class="keyword">return</span> invocation.proceed();</span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> Object <span class="title function_">plugin</span><span class="params">(Object target)</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (target <span class="keyword">instanceof</span> StatementHandler) &#123;</span><br><span class="line">            <span class="keyword">return</span> Plugin.wrap(target, <span class="built_in">this</span>);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> target;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setProperties</span><span class="params">(Properties properties)</span> &#123;</span><br><span class="line"> </span><br><span class="line">    &#125;</span><br><span class="line"> </span><br></pre></td></tr></table></figure>
+
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/03/20/Spring/%E4%BA%8B%E5%8A%A1/Spring%E4%BA%8B%E5%8A%A1%E4%BB%8B%E7%BB%8D/" rel="prev" title="Spring事务介绍">
+      <i class="fa fa-chevron-left"></i> Spring事务介绍
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/03/20/Spring/%E6%95%B4%E5%90%88Mysql%E9%A1%B9%E7%9B%AE%20%E6%95%B0%E6%8D%AE%E5%BA%93%E8%BF%9E%E6%8E%A5%E6%B1%A0hikari%E9%85%8D%E7%BD%AE%E4%BF%A1%E6%81%AF/" rel="next" title="整合Mysql项目:数据库连接池hikari配置信息">
+      整合Mysql项目:数据库连接池hikari配置信息 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%97%9B%E7%82%B9%E6%A6%82%E8%BF%B0"><span class="nav-number">1.</span> <span class="nav-text">痛点概述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#MybatisFinalSqlPlugin%E6%8F%92%E4%BB%B6"><span class="nav-number">2.</span> <span class="nav-text">MybatisFinalSqlPlugin插件</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

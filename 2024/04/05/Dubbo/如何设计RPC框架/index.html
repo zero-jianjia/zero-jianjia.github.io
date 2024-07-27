@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="&emsp;&emsp;RPC框架的核心目标是解决分布式系统中服务之间的调用问题。 RPC框架三个核心角色&emsp;&emsp;1)服务提供者（Server）对外提供后台服务，将自己的服务信息，注册到注册中心 &emsp;&emsp;2)注册中心（Registry）用于服务端注册远程服务以及客户端发现服务。 &emsp;&emsp;3)服务消费者（Client） 从注册中心获取远程服务的注册信息">
+<meta property="og:type" content="article">
+<meta property="og:title" content="如何设计RPC框架">
+<meta property="og:url" content="http://example.com/2024/04/05/Dubbo/%E5%A6%82%E4%BD%95%E8%AE%BE%E8%AE%A1RPC%E6%A1%86%E6%9E%B6/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="&emsp;&emsp;RPC框架的核心目标是解决分布式系统中服务之间的调用问题。 RPC框架三个核心角色&emsp;&emsp;1)服务提供者（Server）对外提供后台服务，将自己的服务信息，注册到注册中心 &emsp;&emsp;2)注册中心（Registry）用于服务端注册远程服务以及客户端发现服务。 &emsp;&emsp;3)服务消费者（Client） 从注册中心获取远程服务的注册信息">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2024-04-04T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.273Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2024/04/05/Dubbo/%E5%A6%82%E4%BD%95%E8%AE%BE%E8%AE%A1RPC%E6%A1%86%E6%9E%B6/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>如何设计RPC框架 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/05/Dubbo/%E5%A6%82%E4%BD%95%E8%AE%BE%E8%AE%A1RPC%E6%A1%86%E6%9E%B6/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          如何设计RPC框架
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-05T00:00:00+08:00">2024-04-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Dubbo/" itemprop="url" rel="index"><span itemprop="name">Dubbo</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>&emsp;&emsp;RPC框架的核心目标是解决分布式系统中服务之间的调用问题。</p>
+<h3 id="RPC框架三个核心角色"><a href="#RPC框架三个核心角色" class="headerlink" title="RPC框架三个核心角色"></a>RPC框架三个核心角色</h3><p>&emsp;&emsp;1)服务提供者（Server）对外提供后台服务，将自己的服务信息，注册到注册中心</p>
+<p>&emsp;&emsp;2)注册中心（Registry）用于服务端注册远程服务以及客户端发现服务。</p>
+<p>&emsp;&emsp;3)服务消费者（Client） 从注册中心获取远程服务的注册信息，然后进行远程过程调用。</p>
+<p>&emsp;&emsp;</p>
+<h3 id="RPC远程调用过程"><a href="#RPC远程调用过程" class="headerlink" title="RPC远程调用过程"></a>RPC远程调用过程</h3><p>&emsp;&emsp;1）服务调用方（client）调用以本地调用方式调用服务；<br>&emsp;&emsp;2）client stub接收到调用后负责将方法、参数等组装成能够进行网络传输的消息体；在Java里就是序列化的过程；<br>&emsp;&emsp;3）client stub找到服务地址，并将消息通过网络发送到服务端；<br>&emsp;&emsp;4）server stub收到消息后进行解码,在Java里就是反序列化的过程；<br>&emsp;&emsp;5）server stub根据解码结果调用本地的服务；<br>&emsp;&emsp;6）本地服务执行处理逻辑；<br>&emsp;&emsp;7）本地服务将结果返回给server stub；<br>&emsp;&emsp;8）server stub将返回结果打包成消息，Java里的序列化；<br>&emsp;&emsp;9）server stub将打包后的消息通过网络并发送至消费方；<br>&emsp;&emsp;10）client stub接收到消息，并进行解码, Java里的反序列化；<br>&emsp;&emsp;11）服务调用方（client）得到最终结果。</p>
+<p>&emsp;&emsp;RPC框架的目标就是要2~10这些步骤都封装起来。</p>
+<span id="more"></span>
+
+<h3 id="RPC框架涉及技术"><a href="#RPC框架涉及技术" class="headerlink" title="RPC框架涉及技术"></a>RPC框架涉及技术</h3><p>a.建立通信<br>&emsp;&emsp;首先，要解决通讯的问题，主要是通过在客户端和服务器之间建立TCP连接，远程过程调用的所有交换的数据都在这个连接里传输。<br>&emsp;&emsp;当前很多RPC框架都直接基于netty这一IO通信框架，推荐使用Netty 作为底层通信框架。</p>
+<p>b.网络传输<br>&emsp;&emsp;数据传输采用什么协议（二进制数据格式组织）？<br>&emsp;&emsp;数据该如何序列化和反序列化？(kryo&#x2F;protobuf&#x2F;protostuff&#x2F;hessian&#x2F;fastjson&#x2F;…)</p>
+<p>c.服务寻址<br>&emsp;&emsp;1）服务注册<br>&emsp;&emsp;服务提供者启动后主动把服务注册到服务中心，注册中心存储了该服务的IP、端口、调用方式(协议、序列化方式)等信息。</p>
+<p>&emsp;&emsp;2）服务发现<br>&emsp;&emsp;服务消费者第一次调用服务时，会通过注册中心找到相应的服务提供方地址列表，并缓存到本地，以供后续使用。当消费者再次调用服务时，不会再去请求注册中心，而是直接通过负载均衡算法从IP列表中取一个服务提供者的服务器调用服务。</p>
+<p>d.服务调用<br>&emsp;&emsp;服务消费者进行本地调用（通过代理Proxy）之后得到了返回值。实际上是在Proxy中封装了一系列的过程，包括序列化、请求服务提供者、反序列化等等。<br>&emsp;&emsp;创建Proxy的方式?(jdk proxy&#x2F;javassist&#x2F;cglib&#x2F;asm&#x2F;bytebuddy)<br>&emsp;&emsp;Proxy还能做什么？软负载均衡(加权随机、加权轮询、最小负载、一致性Hash…) 、集群容错(Fail-fast、Failover、Fail-safe、Fail-back)、同步&#x2F;异步调用、流控、熔断、降级、限流、隔离和超时…(服务治理)</p>
+<p>&emsp;&emsp;</p>
+<h3 id="实现高可用RPC框架需要考虑到的问题"><a href="#实现高可用RPC框架需要考虑到的问题" class="headerlink" title="实现高可用RPC框架需要考虑到的问题"></a>实现高可用RPC框架需要考虑到的问题</h3><p>&emsp;&emsp;要实现一个RPC不算难，难的是实现一个高性能高可靠的RPC框架。</p>
+<ul>
+<li>既然系统采用分布式架构，那一个服务势必会有多个实例，要解决如何获取实例的问题？</li>
+<li>如何选择实例呢？就要考虑负载均衡</li>
+<li>如果每次都去注册中心查询列表，效率很低，那么就要加缓存</li>
+<li>客户端总不能每次调用完都等着服务端返回数据，所以就要支持异步调用</li>
+<li>服务端的接口修改了，老的接口还有人在用，这就需要版本控制；</li>
+<li>服务端总不能每次接到请求都马上启动一个线程去处理，于是就需要线程池；</li>
+</ul>
+<hr>
+<p>&emsp;&emsp;<br><strong>Failover</strong> - 失败自动切换，当出现失败，重试其它服务器。通常用于读操作，但重试会带来更长延迟。可通过 retries&#x3D;”2” 来设置重试次数(不含第一次)。</p>
+<p><strong>Failfast</strong> - 快速失败，只发起一次调用，失败立即报错。通常用于非幂等性的写操作，比如新增记录。</p>
+<p><strong>Failsafe</strong> - 失败安全，出现异常时，直接忽略。通常用于写入审计日志等操作。</p>
+<p><strong>Failback</strong> - 失败自动恢复，后台记录失败请求，定时重发。通常用于消息通知操作。</p>
+<p><strong>Forking</strong> - 并行调用多个服务器，只要一个成功即返回。通常用于实时性要求较高的读操作，但需要浪费更多服务资源。可通过 forks&#x3D;”2” 来设置最大并行数。</p>
+<p><strong>Broadcast</strong> - 播调用所有提供者，逐个调用，任意一台报错则报错。通常用于通知所有提供者更新缓存或日志等本地资源信息</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/Raft%E7%AE%97%E6%B3%95/" rel="prev" title="Raft算法">
+      <i class="fa fa-chevron-left"></i> Raft算法
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/04/06/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/%E5%9F%BA%E4%BA%8E%E6%8E%A5%E5%8F%A3%E8%80%8C%E9%9D%9E%E5%AE%9E%E7%8E%B0%E7%BC%96%E7%A8%8B/" rel="next" title="基于接口而非实现编程">
+      基于接口而非实现编程 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#RPC%E6%A1%86%E6%9E%B6%E4%B8%89%E4%B8%AA%E6%A0%B8%E5%BF%83%E8%A7%92%E8%89%B2"><span class="nav-number">1.</span> <span class="nav-text">RPC框架三个核心角色</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#RPC%E8%BF%9C%E7%A8%8B%E8%B0%83%E7%94%A8%E8%BF%87%E7%A8%8B"><span class="nav-number">2.</span> <span class="nav-text">RPC远程调用过程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#RPC%E6%A1%86%E6%9E%B6%E6%B6%89%E5%8F%8A%E6%8A%80%E6%9C%AF"><span class="nav-number">3.</span> <span class="nav-text">RPC框架涉及技术</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%9E%E7%8E%B0%E9%AB%98%E5%8F%AF%E7%94%A8RPC%E6%A1%86%E6%9E%B6%E9%9C%80%E8%A6%81%E8%80%83%E8%99%91%E5%88%B0%E7%9A%84%E9%97%AE%E9%A2%98"><span class="nav-number">4.</span> <span class="nav-text">实现高可用RPC框架需要考虑到的问题</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

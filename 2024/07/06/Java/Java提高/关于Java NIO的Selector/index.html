@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="[toc] Selector 简介Selector（选择器）是 Channel 的多路复用器，它可以同时监控多个 Channel 的 IO 状况，允许单个线程来操作多个 Channel。如下：  Selector 的作用是什么？ Selector 提供选择执行已经就绪的任务的能力。从底层来看，Selector 提供了询问 Channel 是否已经准备好执行每个 I&#x2F;O 操作的能力。Sel">
+<meta property="og:type" content="article">
+<meta property="og:title" content="关于Java NIO的Selector">
+<meta property="og:url" content="http://example.com/2024/07/06/Java/Java%E6%8F%90%E9%AB%98/%E5%85%B3%E4%BA%8EJava%20NIO%E7%9A%84Selector/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="[toc] Selector 简介Selector（选择器）是 Channel 的多路复用器，它可以同时监控多个 Channel 的 IO 状况，允许单个线程来操作多个 Channel。如下：  Selector 的作用是什么？ Selector 提供选择执行已经就绪的任务的能力。从底层来看，Selector 提供了询问 Channel 是否已经准备好执行每个 I&#x2F;O 操作的能力。Sel">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240712204746.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240712205800.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240712205818.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240712210605.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240712210623.png">
+<meta property="article:published_time" content="2024-07-05T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.382Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240712204746.png">
+
+<link rel="canonical" href="http://example.com/2024/07/06/Java/Java%E6%8F%90%E9%AB%98/%E5%85%B3%E4%BA%8EJava%20NIO%E7%9A%84Selector/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>关于Java NIO的Selector | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/07/06/Java/Java%E6%8F%90%E9%AB%98/%E5%85%B3%E4%BA%8EJava%20NIO%E7%9A%84Selector/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          关于Java NIO的Selector
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-07-06 00:00:00" itemprop="dateCreated datePublished" datetime="2024-07-06T00:00:00+08:00">2024-07-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E6%8F%90%E9%AB%98/" itemprop="url" rel="index"><span itemprop="name">Java提高</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>[toc]</p>
+<h1 id="Selector-简介"><a href="#Selector-简介" class="headerlink" title="Selector 简介"></a>Selector 简介</h1><p>Selector（选择器）是 Channel 的多路复用器，它可以同时监控多个 Channel 的 IO 状况，允许单个线程来操作多个 Channel。如下：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240712204746.png" alt="img"></p>
+<p>Selector 的作用是什么？</p>
+<p>Selector 提供选择执行已经就绪的任务的能力。从底层来看，Selector 提供了询问 Channel 是否已经准备好执行每个 I&#x2F;O 操作的能力。Selector 允许单线程处理多个 Channel。仅用单个线程来处理多个 Channels 的好处是，只需要更少的线程来处理 Channel 。事实上，可以只用一个线程处理所有的通道，这样会大量的减少线程之间上下文切换的开销。</p>
+<span id="more"></span>
+
+<h1 id="Selector-的使用"><a href="#Selector-的使用" class="headerlink" title="Selector 的使用"></a>Selector 的使用</h1><p>使用 Selector 的主要流程如下：</p>
+<ol>
+<li>打开 Selector</li>
+<li>将 Channel 注册到 Selector 中，并设置要监听的事件</li>
+<li>轮询处理 IO 操作</li>
+</ol>
+<h2 id="打开-Selector"><a href="#打开-Selector" class="headerlink" title="打开 Selector"></a>打开 Selector</h2><p>和 SocketChannel 相似，调用 Selector.open() 就可以打开一个选择器实例。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">Selector</span> <span class="variable">selector</span> <span class="operator">=</span> Selector.open();</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="注册-Selector"><a href="#注册-Selector" class="headerlink" title="注册 Selector"></a>注册 Selector</h2><p>为了将 Channel 和 Selector 配合使用，我们需要将 Channel 注册到对应的 Selector 上，调用 SelectableChannel.register() 方法来实现。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">channel.configureBlocking(<span class="literal">false</span>);</span><br><span class="line"><span class="type">SelectionKey</span> <span class="variable">key</span> <span class="operator">=</span> channel.register(selector,Selectionkey.OP_ACCEPT);</span><br></pre></td></tr></table></figure>
+
+<p>这里有一个要注意的地方，所有注册到 Selector 中的 Channel 都必须是非阻塞的。怎么判断 Channel 是否可以设置为非阻塞呢？判断它是否继承了SelectableChannel，SelectableChannel 是一个抽象类，它提供了实现 Channel 的可选择性所需要的公共方法。而 FileChannel 没有继承 SelectableChannel ，所以它不能使用 Selector。</p>
+<p>register() 提供了两个参数，一个是要注册的 Selector 是谁，第二个参数是对什么事件感兴趣。事件类型有四种：</p>
+<ul>
+<li><p>连接 : SelectionKey.OP_CONNECT</p>
+</li>
+<li><p>接收 : SelectionKey.OP_ACCEPT</p>
+</li>
+<li><p>可读 : SelectionKey.OP_READ</p>
+</li>
+<li><p>可写 : SelectionKey.OP_WRITE</p>
+</li>
+</ul>
+<p>如果感兴趣的事件不止一个，则可以使用“位运算 | ” 来组合多个事件，如： <code>SelectionKey.OP_CONNECT | SelectionKey.OP_ACCEPT</code>。</p>
+<p>需要提醒的是，Selector 关注的不是 Channel 的操作，而是 Channel的某个操作的一种就绪状态。一旦 Channel 具备完成某个操作的条件，表示该 Channel 的某个操作已经就绪，就可以被 Selector 查询到，程序可以对该 Channel 进行对应的操作。比如说，某个 SocketChannel 可以连接到一个服务器，则处于“连接就绪”（OP_CONNECT）。某给 ServerSocketChannel 可以接收新的连接，则处理“接收就绪”（SelectionKey.OP_ACCEPT）。</p>
+<h2 id="轮询处理-IO-操作"><a href="#轮询处理-IO-操作" class="headerlink" title="轮询处理 IO 操作"></a>轮询处理 IO 操作</h2><p>将 Channel 注册到 Selector 并关注相对应的时间后，就可以轮询处理 IO 事件了。</p>
+<p>Selector 提供了方法 select()，该方法可以查询出已经就绪的 Channel操作，如果没有事件发生，则该方法会一直阻塞，直到有事件。select() 有三个重载方法：</p>
+<ul>
+<li>select(): 阻塞到至少有一个通道在你注册的事件上就绪了。·</li>
+<li>select(long timeout)：和select()一样，但最长阻塞事件为timeout毫秒。</li>
+<li>selectNow():非阻塞，只要有通道就绪就立刻返回。</li>
+</ul>
+<p>select() 返回值为 int 类型，该值表示有多少 Channel 的操作已经就绪，更准确地说是上一次 select() 到这一次 select() 方法之间的时间段内，有多少 Channel 变成了就绪状态。</p>
+<p>当 select() 返回后，如果返回值大于 0 ，则可以调用 selectedKeys() 方法，该方法返回一个 Set 集合，该集合是一个 SelectionKey 的集合，SelectionKey 表示的是可选择通道 SelectableChannel 和一个特定的 Selector之间的注册关系。</p>
+<ul>
+<li><p>SelectionKey 是一个抽象类，表示 SelectableChannel 在 Selector 中注册的标识.每个 Channel 向 Selector 注册时,都将会创建一个selectionKey</p>
+</li>
+<li><p>SelectionKey 是 SelectableChannel 与 Selector 的建立关系，并维护了 Channel 事件</p>
+</li>
+<li><p>可以通过 cancel() 方法取消 key，取消的 key 不会立即从 Selector 中移除,而是添加到 cancelledKeys 中,在下一次 select() 操作时移除它.所以在调用某个 key 时,需要使用 isValid 进行校验。</p>
+</li>
+</ul>
+<p>SelectionKey 提供了两个非常重要的 “Set”：interest set 和 ready set。</p>
+<ul>
+<li>interest set 表示感兴趣的事件，我们可以通过以下方式获取：<br>int interestSet &#x3D; selectionKey.interestOps();<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">boolean</span> <span class="variable">isInterestedInAccept</span>  <span class="operator">=</span> interestSet &amp; SelectionKey.OP_ACCEPT;</span><br><span class="line"><span class="type">boolean</span> <span class="variable">isInterestedInConnect</span> <span class="operator">=</span> interestSet &amp; SelectionKey.OP_CONNECT;</span><br><span class="line"><span class="type">boolean</span> <span class="variable">isInterestedInRead</span>    <span class="operator">=</span> interestSet &amp; SelectionKey.OP_READ;</span><br><span class="line"><span class="type">boolean</span> <span class="variable">isInterestedInWrite</span>   <span class="operator">=</span> interestSet &amp; SelectionKey.OP_WRITE;</span><br></pre></td></tr></table></figure></li>
+<li>ready set：代表了 Channel 所准备好了的操作。</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="variable">readySet</span> <span class="operator">=</span> selectionKey.readyOps();</span><br><span class="line">selectionKey.isAcceptable();</span><br><span class="line">selectionKey.isConnectable();</span><br><span class="line">selectionKey.isReadable();</span><br><span class="line">selectionKey.isWritable();</span><br></pre></td></tr></table></figure>
+
+
+<p>以下代码是一个处理 IO 操作的完整代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">while</span> (<span class="literal">true</span>) &#123;</span><br><span class="line">    selector.select();</span><br><span class="line">    </span><br><span class="line">    Set&lt;SelectionKey&gt; selectedKeys = selector.selectedKeys();</span><br><span class="line"></span><br><span class="line">    Iterator&lt;SelectionKey&gt; keyIterator = selectedKeys.iterator();</span><br><span class="line">    <span class="keyword">while</span> (iterator.hasNext()) &#123;</span><br><span class="line">        <span class="type">SelectionKey</span> <span class="variable">key</span> <span class="operator">=</span> keyIterator.next();</span><br><span class="line">    </span><br><span class="line">        <span class="keyword">if</span>(key.isAcceptable()) &#123;</span><br><span class="line">            <span class="comment">// a connection was accepted by a ServerSocketChannel.</span></span><br><span class="line">    </span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (key.isConnectable()) &#123;</span><br><span class="line">            <span class="comment">// a connection was established with a remote server.</span></span><br><span class="line">    </span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (key.isReadable()) &#123;</span><br><span class="line">            <span class="comment">// a channel is ready for reading</span></span><br><span class="line">    </span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (key.isWritable()) &#123;</span><br><span class="line">            <span class="comment">// a channel is ready for writing</span></span><br><span class="line">        &#125;</span><br><span class="line">        </span><br><span class="line">        <span class="comment">// 这段代码非常重要，后面演示</span></span><br><span class="line">        key.remove();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里有一段非常重要的代码 key.remove()，这行代码表示，我已经在处理该 IO 事件了，需要删除。</p>
+<h1 id="示例"><a href="#示例" class="headerlink" title="示例"></a>示例</h1><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">    <span class="comment">// 创建 ServerSocketChannel</span></span><br><span class="line">    <span class="type">ServerSocketChannel</span> <span class="variable">serverSocketChannel</span> <span class="operator">=</span> ServerSocketChannel.open();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 设置为非阻塞</span></span><br><span class="line">    serverSocketChannel.configureBlocking(<span class="literal">false</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 绑定 8081 端口</span></span><br><span class="line">    serverSocketChannel.bind(<span class="keyword">new</span> <span class="title class_">InetSocketAddress</span>(<span class="number">8081</span>));</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 打开 Selector</span></span><br><span class="line">    <span class="type">Selector</span> <span class="variable">selector</span> <span class="operator">=</span> Selector.open();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 将 SocketChannel 注册到  Selector</span></span><br><span class="line">    <span class="comment">// 通常我们都是先注册一个 OP_ACCEPT 事件, 然后在 OP_ACCEPT 到来时, 再将这个 Channel 的 OP_READ</span></span><br><span class="line">    serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> (<span class="literal">true</span>) &#123;</span><br><span class="line">        <span class="comment">// select 方法，一直阻塞直到有事件发生</span></span><br><span class="line">        selector.select();</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 获取 I/O 操作就绪的 SelectionKey, 通过 SelectionKey 可以知道哪些 Channel 的哪类 I/O 操作已经就绪</span></span><br><span class="line">        Iterator&lt;SelectionKey&gt; iterator = selector.selectedKeys().iterator();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">while</span> (iterator.hasNext()) &#123;</span><br><span class="line">            <span class="type">SelectionKey</span> <span class="variable">key</span> <span class="operator">=</span> iterator.next();</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 获取一个 SelectionKey 后，我们要将其删除掉，表示我们已经处理了这个事件</span></span><br><span class="line">            iterator.remove();</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (key.isAcceptable()) &#123;</span><br><span class="line">                <span class="comment">// 连接时间发生</span></span><br><span class="line">                <span class="comment">// 当客户端连接服务端的时候，我们需要服务单与之建立连接</span></span><br><span class="line">                <span class="comment">// 需要注意的是在 OP_ACCEPT 事件中, 从 key.channel() 返回的 Channel 是 ServerSocketChannel</span></span><br><span class="line">                <span class="type">ServerSocketChannel</span> <span class="variable">socketChannel</span> <span class="operator">=</span> (ServerSocketChannel) key.channel();</span><br><span class="line">                <span class="comment">// 需要从 socketChannel 获取 SocketChanel</span></span><br><span class="line">                <span class="type">SocketChannel</span> <span class="variable">clientChannel</span> <span class="operator">=</span> socketChannel.accept();</span><br><span class="line">                log.info(<span class="string">&quot;&#123;&#125; 建立连接&quot;</span>,clientChannel);</span><br><span class="line">                <span class="comment">// 设置 clientChannel 为非阻塞</span></span><br><span class="line">                clientChannel.configureBlocking(<span class="literal">false</span>);</span><br><span class="line"></span><br><span class="line">                clientChannel.register(selector,SelectionKey.OP_READ);</span><br><span class="line">            &#125; <span class="keyword">else</span> <span class="keyword">if</span> (key.isReadable()) &#123;</span><br><span class="line">                <span class="comment">// 获取的为 SocketChannel</span></span><br><span class="line">                <span class="type">SocketChannel</span> <span class="variable">clientChannel</span> <span class="operator">=</span> (SocketChannel) key.channel();</span><br><span class="line">                <span class="type">ByteBuffer</span> <span class="variable">byteBuffer</span> <span class="operator">=</span> ByteBuffer.allocate(<span class="number">64</span>);</span><br><span class="line">                <span class="type">int</span> <span class="variable">size</span> <span class="operator">=</span> clientChannel.read(byteBuffer);</span><br><span class="line">                <span class="keyword">if</span> (size &lt; <span class="number">0</span>) &#123;</span><br><span class="line">                    <span class="comment">// 小于 0 表示客户端断开连接，需要关闭该 SocketChannel</span></span><br><span class="line">                    log.info(<span class="string">&quot;&#123;&#125;，断开了连接&quot;</span>,clientChannel);</span><br><span class="line">                    clientChannel.close();</span><br><span class="line">                &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                    byteBuffer.flip();</span><br><span class="line"></span><br><span class="line">                    <span class="type">CharBuffer</span> <span class="variable">charBuffer</span> <span class="operator">=</span> Charset.forName(<span class="string">&quot;utf-8&quot;</span>).decode(byteBuffer);</span><br><span class="line"></span><br><span class="line">                    log.info(<span class="string">&quot;&#123;&#125;，发来了消息,消息内容是:&#123;&#125;&quot;</span>,clientChannel,charBuffer.toString());</span><br><span class="line"></span><br><span class="line">                    <span class="comment">// 服务端接收消息后，给客户端发送给客户端</span></span><br><span class="line">                    <span class="type">Scanner</span> <span class="variable">scanner</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Scanner</span>(System.in);</span><br><span class="line">                    <span class="type">String</span> <span class="variable">string</span> <span class="operator">=</span> scanner.nextLine();</span><br><span class="line">                    <span class="type">ByteBuffer</span> <span class="variable">writeBuffer</span> <span class="operator">=</span> Charset.forName(<span class="string">&quot;utf-8&quot;</span>).encode(string);</span><br><span class="line">                    clientChannel.write(writeBuffer);</span><br><span class="line"></span><br><span class="line">                    <span class="keyword">if</span> (writeBuffer.hasRemaining()) &#123;</span><br><span class="line">                        <span class="comment">// 如果不能一次性发完只需要触发 write 事件去发</span></span><br><span class="line">                        key.attach(writeBuffer);</span><br><span class="line">                        key.interestOps(key.interestOps() + SelectionKey.OP_WRITE);</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125; <span class="keyword">else</span> <span class="keyword">if</span> (key.isWritable() &amp;&amp; key.isValid()) &#123;</span><br><span class="line">                <span class="type">ByteBuffer</span> <span class="variable">byteBuffer</span> <span class="operator">=</span> (ByteBuffer) key.attachment();</span><br><span class="line">                <span class="type">SocketChannel</span> <span class="variable">clientChannel</span> <span class="operator">=</span> (SocketChannel) key.channel();</span><br><span class="line">                byteBuffer.flip();</span><br><span class="line"></span><br><span class="line">                clientChannel.write(byteBuffer);</span><br><span class="line"></span><br><span class="line">                <span class="keyword">if</span> (!byteBuffer.hasRemaining()) &#123;</span><br><span class="line">                    <span class="comment">// 如果已完，则只无须关注 write 事件</span></span><br><span class="line">                    key.attach(<span class="literal">null</span>);</span><br><span class="line">                    key.interestOps(key.interestOps() - SelectionKey.OP_WRITE);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">         &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+
+<p>分析为什么要：key.remove()<br>这里拿上面那个问题来说明，为什么要加这 key.remove() 代码呢？首先这段代码的意思是说获取一个 SelectionKey 后，我们需要将其删除，表示我们已经对该 IO 事件进行了处理，如果没有这样代码会有什么后果呢？报 NullPointerException！</p>
+<p>为什么会这样呢？这里我们来梳理整个流程。</p>
+<ul>
+<li>首先服务端创建一个 Selector，该 Selector 与 ServerSocketChannel 绑定，且关注 accept 事件。如下</li>
+</ul>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240712205800.png" alt="img"></p>
+<ul>
+<li><p>当客户端发起连接时，selector.selectedKeys() 会返回 Set 集合，该集合包含了已经准备就绪的 SelectionKey，这个时候只有连接事件，相对应的 SelectionKey 为 2b71fc7e</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240712205818.png" alt="img"></p>
+</li>
+<li><p>当服务端与客户端建立连接后，绑定 Selector 并关注 read 事件。这里需要注意的是 Selector 并不会主动去删除 SelectionKey，它只会增加，所以这个时候 Selector 里面有两个 SelectionKey，一个是 2b71fc7e（accept），一个是 1de0aca6（read）。建立连接后，事件处理完成，会该事件与之对应的事件去掉，也就是 2b71fc7e 的 SelectionKey 绑定的 ServerSocketChannel ，但是 Selector 里面对应的 SelectionKey 还是存在的。</p>
+</li>
+</ul>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240712210605.png" alt="img"></p>
+<ul>
+<li><p>当客户端给服务端发送消息时，服务端监测到有事件发生，会将发生时间的 SelectionKey@1de0aca6 加入到 selectedKey 中，如下：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240712210623.png" alt="img"></p>
+</li>
+<li><p>在迭代过程第一次取的是 SelectionKey@1de0aca6，这个是读事件，可以正常读，打印客户端发送过来的，但是第二次读取的是 SelectionKey@2b71fc7e，但是这个 Key 与之相绑定的事件已经处理了，它为 null，那肯定会报 NullPointerException。所以在使用 NIO 时一定要主动删除已经处理过的 SelectionKey ，既主动调用 key.remove()，删除该 SelectionKey。</p>
+</li>
+</ul>
+<hr>
+<p>原文链接：<br><a target="_blank" rel="noopener" href="https://blog.csdn.net/chenssy/article/details/134407984">https://blog.csdn.net/chenssy/article/details/134407984</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/07/06/Spring/%E8%AE%B0%E4%B8%80%E6%AC%A1HandlerMethodArgumentResolver%E5%A4%B1%E6%95%88%E7%9A%84%E9%97%AE%E9%A2%98/" rel="prev" title="记一次HandlerMethodArgumentResolver失效的问题">
+      <i class="fa fa-chevron-left"></i> 记一次HandlerMethodArgumentResolver失效的问题
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/07/06/Java/Java%E6%8F%90%E9%AB%98/javapoet%20%E6%96%B9%E4%BE%BF%E5%BF%AB%E6%8D%B7%E5%9C%B0%E7%94%9F%E6%88%90.class%E6%96%87%E4%BB%B6/" rel="next" title="javapoet:方便快捷地生成.class文件">
+      javapoet:方便快捷地生成.class文件 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Selector-%E7%AE%80%E4%BB%8B"><span class="nav-number">1.</span> <span class="nav-text">Selector 简介</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Selector-%E7%9A%84%E4%BD%BF%E7%94%A8"><span class="nav-number">2.</span> <span class="nav-text">Selector 的使用</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%89%93%E5%BC%80-Selector"><span class="nav-number">2.1.</span> <span class="nav-text">打开 Selector</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B3%A8%E5%86%8C-Selector"><span class="nav-number">2.2.</span> <span class="nav-text">注册 Selector</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BD%AE%E8%AF%A2%E5%A4%84%E7%90%86-IO-%E6%93%8D%E4%BD%9C"><span class="nav-number">2.3.</span> <span class="nav-text">轮询处理 IO 操作</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E7%A4%BA%E4%BE%8B"><span class="nav-number">3.</span> <span class="nav-text">示例</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

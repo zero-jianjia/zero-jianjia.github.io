@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="[toc] 什么是MVVC&emsp;&emsp;MVCC (Multi-Version Concurrency Control) 是一种基于多版本的并发控制协议，只有在InnoDB引擎下存在。MVCC是为了实现事务的隔离性，通过版本号，避免同一数据在不同事务间的竞争，可以把它当成基于多版本号的一种乐观锁。当然，这种乐观锁只在事务级别未提交锁和已提交锁时才会生效。MVCC最大的好处，读不加锁，读写">
+<meta property="og:type" content="article">
+<meta property="og:title" content="InnoDB的MVCC原理">
+<meta property="og:url" content="http://example.com/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/MySQL/%E5%8E%9F%E7%90%86/InnoDB%E7%9A%84MVCC%E5%8E%9F%E7%90%86/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="[toc] 什么是MVVC&emsp;&emsp;MVCC (Multi-Version Concurrency Control) 是一种基于多版本的并发控制协议，只有在InnoDB引擎下存在。MVCC是为了实现事务的隔离性，通过版本号，避免同一数据在不同事务间的竞争，可以把它当成基于多版本号的一种乐观锁。当然，这种乐观锁只在事务级别未提交锁和已提交锁时才会生效。MVCC最大的好处，读不加锁，读写">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407170953200.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407170953954.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407170954866.png">
+<meta property="article:published_time" content="2024-04-05T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.754Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407170953200.png">
+
+<link rel="canonical" href="http://example.com/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/MySQL/%E5%8E%9F%E7%90%86/InnoDB%E7%9A%84MVCC%E5%8E%9F%E7%90%86/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>InnoDB的MVCC原理 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/MySQL/%E5%8E%9F%E7%90%86/InnoDB%E7%9A%84MVCC%E5%8E%9F%E7%90%86/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          InnoDB的MVCC原理
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-06 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-06T00:00:00+08:00">2024-04-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93-%E7%BC%93%E5%AD%98/" itemprop="url" rel="index"><span itemprop="name">数据库&缓存</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93-%E7%BC%93%E5%AD%98/MySQL/" itemprop="url" rel="index"><span itemprop="name">MySQL</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93-%E7%BC%93%E5%AD%98/MySQL/%E5%8E%9F%E7%90%86/" itemprop="url" rel="index"><span itemprop="name">原理</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>[toc]</p>
+<h3 id="什么是MVVC"><a href="#什么是MVVC" class="headerlink" title="什么是MVVC"></a>什么是MVVC</h3><p>&emsp;&emsp;MVCC (Multi-Version Concurrency Control) 是一种基于多版本的并发控制协议，只有在InnoDB引擎下存在。MVCC是为了实现事务的隔离性，通过版本号，避免同一数据在不同事务间的竞争，可以把它当成基于多版本号的一种乐观锁。当然，这种乐观锁只在事务级别未提交锁和已提交锁时才会生效。MVCC最大的好处，读不加锁，读写不冲突。在读多写少的OLTP应用中，读写不冲突是非常重要的，极大的增加了系统的并发性能。</p>
+<p>&emsp;&emsp;可以认为MVCC是行级锁的一个变种，但是它在很多情况下避免了加锁操作，因此开销更低。虽然实现机制有所不同，但大都实现了非阻塞的读操作，写操作也只锁定必要的行。</p>
+<p>&emsp;&emsp;MVCC只在 READ COMMITTED 和 REPEATABLE READ 两个隔离级别下工作。</p>
+<span id="more"></span>
+
+
+<h3 id="MVVC的实现机制"><a href="#MVVC的实现机制" class="headerlink" title="MVVC的实现机制"></a>MVVC的实现机制</h3><p>&emsp;&emsp;InnoDB存储引擎在每行数据都增加三个隐藏字段，一个唯一行号，一个记录创建的版本号，一个记录回滚的版本号。<br><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407170953200.png"></p>
+<ul>
+<li><strong>6字节的事务ID(DB_TRX_ID)字段</strong>：用来标识最近一次对本行记录做修改(insert|update)的事务的标识符，即最后一次修改本行记录的事务id。至于delete操作，在innodb看来也不过是一次update操作，更新行中的一个特殊位将行表示为deleted，并非真正删除。</li>
+<li><strong>7字节的回滚指针(DB_ROLL_PTR)字段</strong>：指写入回滚段(rollback segment)的 undo log record (撤销日志记录记录)。如果一行记录被更新, 则 undo log record 包含 ‘重建该行记录被更新之前内容’  所必须的信息。</li>
+<li><strong>6字节的DB_ROW_ID字段</strong>：包含一个随着新行插入而单调递增的行ID，当由innodb自动产生聚集索引时，聚集索引会包括这个行ID的值，否则这个行ID不会出现在任何索引中。</li>
+</ul>
+<p>&emsp;&emsp;注意：执行删除SQL时，并不是直接将记录从数据页中抹掉，而是通过一个<strong>删除位（delete_flag）来进行标识</strong>，将该字段置为1即标识这行数据已经被删除了；同时和其他写一样会记录操作事务的trx_id。</p>
+<p>&emsp;&emsp;在多版本并发控制中，为了保证数据操作在多线程过程中，保证事务隔离的机制，降低锁竞争的压力，保证较高的并发量。<br>&emsp;&emsp;在每开启一个事务时，会生成一个事务的版本号，被操作的数据会生成一条新的数据行（临时），但是在提交前对其他事务是不可见的，对于数据的更新（包括增删改）操作成功，会将这个版本号更新到数据的行中，事务提交成功，将新的版本号更新到此数据行中，这样保证了每个事务操作的数据，都是互不影响的，也不存在锁的问题。<br><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407170953954.png"></p>
+<blockquote>
+<p>上面的例子，当事务T2更改该行的值时，会进行如下操作：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">用排他锁锁定该行</span><br><span class="line">记录redo log</span><br><span class="line">把该行修改前的值Copy到undo log，即上图中T1行</span><br><span class="line">修改当前行的值，填写事务编号，使回滚指针指向undo log中的修改前的行</span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>&emsp;&emsp;上面例子里undo log中有两行记录，并且通过回滚指针连在一起。因此，如果undo log一直不删除，则会通过当前记录的回滚指针回溯到该行创建时的初始内容，所幸的是在Innodb中存在purge线程，它会查询那些比现在最老的活动事务还早的undo log，并删除它们，从而保证undo log文件不至于无限增长。<br>&emsp;&emsp;当事务正常提交时只需要更改事务状态为Commit即可，不需做其他额外的工作，而Rollback则稍微复杂点，需要根据当前回滚指针从undo log中找出事务修改前的版本并恢复。如果事务影响的行非常多，回滚则可能会变的效率不高，根据经验值没事务行数在1000～10000之间，Innodb效率还是非常高的。很显然，Innodb是一个Commit效率比Rollback高的存储引擎。</p>
+<p><strong>undo-log</strong><br>&emsp;&emsp;undo log是为回滚而用，具体内容就是copy事务前的数据库内容（行）到undo buffer，在适合的时间把undo buffer中的内容刷新到磁盘。undo buffer与redo buffer一样，也是环形缓冲，但当缓冲满的时候，undo buffer中的内容会也会被刷新到磁盘；与redo log不同的是，磁盘上不存在单独的undo log文件，所有的undo log均存放在主ibd数据文件中（表空间），即使客户端设置了每表一个数据文件也是如此。</p>
+<p>&emsp;&emsp;undo log的具体记录字段可以稍微了解下：</p>
+<blockquote>
+<ol>
+<li><code>insert into...</code> ：含主键；</li>
+<li><code>delete ..</code> ：含所有字段的之前的值。</li>
+<li><code>update ..</code> ：含需要更新字段的之前的值；<br> 如果是更新主键，等同于将之前行记录的删除，然后再插入，将产生两条undo log。</li>
+</ol>
+</blockquote>
+<h3 id="快照读与当前读"><a href="#快照读与当前读" class="headerlink" title="快照读与当前读"></a>快照读与当前读</h3><h4 id="事务快照"><a href="#事务快照" class="headerlink" title="事务快照"></a>事务快照</h4><p>&emsp;&emsp;如果我们给数据库中的事务拍一张照片的话，我们会看到：在拍照的那一瞬间，<strong>有的事务已经提交，有的正在运行中，有的事务尚未开始</strong>：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407170954866.png" alt="image-20240717095405418"></p>
+<p>&emsp;&emsp;事务快照，黑色表示事务已提交。就如上图中的快照，trx_id小于15的事务都已经提交了，大于等于31的则尚未开始；中间的15&#x2F;25还在跑，而20&#x2F;30已经提交。如果你现在的事务id为25，当隔离级别为【可重复读】时：你能到哪些事务修改的数据呢？答案是显然的，<strong>已经提交的则看得见</strong>（图中黑色），<strong>还没提交的自然就看不见</strong>，否则就是<strong>脏读</strong>了。</p>
+<p>&emsp;&emsp;可时间是会变化的，假设后来15进行了提交，那我们能否看得见该事务的修改记录呢（比如 a&#x3D;1 修改为了 a&#x3D;2）？这个也是应该看不见的，因为如果事务15提交前我们看到的是a&#x3D;1，而提交后变为a&#x3D;2了，这就出现了<strong>不可重复读</strong>了，这显然和【可重复读】相悖了。<br>&emsp;&emsp;<strong>在【可重复读】隔离级别下，一旦触发快照后，这个快照会一直存在，直至事务结束</strong>。哪些事务已提交，哪些没提交，也会在这一瞬间定格。这也就保证了我们永远都在同一张照片里面“找”数据，从而保证了【可重复读】。接下来我们来看一下怎样基于事务快照来“找”数据。</p>
+<blockquote>
+<p>注：【可重复读】隔离级别下，事务快照的触发时机主要有：</p>
+<ul>
+<li>开启事务后（<code>begin/start transaction;</code>），执行第一条常规读SQL（<code>select</code>）时；</li>
+<li>开启事务时，直接开启快照：<code>start transaction with consistent snapshot</code>.</li>
+</ul>
+</blockquote>
+<h4 id="MVCC查询基本流程"><a href="#MVCC查询基本流程" class="headerlink" title="MVCC查询基本流程"></a>MVCC查询基本流程</h4><p>基于数据快照和多版本数据，查询的大概过程为：</p>
+<ol>
+<li><strong>触发事务快照</strong>；</li>
+<li>根据查询条件找到的<strong>数据页中的记录</strong>，获取该数据的版本号（即<strong>写入该记录的事务trx_id</strong>）</li>
+<li>基于快照，判断这个<strong>写入记录的事务（trx_id）对于快照来讲是否可见</strong>：<br> 3.1 如果可见，则返回结果；<br> 3.2 如果不可见，继续找下一个版本的数据。</li>
+</ol>
+<p>我们可以用一个简单的数据结构（Read View）来记录事务快照（建议结合上节的事务快照图看）：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">Read_View &#123;</span><br><span class="line">  <span class="comment">// 最小的事务id，数据版本号 &lt; min_id 表示可见</span></span><br><span class="line">  <span class="type">long</span> min_id;      </span><br><span class="line"></span><br><span class="line">  <span class="comment">// 最大的事务id，数据版本号 &gt;= max_id 表示不可见</span></span><br><span class="line">  <span class="type">long</span> max_id;      </span><br><span class="line"></span><br><span class="line">  <span class="comment">// 中间还在跑的事务id，数据版本号在里面则表示不可见（排除本事务，自己肯定看得到自己修改的记录）</span></span><br><span class="line">  <span class="type">long</span>[] running_ids;   </span><br><span class="line"></span><br><span class="line">  <span class="comment">// 是否可见</span></span><br><span class="line">  <span class="type">bool</span> <span class="title function_">canSee</span><span class="params">(<span class="type">long</span> data_version_trx_id)</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> data_version_trx_id &lt; min_id || !running_ids.contains(data_version_trx_id);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+<p>&emsp;&emsp;MySQL的InnoDB存储引擎默认事务隔离级别是RR(可重复读)， 是通过 “行排他锁+MVCC” 一起实现的，不仅可以保证可重复读，还可以部分防止幻读，而非完全防止；为什么是部分防止幻读，而不是完全防止?</p>
+<p>&emsp;&emsp;场景: 在如果事务B在事务A执行中，insert了一条数据并提交，事务A再次查询，虽然读取的是undo中的旧版本数据(防止了部分幻读)，但是事务A中执行update或者delete都是可以成功的。</p>
+<p>&emsp;&emsp;因为在innodb中的操作可以分为当前读(current read)和快照读(snapshot read)：</p>
+<p>&emsp;&emsp;<strong>快照读</strong>：读取的是快照版本，也就是历史版本<br>&emsp;&emsp;简单的select操作(当然不包括 select … lock in share mode, select … for update)</p>
+<p>&emsp;&emsp;<strong>当前读</strong>：读取的是最新版本<br>&emsp;&emsp;UPDATE、DELETE、INSERT、SELECT …  LOCK IN SHARE MODE、SELECT … FOR UPDATE是当前读。当前读返回的记录都会加上锁，这样保证了了其他事务不会再并发修改这条记录。</p>
+<p>&emsp;&emsp;在RR级别下，快照读是通过MVVC(多版本控制)和undo log来实现的，当前读是通过加record lock(记录锁)和gap lock(间隙锁)来实现的。innodb在快照读的情况下并没有真正的避免幻读，但是在当前读的情况下避免了不可重复读和幻读。</p>
+<p>&emsp;&emsp;通过举例来理解快照读与当前读吧：MySQL innoDB的RR隔离级别下，假设你开启了两个事务，分别是A和B，这里有个张user表，里面有四条数据。</p>
+<p>&emsp;&emsp;当你执行select *之后，在A与B事务中都会返回4条一样的数据，这是不用想的，RR隔离级别下当执行普通的select查询时，innodb默认会执行快照读，相当于就是给你目前的状态找了一张照片，以后执行select 的时候就会返回当前照片里面的数据，当其他事务提交了也对你不造成影响，和你没关系，这就实现了可重复读，那这个照片是什么时候生成的呢？<br>&emsp;&emsp;不是开启事务的时候，是当你第一次执行select的时候，也就是说，当A开启了事务，然后没有执行任何操作，这时候B insert了一条数据然后commit，这时候A在事务中执行select，那么就能看到有B在自己在事务中添加的那条数据…，在这之后无论再有其他事务commit都没有关系，因为照片已经生成了，而且不会再生成了，以后都会参考这张照片。</p>
+<p><strong>一个事务快照的创建过程可以概括为：</strong></p>
+<ul>
+<li>查看当前所有的未提交并活跃的事务，存储在数组中</li>
+<li>选取未提交并活跃的事务中最小的XID，记录在快照的xmin中</li>
+<li>选取所有已提交事务中最大的XID，加1后记录在xmax中</li>
+</ul>
+<p>&emsp;&emsp;Read View （主要是用来做可见性判断的）：创建一个新事务时，copy一份当前系统中的活跃事务列表。意思是，当前不应该被本事务看到的其他事务id列表。对于Read View快照的生成时机，也非常关键，正是因为生成时机的不同，造成了RC，RR两种隔离级别的不同可见性；</p>
+<ol>
+<li><p>在repeatable read级别，事务在begin&#x2F;start transaction之后的第一条select读操作后，会创建一个快照(Read View)，将当前系统中活跃的其他事务记录记录起来；</p>
+</li>
+<li><p>在repeatable committed级别，事务中每条select语句都会创建一个快照(Read View)；</p>
+</li>
+</ol>
+<h3 id="MVVC下的CRUD"><a href="#MVVC下的CRUD" class="headerlink" title="MVVC下的CRUD"></a>MVVC下的CRUD</h3><p><strong>SELECT：</strong>当隔离级别是REPEATABLE READ时select操作，InnoDB必须每行数据来保证它符合两个条件：</p>
+<blockquote>
+<ol>
+<li>InnoDB必须找到一个行的版本，它至少要和事务的版本一样老(也即它的版本号不大于事务的版本号)。这保证了不管是事务开始之前，或者事务创建时，或者修改了这行数据的时候，这行数据是存在的。</li>
+<li>这行数据的删除版本必须是未定义的或者比事务版本要大。这可以保证在事务开始之前这行数据没有被删除。<br>符合这两个条件的行可能会被当作查询结果而返回。</li>
+</ol>
+</blockquote>
+<p><strong>INSERT</strong>：InnoDB为这个新行记录当前的系统版本号。<br><strong>DELETE</strong>：InnoDB将当前的系统版本号设置为这一行的删除ID。<br><strong>UPDATE</strong>：InnoDB会写一个这行数据的新拷贝，这个拷贝的版本为当前的系统版本号。它同时也会将这个版本号写到旧行的删除版本里。</p>
+<p>&emsp;&emsp;这种额外的记录所带来的结果就是对于大多数查询来说根本就不需要获得一个锁。只是简单地以最快的速度来读取数据，确保只选择符合条件的行。这个方案的缺点在于存储引擎必须为每一行存储更多的数据，做更多的检查工作，处理更多的善后操作。</p>
+<p>&emsp;&emsp;MVCC只工作在REPEATABLE READ和READ COMMITED隔离级别下。READ UNCOMMITED不是MVCC兼容的，因为查询不能找到适合他们事务版本的行版本；它们每次都只能读到最新的版本。SERIABLABLE也不与MVCC兼容，因为读操作会锁定他们返回的每一行数据。</p>
+<hr>
+<p>转载自：<br><a target="_blank" rel="noopener" href="https://blog.csdn.net/huaishu/article/details/89924250">https://blog.csdn.net/huaishu/article/details/89924250</a><br><a target="_blank" rel="noopener" href="https://blog.csdn.net/fighterandknight/article/details/125197574?spm=1001.2014.3001.5502">https://blog.csdn.net/fighterandknight/article/details/125197574?spm=1001.2014.3001.5502</a><br><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/d9bdf90005cb">https://www.jianshu.com/p/d9bdf90005cb</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/MySQL/%E5%8E%9F%E7%90%86/%E4%B8%80%E6%9D%A1%20SQL%20%E7%9A%84%E6%89%A7%E8%A1%8C%E8%BF%87%E7%A8%8B%E8%AF%A6%E8%A7%A3/" rel="prev" title="通过SQL分析数据库加锁">
+      <i class="fa fa-chevron-left"></i> 通过SQL分析数据库加锁
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/MySQL/%E5%8E%9F%E7%90%86/redo%20log%E3%80%81undo%20log%E3%80%81binlog/" rel="next" title="redo log、undo log、binlog">
+      redo log、undo log、binlog <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AFMVVC"><span class="nav-number">1.</span> <span class="nav-text">什么是MVVC</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#MVVC%E7%9A%84%E5%AE%9E%E7%8E%B0%E6%9C%BA%E5%88%B6"><span class="nav-number">2.</span> <span class="nav-text">MVVC的实现机制</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BF%AB%E7%85%A7%E8%AF%BB%E4%B8%8E%E5%BD%93%E5%89%8D%E8%AF%BB"><span class="nav-number">3.</span> <span class="nav-text">快照读与当前读</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BA%8B%E5%8A%A1%E5%BF%AB%E7%85%A7"><span class="nav-number">3.1.</span> <span class="nav-text">事务快照</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#MVCC%E6%9F%A5%E8%AF%A2%E5%9F%BA%E6%9C%AC%E6%B5%81%E7%A8%8B"><span class="nav-number">3.2.</span> <span class="nav-text">MVCC查询基本流程</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#MVVC%E4%B8%8B%E7%9A%84CRUD"><span class="nav-number">4.</span> <span class="nav-text">MVVC下的CRUD</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

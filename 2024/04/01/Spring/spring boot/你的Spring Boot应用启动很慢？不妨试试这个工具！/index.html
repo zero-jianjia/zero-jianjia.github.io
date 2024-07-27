@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="在GitHub上看到一个不错的开源项目：Spring Startup Analyzer。 从项目名称中就大概能猜到，这是一个分析Spring应用启动过程的工具。Spring Startup Analyzer通过采集Spring应用启动过程的数据，进而生成一个交互式的分析报告，帮助用户发现Spring应用启动慢的位置。同时，Spring Startup Analyzer还提供了Spring Bean">
+<meta property="og:type" content="article">
+<meta property="og:title" content="你的Spring Boot应用启动很慢？不妨试试这个工具！">
+<meta property="og:url" content="http://example.com/2024/04/01/Spring/spring%20boot/%E4%BD%A0%E7%9A%84Spring%20Boot%E5%BA%94%E7%94%A8%E5%90%AF%E5%8A%A8%E5%BE%88%E6%85%A2%EF%BC%9F%E4%B8%8D%E5%A6%A8%E8%AF%95%E8%AF%95%E8%BF%99%E4%B8%AA%E5%B7%A5%E5%85%B7%EF%BC%81/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="在GitHub上看到一个不错的开源项目：Spring Startup Analyzer。 从项目名称中就大概能猜到，这是一个分析Spring应用启动过程的工具。Spring Startup Analyzer通过采集Spring应用启动过程的数据，进而生成一个交互式的分析报告，帮助用户发现Spring应用启动慢的位置。同时，Spring Startup Analyzer还提供了Spring Bean">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291756153.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291757730.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291757584.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291757214.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291757496.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291757078.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291757326.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291757263.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291757118.png">
+<meta property="article:published_time" content="2024-03-31T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.630Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291756153.png">
+
+<link rel="canonical" href="http://example.com/2024/04/01/Spring/spring%20boot/%E4%BD%A0%E7%9A%84Spring%20Boot%E5%BA%94%E7%94%A8%E5%90%AF%E5%8A%A8%E5%BE%88%E6%85%A2%EF%BC%9F%E4%B8%8D%E5%A6%A8%E8%AF%95%E8%AF%95%E8%BF%99%E4%B8%AA%E5%B7%A5%E5%85%B7%EF%BC%81/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>你的Spring Boot应用启动很慢？不妨试试这个工具！ | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Spring/spring%20boot/%E4%BD%A0%E7%9A%84Spring%20Boot%E5%BA%94%E7%94%A8%E5%90%AF%E5%8A%A8%E5%BE%88%E6%85%A2%EF%BC%9F%E4%B8%8D%E5%A6%A8%E8%AF%95%E8%AF%95%E8%BF%99%E4%B8%AA%E5%B7%A5%E5%85%B7%EF%BC%81/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          你的Spring Boot应用启动很慢？不妨试试这个工具！
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/Spring-Boot/" itemprop="url" rel="index"><span itemprop="name">Spring Boot</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>在GitHub上看到一个不错的开源项目：<strong>Spring Startup Analyzer</strong>。</p>
+<p>从项目名称中就大概能猜到，这是一个分析Spring应用启动过程的工具。Spring Startup Analyzer通过采集Spring应用启动过程的数据，进而生成一个交互式的分析报告，帮助用户发现Spring应用启动慢的位置。同时，Spring Startup Analyzer还提供了Spring Bean异步初始化的工具，来帮助开发者加快Spring应用的启动时间。</p>
+<p>下面一起来看看其提供的强大功能。</p>
+<span id="more"></span>
+
+<h2 id="分析能力"><a href="#分析能力" class="headerlink" title="分析能力"></a>分析能力</h2><p>我们可以先从该项目中给出HTML样例报告（<a target="_blank" rel="noopener" href="https://linyimin-blog.oss-cn-beijing.aliyuncs.com/spring-satrtup-analyzer/hokage-20230618000928-192.168.0.101-analyzer.html">点击这里查看</a>）来看看它所提供的分析功能。</p>
+<p>把报告内容的细节部分都收起来，可以看到如下图所示的内容：</p>
+<p><a target="_blank" rel="noopener" href="https://blog.didispace.com/images2/202307/spring-satrtup-analyzer/1690049518900.png"><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291756153.png" alt="img"></a></p>
+<p>主要有六个部分：</p>
+<ul>
+<li>启动的统计数据。其中包括：启动时间、Bean的数量、使用&#x2F;总共的JAR包数量、未使用&#x2F;总共的JAR包数量、ClassLoader数量</li>
+</ul>
+<p><a target="_blank" rel="noopener" href="https://blog.didispace.com/images2/202307/spring-satrtup-analyzer/1690049712845.png"><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291757730.png" alt="img"></a></p>
+<ul>
+<li>Spring Bean初始化数据。这里采集了每个Spring Bean的初始化时间及其细节内容</li>
+</ul>
+<p><a target="_blank" rel="noopener" href="https://blog.didispace.com/images2/202307/spring-satrtup-analyzer/1690049735608.png"><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291757584.png" alt="img"></a></p>
+<ul>
+<li>Bean初始化时间线。通过时间线的方式，清晰地展现了Spring应用启动时候，各个Bean的顺序关系以及时间消耗</li>
+</ul>
+<p><a target="_blank" rel="noopener" href="https://blog.didispace.com/images2/202307/spring-satrtup-analyzer/1690049783718.png"><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291757214.png" alt="img"></a></p>
+<ul>
+<li>方法调用的详细信息。这里统计了每个方法的调用时间、总时间开销和每次调用的平均时间</li>
+</ul>
+<p><a target="_blank" rel="noopener" href="https://blog.didispace.com/images2/202307/spring-satrtup-analyzer/1690049880585.png"><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291757496.png" alt="img"></a></p>
+<p>点开之后，还能看到具体每次调用时候的时间开销和一些调用细节：</p>
+<p><a target="_blank" rel="noopener" href="https://blog.didispace.com/images2/202307/spring-satrtup-analyzer/1690049910865.png"><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291757078.png" alt="img"></a></p>
+<ul>
+<li>启动后未使用的JAR。列出了所有Spring应用启动后没有使用的jar包，可以有效的帮助你清理不需要的依赖，为应用瘦身</li>
+</ul>
+<p><a target="_blank" rel="noopener" href="https://blog.didispace.com/images2/202307/spring-satrtup-analyzer/1690050005320.png"><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291757326.png" alt="img"></a></p>
+<ul>
+<li>应用启动过程的线程火焰图</li>
+</ul>
+<p><a target="_blank" rel="noopener" href="https://blog.didispace.com/images2/202307/spring-satrtup-analyzer/1690050108092.png"><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291757263.png" alt="img"></a></p>
+<h2 id="如何使用"><a href="#如何使用" class="headerlink" title="如何使用"></a>如何使用</h2><p>通过上面的介绍，相信你已经了解该工具的强大之处了。接下来就可以通过下面的方法尝试分析一下自己的应用吧：</p>
+<p>第一步：从里面的链接中下载最新的安装包</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/linyimin0812/spring-startup-analyzer/tags">https://github.com/linyimin0812/spring-startup-analyzer/tags</a></p>
+<p>第二步：解压下载的安装包，记住解压后的路径，下面一步要用</p>
+<p>第三步：编辑Spring Boot的启动参数，包括：</p>
+<ol>
+<li>该工具采用agent的方式启动，所以要添加参数<code>-javaagent:$HOME/spring-startup-analyzer/lib/spring-profiler-agent.jar</code>，这里<code>$HOME</code>代表以前的解压路径，记得根据上面解压后的路径编辑这个参数</li>
+<li>配置分析工具的参数，这里根据自己需要添加即可，比如可以配置超时时间30分钟：<code>-Dspring-startup-analyzer.app.health.check.timeout=30</code>，其他可配置项如下表，你可以工具自己应用的情况去修改：</li>
+</ol>
+<p><a target="_blank" rel="noopener" href="https://blog.didispace.com/images2/202307/spring-satrtup-analyzer/1690050542019.png"><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291757118.png" alt="img"></a></p>
+<p>第四步：查看该工具的日志，可以通过<code>$HOME/spring-startup-analyzer/logs</code>路径，这里<code>$HOME</code>代表以前的解压路径，日志文件的类别为：</p>
+<ul>
+<li>startup.log: 启动过程中的日志</li>
+<li>transform.log: 被re-transform的类&#x2F;方法信息</li>
+</ul>
+<p>另外，该工具还支持自定义扩展，这里DD没试过，就不具体介绍了。感兴趣的童鞋可以根据文档去试试。</p>
+<h2 id="启动优化"><a href="#启动优化" class="headerlink" title="启动优化"></a>启动优化</h2><p>这里提到了一个启动加速的优化思路，就是把一些耗时的Bean初始化改成异步就能实现。该项目提供了Bean的异步初始化工具，也非常好用，只需要下面几步就能完成。</p>
+<p>第一步：引入依赖</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&lt;dependency&gt;</span><br><span class="line">    &lt;groupId&gt;io.github.linyimin0812&lt;/groupId&gt;</span><br><span class="line">    &lt;artifactId&gt;spring-async-bean-starter&lt;/artifactId&gt;</span><br><span class="line">    &lt;version&gt;2.0.2&lt;/version&gt;</span><br><span class="line">&lt;/dependency&gt;</span><br></pre></td></tr></table></figure>
+
+<p>第二步：配置参数</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"># 异步化的Bean可能在Spring Bean初始化顺序的末尾，导致异步优化效果不佳，打开配置优先加载异步化的Bean</span><br><span class="line">spring-startup-analyzer.boost.spring.async.bean-priority-load-enable=true</span><br><span class="line"># 指定异步的Bean名称</span><br><span class="line">spring-startup-analyzer.boost.spring.async.bean-names=testBean,testComponent</span><br><span class="line"># 执行异步化Bean初始化方法线程池的核心线程数</span><br><span class="line">spring-startup-analyzer.boost.spring.async.init-bean-thread-pool-core-size=8</span><br><span class="line"># 执行异步化Bean初始化方法线程池的最大线程数</span><br><span class="line">spring-startup-analyzer.boost.spring.async.init-bean-thread-pool-max-size=8</span><br></pre></td></tr></table></figure>
+
+<p>第三步：检查Bean是否异步初始化。查看日志$HOME&#x2F;spring-startup-analyzer&#x2F;logs&#x2F;startup.log文件，对于异步执行初始化的方法，会按照以下格式写一条日志:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">async-init-bean, beanName: $&#123;beanName&#125;, async init method: $&#123;initMethodName&#125;</span><br></pre></td></tr></table></figure>
+
+<p>但是，作者在文档中也提到了，异步并不是万能的，你还需要注意以下这几点：</p>
+<ul>
+<li>应该优先从代码层面优化初始化时间长的Bean，从根本上解决Bean初始化耗时长问题</li>
+<li>对于二方包&#x2F;三方包中初始化耗时长的Bean(无法进行代码优化)再考虑Bean的异步化</li>
+<li>对于不被依赖的Bean可以放心进行异步化，可以通过各个Bean加载耗时中的Root Bean判断Bean是否被其他Bean依赖</li>
+<li>对于被依赖的Bean需要小心分析，在应用启动过程中不能其他Bean被调用，否则可能会存在问题</li>
+</ul>
+<p>好了，今天的学习就到这里！如果您学习过程中如遇困难？可以加入我们超高质量的<a target="_blank" rel="noopener" href="https://blog.didispace.com/join-group-spring/index.html">Spring技术交流群</a>，参与交流与讨论，更好的学习与进步！更多<a target="_blank" rel="noopener" href="http://blog.didispace.com/spring-boot-learning-2x/">Spring Boot教程可以点击直达！</a>，欢迎收藏与转发支持！</p>
+<p>最后，奉上项目地址：<a target="_blank" rel="noopener" href="https://github.com/linyimin0812/spring-startup-analyzer">https://github.com/linyimin0812/spring-startup-analyzer</a></p>
+<hr>
+<p>转载自：<br><a target="_blank" rel="noopener" href="https://blog.didispace.com/spring-satrtup-analyzer/">https://blog.didispace.com/spring-satrtup-analyzer/</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/04/01/Spring/spring%20boot/%E6%B3%A8%E5%86%8Cbean%E5%88%B0IOC%E5%AE%B9%E5%99%A8/" rel="prev" title="注册bean到IOC容器">
+      <i class="fa fa-chevron-left"></i> 注册bean到IOC容器
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/04/01/Spring/spring%20boot/Spring%20Boot%20%E4%B8%AD%E8%87%AA%E5%AE%9A%E4%B9%89%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86/" rel="next" title="Spring Boot中自定义异常处理">
+      Spring Boot中自定义异常处理 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%86%E6%9E%90%E8%83%BD%E5%8A%9B"><span class="nav-number">1.</span> <span class="nav-text">分析能力</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8"><span class="nav-number">2.</span> <span class="nav-text">如何使用</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%90%AF%E5%8A%A8%E4%BC%98%E5%8C%96"><span class="nav-number">3.</span> <span class="nav-text">启动优化</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

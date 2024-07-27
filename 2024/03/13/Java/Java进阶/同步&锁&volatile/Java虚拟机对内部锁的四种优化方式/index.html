@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="锁消除&emsp;&emsp;锁消除是JIT编译器对内部锁的具体实现所做的一种优化。&emsp;&emsp;在动态编译同步块的时候，JIT编译器可以借助逃逸分析来判断同步块所使用的锁对象是否只能够被一个线程访问。如果同步块所使用的锁对象只能够被一个线程访问，那么JIT编译器在编译这个同步块的时候并不生成synchronized所表示的锁的申请与释放对应的机器码，而仅生成原临界区代码对应的机器码，即">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Java虚拟机对内部锁的四种优化方式">
+<meta property="og:url" content="http://example.com/2024/03/13/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5&%E9%94%81&volatile/Java%E8%99%9A%E6%8B%9F%E6%9C%BA%E5%AF%B9%E5%86%85%E9%83%A8%E9%94%81%E7%9A%84%E5%9B%9B%E7%A7%8D%E4%BC%98%E5%8C%96%E6%96%B9%E5%BC%8F/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="锁消除&emsp;&emsp;锁消除是JIT编译器对内部锁的具体实现所做的一种优化。&emsp;&emsp;在动态编译同步块的时候，JIT编译器可以借助逃逸分析来判断同步块所使用的锁对象是否只能够被一个线程访问。如果同步块所使用的锁对象只能够被一个线程访问，那么JIT编译器在编译这个同步块的时候并不生成synchronized所表示的锁的申请与释放对应的机器码，而仅生成原临界区代码对应的机器码，即">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2024-03-12T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.469Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2024/03/13/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5&%E9%94%81&volatile/Java%E8%99%9A%E6%8B%9F%E6%9C%BA%E5%AF%B9%E5%86%85%E9%83%A8%E9%94%81%E7%9A%84%E5%9B%9B%E7%A7%8D%E4%BC%98%E5%8C%96%E6%96%B9%E5%BC%8F/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>Java虚拟机对内部锁的四种优化方式 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/13/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5&%E9%94%81&volatile/Java%E8%99%9A%E6%8B%9F%E6%9C%BA%E5%AF%B9%E5%86%85%E9%83%A8%E9%94%81%E7%9A%84%E5%9B%9B%E7%A7%8D%E4%BC%98%E5%8C%96%E6%96%B9%E5%BC%8F/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Java虚拟机对内部锁的四种优化方式
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-03-13 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-13T00:00:00+08:00">2024-03-13</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/" itemprop="url" rel="index"><span itemprop="name">Java进阶</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5-%E9%94%81-volatile/" itemprop="url" rel="index"><span itemprop="name">同步&锁&volatile</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h3 id="锁消除"><a href="#锁消除" class="headerlink" title="锁消除"></a>锁消除</h3><p>&emsp;&emsp;锁消除是JIT编译器对内部锁的具体实现所做的一种优化。<br>&emsp;&emsp;在动态编译同步块的时候，JIT编译器可以借助逃逸分析来判断同步块所使用的锁对象是否只能够被一个线程访问。如果同步块所使用的锁对象只能够被一个线程访问，那么JIT编译器在编译这个同步块的时候并不生成synchronized所表示的锁的申请与释放对应的机器码，而仅生成原临界区代码对应的机器码，即消除了锁的使用。这种编译器优化就被称为锁消除，它使得特定情况下我们可以完全消除锁的开销。</p>
+<p>&emsp;&emsp;例如，StringBuffer虽然是线程安全的，但是在实际使用中往往不在多个线程间共享这些类的实例。而这些类在实现线程安全的时候往往借助于内部锁。因此，这些类是锁消除优化的常见目标。<br>&emsp;&emsp;锁消除优化还可能需要以JIT编译器的内联优化为前提。而一个方法是否会被JIT编译器内联取决于该方法的热度以及该方法对应的字节码的尺寸（Bytecode Size)。因此，锁消除优化能否被实施还取决于被调用的同步方法（或者带同步块的方法）是否能够被内联。</p>
+<span id="more"></span>&emsp;&emsp;
+
+<h3 id="锁粗化"><a href="#锁粗化" class="headerlink" title="锁粗化"></a>锁粗化</h3><p>&emsp;&emsp;锁粗化是JIT编译器对内部锁的具体实现所做的一种优化。<br>&emsp;&emsp;对于相邻的几个同步块，如果这些同步块使用的是同一个锁实例，那么JIT编译器会将这些同步块合并为一个大同步块，从而避免了一个线程反复申请、释放同一个锁所导致的开销。然而，锁粗化可能导致一个线程持续持有一个锁的时间变长，从而使得同步在该锁之上的其他线程在申请锁时的等待时间变长。因此，锁粗化不会被应用到循环体内的相邻同步块。</p>
+<p>&emsp;&emsp;</p>
+<h3 id="偏向锁"><a href="#偏向锁" class="headerlink" title="偏向锁"></a>偏向锁</h3><p>&emsp;&emsp;偏向锁是Java虚拟机对锁的实现所做的一种优化。这种优化基于 大多数锁并没有被争用，并且这些锁在其整个生命周期内至多只会被一个线程持有。然而，Java虚拟机在实现monitorenter字节码（申请锁）和monitorexit字节码（释放锁）时需要借助一个原子操作（CAS操作），这个操作代价相对来说比较昂贵。因此，Java虚拟机会为每个对象维护一个偏好，即一个对象对应的内部锁第1次被一个线程获得，那么这个线程就会被记录为该对象的偏好线程（Biased Thread）。这个线程后续无论是再次申请该锁还是释放该锁，都无须借助原先（指未实施偏向锁优化前）昂贵的原子操作，从而减少了锁的申请与释放的开销。</p>
+<p>&emsp;&emsp;</p>
+<h3 id="适应性锁"><a href="#适应性锁" class="headerlink" title="适应性锁"></a>适应性锁</h3><p>&emsp;&emsp;适应性锁是JIT编译器对内部锁实现所做的一种优化。<br>&emsp;&emsp;存在锁争用的情况下，一个线程申请一个锁的时候如果这个锁恰好被其他线程持有，那么这个线程就需要等待该锁被其持有线程释放。实现这种等待的一种保守方法——将这个线程暂停（线程的生命周期状态变为非Runnable状态）。由于暂停线程会导致上下文切换，因此对于一个具体锁实例来说，这种实现策略比较适合于系统中绝大多数线程对该锁的持有时间较长的场景，这样才能够抵消上下文切换的开销。另外一种实现方法就是采用忙等，所谓忙等相当于一个循环体为空的循环语句。<br>&emsp;&emsp;可见，忙等是通过反复执行空操作（什么也不做）直到所需的条件成立为止而实现等待的。这种策略的好处是不会导致上下文切换，缺点是比较耗费处理器资源——如果所需的条件在相当长时间内未能成立，那么忙等的循环就会一直被执行。因此，对于一个具体的锁实例来说，忙等策略比较适合于绝大多数线程对该锁的持有时间较短的场景，这样能够避免过多的处理器时间开销。</p>
+<p>&emsp;&emsp;事实上，Java虚拟机也不是非要在上述两种实现策略之中择其一 ——它可以综合使用上述两种策略。对于一个具体的锁实例，Java虚拟机会根据其运行过程中收集到的信息来判断这个锁是属于被线程持有时间“较长”的还是“较短”的。对于被线程持有时间“较长”的锁，Java虚拟机会选用暂停等待策略；而对于被线程持有时间“较短”的锁，Java虚拟机会选用忙等等待策略。Java虚拟机也可能先采用忙等等待策略，在忙等失败的情况下再采用暂停等待策略。Java虚拟机的这种优化就被称为适应性锁，这种优化同样也需要JIT编译器介入。<br>&emsp;&emsp;适应性锁优化可以是以具体的一个锁实例为基础的。也就是说，Java虚拟机可能对一个锁实例采用忙等等待策略，而对另外一个锁实例采用暂停等待策略。<br>&emsp;&emsp;从适应性锁优化可以看出，内部锁的使用并不一定会导致上下文切换，这就是说锁“可能”导致上下文切换的原因。</p>
+<hr>
+<p>转载自：<br><a target="_blank" rel="noopener" href="https://blog.csdn.net/broadview2006/article/details/78132983">https://blog.csdn.net/broadview2006/article/details/78132983</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/03/13/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5&%E9%94%81&volatile/Java%E4%B8%AD%E7%9A%84Atomic%E5%8C%85/" rel="prev" title="Java中的Atomic包">
+      <i class="fa fa-chevron-left"></i> Java中的Atomic包
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/03/13/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5&%E9%94%81&volatile/Java%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B%E4%B9%8Bhappens-before/" rel="next" title="Java内存模型之happens-before">
+      Java内存模型之happens-before <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%94%81%E6%B6%88%E9%99%A4"><span class="nav-number">1.</span> <span class="nav-text">锁消除</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%94%81%E7%B2%97%E5%8C%96"><span class="nav-number">2.</span> <span class="nav-text">锁粗化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%81%8F%E5%90%91%E9%94%81"><span class="nav-number">3.</span> <span class="nav-text">偏向锁</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%80%82%E5%BA%94%E6%80%A7%E9%94%81"><span class="nav-number">4.</span> <span class="nav-text">适应性锁</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

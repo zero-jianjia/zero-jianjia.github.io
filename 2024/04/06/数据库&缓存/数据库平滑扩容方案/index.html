@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="[toc]每一个项目都是由小项目发展而来，从最初的一台数据库，到后面的几千上万台数据库，这发展的过程，都要涉及到一个技术问题：当数据量太大的时候，如何进行扩容？ 现有一个站点，用户数据库有2个，网站用户数据通过ID取模，分别存在两台用户数据库中，随着数据增大，两台数据库已经不够用了，现在需要增加数据库进行扩容，应该如何进行扩容？">
+<meta property="og:type" content="article">
+<meta property="og:title" content="数据库平滑扩容方案">
+<meta property="og:url" content="http://example.com/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%B9%B3%E6%BB%91%E6%89%A9%E5%AE%B9%E6%96%B9%E6%A1%88/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="[toc]每一个项目都是由小项目发展而来，从最初的一台数据库，到后面的几千上万台数据库，这发展的过程，都要涉及到一个技术问题：当数据量太大的时候，如何进行扩容？ 现有一个站点，用户数据库有2个，网站用户数据通过ID取模，分别存在两台用户数据库中，随着数据增大，两台数据库已经不够用了，现在需要增加数据库进行扩容，应该如何进行扩容？">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407141123333.jpg">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407141125774.jpg">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407141125058.jpg">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407141126669.jpg">
+<meta property="article:published_time" content="2024-04-05T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.798Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407141123333.jpg">
+
+<link rel="canonical" href="http://example.com/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%B9%B3%E6%BB%91%E6%89%A9%E5%AE%B9%E6%96%B9%E6%A1%88/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>数据库平滑扩容方案 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%B9%B3%E6%BB%91%E6%89%A9%E5%AE%B9%E6%96%B9%E6%A1%88/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          数据库平滑扩容方案
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-06 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-06T00:00:00+08:00">2024-04-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93-%E7%BC%93%E5%AD%98/" itemprop="url" rel="index"><span itemprop="name">数据库&缓存</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>[toc]<br>每一个项目都是由小项目发展而来，从最初的一台数据库，到后面的几千上万台数据库，这发展的过程，都要涉及到一个技术问题：当数据量太大的时候，如何进行扩容？</p>
+<p>现有一个站点，用户数据库有2个，网站用户数据通过<strong>ID取模</strong>，分别存在两台用户数据库中，随着数据增大，两台数据库已经不够用了，现在需要增加数据库进行扩容，应该如何进行扩容？<br><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407141123333.jpg" alt="https://pic3.zhimg.com/80/v2-68ca415a69cbefb1002bf7a08a0c9154_hd.jpg"></p>
+<span id="more"></span>
+
+<h1 id="停机扩容"><a href="#停机扩容" class="headerlink" title="停机扩容"></a>停机扩容</h1><p>我们先来了解下停机扩容方案，这是一种很多人初期都会使用的方案（几台数据库的时候），具体步骤：</p>
+<ol>
+<li>小明先挂公告，告诉大家明天的凌晨02：00 - 06：00，站点将停机升级；</li>
+<li>时间到了，小明停止了所有对外服务；</li>
+<li>小明新增了2个数据库，然后写了一个程序，将原先的2个库的数据迁移到现有的4个库（2+2）上；</li>
+<li>数据迁移完成，修改数据库服务配置；</li>
+<li>重启服务，并重新开启对外服务。</li>
+</ol>
+<p><strong>回滚方案：</strong></p>
+<p>数据迁移失败，或者迁移后测试失败，则将服务配置修改回原先的两个库，改天再升级。</p>
+<p><strong>优点：</strong></p>
+<ul>
+<li>简单</li>
+</ul>
+<p><strong>缺点：</strong></p>
+<ol>
+<li>不高可用</li>
+<li>开启升级到升级完成，时间短，项目组压力大，<strong>易出错</strong></li>
+<li>升级时间基本是半夜人流量最少的时候，项目组疲累，容易出错</li>
+<li>运行一段时间后，发现问题，<strong>难以回滚</strong>，只能回到扩容前，<strong>会丢失部分数据</strong></li>
+</ol>
+<p><strong>适用：</strong></p>
+<ol>
+<li>小型网站；</li>
+<li>大部分游戏；</li>
+<li>对高可用要求不高的服务。</li>
+</ol>
+<h1 id="平滑扩容"><a href="#平滑扩容" class="headerlink" title="平滑扩容"></a>平滑扩容</h1><p>  平滑扩容中最好的方案就是<strong>扩容的数据库是原先数据库的倍数</strong>，如：2个数据库扩容到4个数据库，是原先的2倍。步骤：</p>
+<p>（1）新增2个数据库</p>
+<p>（2）配置双主进行数据同步（先测试，后线上，重启服务时间是秒级）</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407141125774.jpg" alt="img"></p>
+<p>（3）数据同步完成之后，<strong>配置主主双写</strong>（<strong>因为同步有延迟，如果每时每刻都有数据写入&#x2F;更新的话，就不能准确的保证数据已经同步完成</strong>）</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407141125058.jpg" alt="img"></p>
+<p>（4）数据同步完成后（时间比较长），<strong>删除双主同步，修改数据库配置，并重启（秒级）；</strong></p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407141126669.jpg" alt="img"></p>
+<p>（5）此时已经扩容完成，但此时的数据并没有减少，新增的数据库跟旧的数据库一样多的数据，此时还需要写一个程序，<strong>清空数据库中多余的数据</strong>，如：</p>
+<ol>
+<li>User1去除 uid % 4 &#x3D; 2的数据；</li>
+<li>User3去除 uid % 4 &#x3D; 0的数据；</li>
+<li>User2去除 uid % 4 &#x3D; 3的数据；</li>
+<li>User4去除 uid % 4 &#x3D; 1的数据。</li>
+</ol>
+<p>现在，我们就已经完成了数据库的平滑扩容了。</p>
+<p><strong>优点</strong></p>
+<ol>
+<li>扩容期间，服务照常进行，<strong>保证高可用</strong>；</li>
+<li>时间长，项目组压力没有这么大，<strong>出错率低</strong>；</li>
+<li>扩容期间，遇到什么问题，都<strong>可以随时调试，不怕影响线上服务</strong>；</li>
+<li>每个数据库<strong>少了一半</strong>的数据量。</li>
+</ol>
+<p><strong>缺点</strong></p>
+<ol>
+<li>程序复杂，需要配置双主、主主双写、检测数据同步等额外技术；</li>
+<li>但后期数据库成千上万台的时候，扩容复杂（情况非常少，除非将很多业务数据放在同一个数据库）。</li>
+</ol>
+<p><strong>总结</strong></p>
+<p>本文主要简单讲解了数据库扩容的两种方案，并对这两种方案的优缺点、适用场景进行了说明：</p>
+<p>·    <strong>停机扩容：</strong>简单，不高可用，易出错，扩容后不能回滚，只能回档，会丢失一部分数据。</p>
+<p>·    <strong>平滑扩容：</strong>复杂，高可用，出错调试容易，易回滚，不会造成数据丢失，</p>
+<hr>
+<p>转载自：<br><a target="_blank" rel="noopener" href="https://www.cnblogs.com/kafeixiaoluo/p/9156855.html">https://www.cnblogs.com/kafeixiaoluo/p/9156855.html</a><br><a target="_blank" rel="noopener" href="https://www.cnblogs.com/firstdream/p/7090524.html">https://www.cnblogs.com/firstdream/p/7090524.html</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8/" rel="prev" title="数据库分库分表">
+      <i class="fa fa-chevron-left"></i> 数据库分库分表
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/06/01/k8s&docker/%E4%BB%80%E4%B9%88%E6%98%AF%E5%85%83%E5%8E%9F%E7%94%9F/" rel="next" title="什么是元原生">
+      什么是元原生 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%81%9C%E6%9C%BA%E6%89%A9%E5%AE%B9"><span class="nav-number">1.</span> <span class="nav-text">停机扩容</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%B9%B3%E6%BB%91%E6%89%A9%E5%AE%B9"><span class="nav-number">2.</span> <span class="nav-text">平滑扩容</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

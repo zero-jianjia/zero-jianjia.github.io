@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="在CopyOnWriteArrayList类的set方法中有一段setArray(elements)代码（else块），实际上这段代码并未对elements做任何改动，注意这里的，实现的volatile语意并不对CopyOnWriteArrayList实例产生任何影响，为什么还是要保留这行语句？  12345678910111213141516171819202122232425262728293">
+<meta property="og:type" content="article">
+<meta property="og:title" content="由CopyOnWriteArrayList类的set方法引发对volatile深入理解">
+<meta property="og:url" content="http://example.com/2024/03/13/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5&%E9%94%81&volatile/%E7%94%B1CopyOnWriteArrayList%E7%B1%BB%E7%9A%84set%E6%96%B9%E6%B3%95%E5%BC%95%E5%8F%91%E5%AF%B9volatile%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="在CopyOnWriteArrayList类的set方法中有一段setArray(elements)代码（else块），实际上这段代码并未对elements做任何改动，注意这里的，实现的volatile语意并不对CopyOnWriteArrayList实例产生任何影响，为什么还是要保留这行语句？  12345678910111213141516171819202122232425262728293">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291613847.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291613318.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291613967.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291613191.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291613494.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291613284.png">
+<meta property="article:published_time" content="2024-03-12T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.501Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291613847.png">
+
+<link rel="canonical" href="http://example.com/2024/03/13/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5&%E9%94%81&volatile/%E7%94%B1CopyOnWriteArrayList%E7%B1%BB%E7%9A%84set%E6%96%B9%E6%B3%95%E5%BC%95%E5%8F%91%E5%AF%B9volatile%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>由CopyOnWriteArrayList类的set方法引发对volatile深入理解 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/13/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5&%E9%94%81&volatile/%E7%94%B1CopyOnWriteArrayList%E7%B1%BB%E7%9A%84set%E6%96%B9%E6%B3%95%E5%BC%95%E5%8F%91%E5%AF%B9volatile%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          由CopyOnWriteArrayList类的set方法引发对volatile深入理解
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-03-13 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-13T00:00:00+08:00">2024-03-13</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/" itemprop="url" rel="index"><span itemprop="name">Java进阶</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5-%E9%94%81-volatile/" itemprop="url" rel="index"><span itemprop="name">同步&锁&volatile</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>在CopyOnWriteArrayList类的set方法中有一段setArray(elements)代码（else块），实际上这段代码并未对elements做任何改动，注意这里的，实现的volatile语意并不对CopyOnWriteArrayList实例产生任何影响，为什么还是要保留这行语句？</p>
+ <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">transient</span> <span class="keyword">volatile</span> Object[] array;</span><br><span class="line"></span><br><span class="line"><span class="keyword">final</span> Object[] getArray() &#123;</span><br><span class="line">    <span class="keyword">return</span> array;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">final</span> <span class="keyword">void</span> <span class="title function_">setArray</span><span class="params">(Object[] a)</span> &#123;</span><br><span class="line">    array = a;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> E <span class="title function_">set</span><span class="params">(<span class="type">int</span> index, E element)</span> &#123;</span><br><span class="line">    <span class="keyword">final</span> <span class="type">ReentrantLock</span> <span class="variable">lock</span> <span class="operator">=</span> <span class="built_in">this</span>.lock;</span><br><span class="line">    lock.lock();</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        Object[] elements = getArray();</span><br><span class="line">        <span class="type">E</span> <span class="variable">oldValue</span> <span class="operator">=</span> get(elements, index);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (oldValue != element) &#123;</span><br><span class="line">            <span class="type">int</span> <span class="variable">len</span> <span class="operator">=</span> elements.length;</span><br><span class="line">            Object[] newElements = Arrays.copyOf(elements, len);</span><br><span class="line">            newElements[index] = element;</span><br><span class="line">            setArray(newElements);  </span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="comment">// Not quite a no-op; ensures volatile write semantics</span></span><br><span class="line">            setArray(elements);  <span class="comment">// -----这里？？？</span></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> oldValue;</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        lock.unlock();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在这里首先理解下volatile，我们知道volatile变量自身具有下列特性：</p>
+<p>可见性：对一个volatile变量的读，总是能看到（任意线程）对这个volatile变量最后的写入。</p>
+<p>原子性：对任意单个volatile变量的读&#x2F;写具有原子性，但类似于volatile++这种复合操作不具有原子性。</p>
+ <span id="more"></span>
+
+<p>从JSR-133开始，volatile变量的写-读可以实现线程之间的通信。从内存语义的角度来说，volatile与锁有相同的效果。</p>
+<p>下面使用volatile变量的示例代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">VolatileExample</span> &#123;</span><br><span class="line">    <span class="type">int</span> <span class="variable">a</span> <span class="operator">=</span> <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">volatile</span> <span class="type">boolean</span> <span class="variable">flag</span> <span class="operator">=</span> <span class="literal">false</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">writer</span><span class="params">()</span> &#123;</span><br><span class="line">        a = <span class="number">1</span>;                   <span class="comment">//1</span></span><br><span class="line">        flag = <span class="literal">true</span>;               <span class="comment">//2</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">reader</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (flag) &#123;                <span class="comment">//3</span></span><br><span class="line">            <span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span>  a;           <span class="comment">//4</span></span><br><span class="line">            ……</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>假设线程A执行writer()方法之后，线程B执行reader()方法。根据happens before规则，这个过程建立的happens before关系可以分为两类：</p>
+<ol>
+<li>根据程序次序规则，1 happens before 2; 3 happens before 4。</li>
+<li>根据volatile规则，2 happens     before 3。</li>
+<li>根据happens before 的传递性规则，1     happens before 4。</li>
+</ol>
+<p>volatile写-读的内存语义：</p>
+<p>volatile写的内存语义：当写一个volatile变量时，JMM会把该线程对应的本地内存中的共享变量刷新到主内存。上面示例程序VolatileExample为例，假设线程A首先执行writer()方法，随后线程B执行reader()方法，初始时两个线程的本地内存中的flag和a都是初始状态。下图是线程A执行volatile写后，共享变量的状态示意图：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291613847.png" alt="image-20240222115228141"></p>
+<p>如上图所示，线程A在写flag变量后，本地内存A中被线程A更新过的两个共享变量的值被刷新到主内存中。此时，本地内存A和主内存中的共享变量的值是一致的。</p>
+<p>volatile读的内存语义</p>
+<p>当读一个volatile变量时，JMM会把该线程对应的本地内存置为无效。线程接下来将从主内存中读取共享变量。</p>
+<p>下面是线程B读同一个volatile变量后，共享变量的状态示意图：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291613318.png" alt="image-20240222115425416"></p>
+<p>如上图所示，在读flag变量后，本地内存B已经被置为无效。此时，线程B必须从主内存中读取共享变量。线程B的读取操作将导致本地内存B与主内存中的共享变量的值也变成一致的了。</p>
+<p>如果把volatile写和volatile读这两个步骤综合起来看的话，在读线程B读一个volatile变量后，写线程A在写这个volatile变量之前所有可见的共享变量的值都将立即变得对读线程B可见。</p>
+<p>下面对volatile写和volatile读的内存语义做个总结：</p>
+<p>  线程A写一个volatile变量，实质上是线程A向接下来将要读这个volatile变量的某个线程发出了（其对共享变量所在修改的）消息。</p>
+<p>  线程B读一个volatile变量，实质上是线程B接收了之前某个线程发出的（在写这个volatile变量之前对共享变量所做修改的）消息。</p>
+<p>线程A写一个volatile变量，随后线程B读这个volatile变量，这个过程实质上是线程A通过主内存向线程B发送消息。</p>
+<p>那么JMM如何实现volatile写&#x2F;读的内存语义？</p>
+<p>前文提到过重排序分为编译器重排序和处理器重排序，为了实现volatile内存语义，JMM会分别限制这两种类型的重排序类型。下面是JMM针对编译器制定的volatile重排序规则表：</p>
+<table>
+<thead>
+<tr>
+<th>是否能重排序</th>
+<th>第二个操作</th>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>第一个操作</td>
+<td>普通读&#x2F;写</td>
+<td>volatile读</td>
+<td>volatile写</td>
+</tr>
+<tr>
+<td>普通读&#x2F;写</td>
+<td></td>
+<td></td>
+<td>NO</td>
+</tr>
+<tr>
+<td>volatile读</td>
+<td>NO</td>
+<td>NO</td>
+<td>NO</td>
+</tr>
+<tr>
+<td>volatile写</td>
+<td></td>
+<td>NO</td>
+<td>NO</td>
+</tr>
+</tbody></table>
+<p>举例来说，在程序顺序中，当第一个操作为普通变量的读或写时，如果第二个操作为volatile写，则编译器不能重排序这两个操作。</p>
+<p>从上表可以看出：</p>
+<ul>
+<li>当第二个操作是volatile写时，不管第一个操作是什么，都不能重排序。这个规则确保volatile写之前的操作不会被编译器重排序到volatile写之后。</li>
+<li>当第一个操作是volatile读时，不管第二个操作是什么，都不能重排序。这个规则确保volatile读之后的操作不会被编译器重排序到volatile读之前。</li>
+<li>当第一个操作是volatile写，第二个操作是volatile读时，不能重排序。</li>
+</ul>
+<p>为了实现volatile的内存语义，编译器在生成字节码时，会在指令序列中插入内存屏障来禁止特定类型的处理器重排序。</p>
+<p>内存屏障（Memory Barrier，或有时叫做内存栅栏，Memory Fence）是一种CPU指令，用于控制特定条件下的重排序和内存可见性问题。Java编译器也会根据内存屏障的规则禁止重排序。</p>
+<p>内存屏障可以被分为以下几种类型：</p>
+<p>LoadLoad屏障：对于这样的语句Load1; LoadLoad; Load2，在Load2及后续读取操作要读取的数据被访问前，保证Load1要读取的数据被读取完毕。</p>
+<p>StoreStore屏障：对于这样的语句Store1; StoreStore; Store2，在Store2及后续写入操作执行前，保证Store1的写入操作对其它处理器可见。</p>
+<p>LoadStore屏障：对于这样的语句Load1; LoadStore; Store2，在Store2及后续写入操作被刷出前，保证Load1要读取的数据被读取完毕。</p>
+<p>StoreLoad屏障：对于这样的语句Store1; StoreLoad; Load2，在Load2及后续所有读取操作执行前，保证Store1的写入对所有处理器可见。它的开销是四种屏障中最大的。在大多数处理器的实现中，这个屏障是个万能屏障，兼具其它三种内存屏障的功能。</p>
+<p>JSR-133的规定，Java编译器会这样使用内存屏障。下面是JMM内存屏障插入策略：</p>
+<ul>
+<li>在每个volatile写操作的前面插入一个StoreStore屏障。</li>
+<li>在每个volatile写操作的后面插入一个StoreLoad屏障。</li>
+<li>在每个volatile读操作的后面插入一个LoadLoad屏障。</li>
+<li>在每个volatile读操作的后面插入一个LoadStore屏障。</li>
+<li>为了保证final字段的特殊语义，也会在下面的语句加入内存屏障。x.finalField &#x3D; v; StoreStore; sharedRef &#x3D; x;</li>
+</ul>
+<p>上述内存屏障插入策略非常保守，但它可以保证在任意处理器平台，任意的程序中都能得到正确的volatile内存语义。关于JMM主内存与工作内存交互，可以参考：<a target="_blank" rel="noopener" href="http://blog.csdn.net/zero__007/article/details/53025425%E3%80%82">http://blog.csdn.net/zero__007/article/details/53025425。</a></p>
+<p>下面是保守策略下，volatile写插入内存屏障后生成的指令序列示意图：</p>
+<p> <img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291613967.png" alt="image-20240222115535644"></p>
+<p>上图中的StoreStore屏障可以保证在volatile写之前，其前面的所有普通写操作已经对任意处理器可见了。这是因为StoreStore屏障将保障上面所有的普通写在volatile写之前刷新到主内存。volatile写后面的StoreLoad屏障的作用是避免volatile写与后面可能有的volatile读&#x2F;写操作重排序。因为编译器常常无法准确判断在一个volatile写的后面，是否需要插入一个StoreLoad屏障（比如，一个volatile写之后方法立即return）。</p>
+<p>为了保证能正确实现volatile的内存语义，JMM在这里采取了保守策略：在每个volatile写的后面或在每个volatile读的前面插入一个StoreLoad屏障。从整体执行效率的角度考虑，JMM选择了在每个volatile写的后面插入一个StoreLoad屏障。因为volatile写-读内存语义的常见使用模式是：一个写线程写volatile变量，多个读线程读同一个volatile 变量。当读线程的数量大大超过写线程时，选择在volatile写之后插入StoreLoad屏障将带来可观的执行效率的提升。</p>
+<p>下面是在保守策略下，volatile读插入内存屏障后生成的指令序列示意图：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291613191.png" alt="image-20240222115633452"> </p>
+<p>上图中的LoadLoad屏障用来禁止处理器把上面的volatile读与下面的普通读重排序。LoadStore屏障用来禁止处理器把上面的volatile读与下面的普通写重排序。</p>
+<p>上述volatile写和volatile读的内存屏障插入策略非常保守。在实际执行时，只要不改变volatile写-读的内存语义，编译器可以根据具体情况省略不必要的屏障。下面通过具体的示例代码来说明：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">VolatileBarrierExample</span> &#123;</span><br><span class="line">    <span class="type">int</span> a;</span><br><span class="line">    <span class="keyword">volatile</span> <span class="type">int</span> <span class="variable">v1</span> <span class="operator">=</span> <span class="number">1</span>;</span><br><span class="line">    <span class="keyword">volatile</span> <span class="type">int</span> <span class="variable">v2</span> <span class="operator">=</span> <span class="number">2</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">void</span> <span class="title function_">readAndWrite</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> v1;           <span class="comment">//第一个volatile读</span></span><br><span class="line">        <span class="type">int</span> <span class="variable">j</span> <span class="operator">=</span> v2;           <span class="comment">// 第二个volatile读</span></span><br><span class="line">        a = i + j;            <span class="comment">//普通写</span></span><br><span class="line">        v1 = i + <span class="number">1</span>;          <span class="comment">// 第一个volatile写</span></span><br><span class="line">        v2 = j * <span class="number">2</span>;          <span class="comment">//第二个 volatile写</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    …                    <span class="comment">//其他方法</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>针对readAndWrite()方法，编译器在生成字节码时可以做如下的优化：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291613494.png" alt="image-20240222115706580"> </p>
+<p>注意，最后的StoreLoad屏障不能省略。因为第二个volatile写之后，方法立即return。此时编译器可能无法准确断定后面是否会有volatile读或写，为了安全起见，编译器常常会在这里插入一个StoreLoad屏障。</p>
+<p>在JSR-133之前的旧Java内存模型中，虽然不允许volatile变量之间重排序，但旧的Java内存模型允许volatile变量与普通变量之间重排序。在旧的内存模型中，VolatileExample示例程序可能被重排序成下列时序来执行：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291613284.png" alt="image-20240222115733557"></p>
+<p>在旧的内存模型中，当1和2之间没有数据依赖关系时，1和2之间就可能被重排序（3和4类似）。其结果就是：读线程B执行4时，不一定能看到写线程A在执行1时对共享变量的修改。</p>
+<p>因此在旧的内存模型中 ，volatile的写-读没有锁的释放-获所具有的内存语义。为了提供一种比锁更轻量级的线程之间通信的机制，JSR-133增强 volatile的内存语义：严格限制编译器和处理器对volatile变量与普通变量的重排序，确保volatile的写-读和锁的释放-获取一样，具有相同的内存语义。从编译器重排序规则和处理器内存屏障插入策略来看，只要volatile变量与普通变量之间的重排序可能会破坏volatile的内存语意，这种重排序就会被编译器重排序规则和处理器内存屏障插入策略禁止。</p>
+<p>那么回到之前的问题，未对elements做任何改动为什还要在else块中调用setArray(elements);是否是多余呢？</p>
+<p>如下例子：a为非volatile的某基本类型变量,coal为CopyOnWriteArrayList对象，</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">thread1:</span><br><span class="line">x:a = calValue;</span><br><span class="line">y:coal.set….</span><br><span class="line">———————</span><br><span class="line">thread2:</span><br><span class="line">m:coal.get…</span><br><span class="line">n:<span class="type">int</span> <span class="variable">tmp</span> <span class="operator">=</span> a;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>假设存在以上场景，如果能保证只会存在这样的轨迹：x,y,m,n.根据约定有happen-before(y,m),根据线程内的操作相关规定有happen-before(x,y), happen-before(m,n)，根据happen-before的传递性读写a变量就有happen-before(x,n)，所以thread1对a的写操作对thread2中a的读操作可见。如果CopyOnWriteArrayList的set的else里没有setArray(elements) 的话，before(y,m)就不再有了，上述的可见性也就无法保证。</p>
+<p>所以实际上else中的setArray(elements)不是为了保证CopyOnWriteArrayList本身的可见性，而是保证外部的非volatile变量的happen-before。可以参考<a target="_blank" rel="noopener" href="http://stackoverflow.com/questions/28772539/why-setarray-method-call-required-in-copyonwritearraylist%E3%80%82">http://stackoverflow.com/questions/28772539/why-setarray-method-call-required-in-copyonwritearraylist。</a></p>
+<hr>
+<p>相关阅读：<br><a target="_blank" rel="noopener" href="http://blog.csdn.net/zero__007/article/details/44080975">http://blog.csdn.net/zero__007/article/details/44080975</a><br><a target="_blank" rel="noopener" href="http://ifeve.com/copyonwritearraylist-set/">http://ifeve.com/copyonwritearraylist-set/</a><br><a target="_blank" rel="noopener" href="http://ifeve.com/java-memory-model-4/">http://ifeve.com/java-memory-model-4/</a><br><a target="_blank" rel="noopener" href="http://tech.meituan.com/java-memory-reordering.html">http://tech.meituan.com/java-memory-reordering.html</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/03/13/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5&%E9%94%81&volatile/%E9%87%8D%E6%8E%92%E5%BA%8F/" rel="prev" title="重排序">
+      <i class="fa fa-chevron-left"></i> 重排序
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/03/13/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5&%E9%94%81&volatile/%E6%B7%B1%E5%85%A5%E8%A7%A3%E6%9E%90%20volatile%20%E3%80%81CAS%20%E7%9A%84%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/" rel="next" title="深入解析 volatile 、CAS 的实现原理">
+      深入解析 volatile 、CAS 的实现原理 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

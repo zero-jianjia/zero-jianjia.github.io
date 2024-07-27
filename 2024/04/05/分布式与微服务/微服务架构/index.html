@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="&emsp;&emsp;什么是微服务架构，得先知道什么系统架构设计?&emsp;&emsp;系统架构设计描述了在应用系统的内部，如何根据业务、技术、组织、灵活性、可扩展性以及可维护性等多种因素，将应用系统划分成不同的部分，并使这些部分彼此之间相互分工、相互协作，从而为用户提供某种特定的价值的方式。 单体架构优点：&emsp;&emsp;1、易于开发： 开发方式简单，IDE 支持好，方便运行和调试。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="微服务架构">
+<meta property="og:url" content="http://example.com/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%9E%B6%E6%9E%84/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="&emsp;&emsp;什么是微服务架构，得先知道什么系统架构设计?&emsp;&emsp;系统架构设计描述了在应用系统的内部，如何根据业务、技术、组织、灵活性、可扩展性以及可维护性等多种因素，将应用系统划分成不同的部分，并使这些部分彼此之间相互分工、相互协作，从而为用户提供某种特定的价值的方式。 单体架构优点：&emsp;&emsp;1、易于开发： 开发方式简单，IDE 支持好，方便运行和调试。">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2024-04-04T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.728Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%9E%B6%E6%9E%84/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>微服务架构 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%9E%B6%E6%9E%84/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          微服务架构
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-05T00:00:00+08:00">2024-04-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/" itemprop="url" rel="index"><span itemprop="name">分布式与微服务</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>&emsp;&emsp;什么是微服务架构，得先知道什么系统架构设计?<br>&emsp;&emsp;系统架构设计描述了在应用系统的内部，如何根据业务、技术、组织、灵活性、可扩展性以及可维护性等多种因素，将应用系统划分成不同的部分，并使这些部分彼此之间相互分工、相互协作，从而为用户提供某种特定的价值的方式。</p>
+<h3 id="单体架构"><a href="#单体架构" class="headerlink" title="单体架构"></a>单体架构</h3><p>优点：<br>&emsp;&emsp;1、易于开发： 开发方式简单，IDE 支持好，方便运行和调试。<br>&emsp;&emsp;2、易于测试： 所有功能运行在一个进程中，一旦进程启动，便可以进行系统测试。<br>&emsp;&emsp;3、易于部署： 只需要将打好的一个软件包发布到服务器即可。<br>&emsp;&emsp;4、易于水平伸缩： 只需要创建一个服务器节点，配置好运行时环境，再将软件包发布到新服务器节点即可运行程序（当然也需要采取分发策略保证请求能有效地分发到新节点）。</p>
+<p>缺点：<br>&emsp;&emsp;1、维护成本大： 当应用程序的功能越来越多、团队越来越大时，沟通成本、管理成本显著增加。当出现 bug 时，可能引起 bug 的原因组合越来越多，导致分析、定位和修复的成本增加；并且在对全局功能缺乏深度理解的情况下，容易在修复 bug 时引入新的 bug。<br>&emsp;&emsp;2、持续交付周期长： 构建和部署时间会随着功能的增多而增加，任何细微的修改都会触发部署流水线。<br>&emsp;&emsp;3、新人培养周期长： 新成员了解背景、熟悉业务和配置环境的时间越来越长。<br>&emsp;&emsp;4、技术选型成本高： 单块架构倾向于采用统一的技术平台或方案来解决所有问题，如果后续想引入新的技术或框架，成本和风险都很大。<br>&emsp;&emsp;5、可扩展性差： 随着功能的增加，垂直扩展的成本将会越来越大；而对于水平扩展而言，因为所有代码都运行在同一个进程，没办法做到针对应用程序的部分功能做独立的扩展。</p>
+<span id="more"></span>
+
+<h3 id="微服务架构"><a href="#微服务架构" class="headerlink" title="微服务架构"></a>微服务架构</h3><p>&emsp;&emsp;微服务架构是一种架构模式，它提倡将单一应用程序划分成一组小的服务，服务之间互相协调、互相配合，为用户提供最终价值。每个服务运行在其独立的进程中，服务于服务间采用轻量级的通信机制互相沟通（通常是基于 HTTP 的 RESTful API）。每个服务都围绕着具体业务进行构建，并且能够被独立地部署到生产环境、类生产环境等。另外，应尽量避免统一的、集中式的服务管理机制，对具体的一个服务而言，应根据业务上下文，选择合适的语言、工具对其进行构建。</p>
+<h4 id="微服务架构的特性"><a href="#微服务架构的特性" class="headerlink" title="微服务架构的特性"></a>微服务架构的特性</h4><ol>
+<li><p>单一职责<br>&emsp;&emsp;微服务架构中的每个服务，都是具有业务逻辑的，符合高内聚、低耦合原则以及单一职责原则的单元，不同的服务通过“管道”的方式灵活组合，从而构建出庞大的系统。</p>
+</li>
+<li><p>轻量级通信<br> &emsp;&emsp;服务之间通过轻量级的通信机制实现互通互联，而所谓的轻量级，通常指语言无关、平台无关的交互方式。<br> &emsp;&emsp;对于轻量级通信的格式而言，比如熟悉的 XML 和 JSON，它们是语言无关、平台无关的；对于通信的协议而言，通常基于 HTTP，能让服务间的通信变得标准化、无状态化。REST（Representational State Transfer）就是实现服务间互相协作的轻量级通信机制之一。使用轻量级通信机制，可以让团队选择更适合的语言、工具或者平台来开发服务本身。</p>
+</li>
+<li><p>独立性<br> &emsp;&emsp;每个服务在应用交付过程中，独立地开发、测试和部署。<br> &emsp;&emsp;在单块架构中所有功能都在同一个代码库，功能的开发不具有独立性；当不同小组完成多个功能后，需要经过集成和回归测试，测试过程也不具有独立性；当测试完成后，应用被构建成一个包，如果某个功能存在 bug，将导致整个部署失败或者回滚。<br> &emsp;&emsp;在微服务架构中，每个服务都是独立的业务单元，与其他服务高度解耦，只需要改变当前服务本身，就可以完成独立的开发、测试和部署。</p>
+</li>
+<li><p>进程隔离<br> &emsp;&emsp;单块架构中，整个系统运行在同一个进程中，当应用进行部署时，必须停掉当前正在运行的应用，部署完成后再重启进程，无法做到独立部署。<br> &emsp;&emsp;有时候会将重复的代码抽取出来封装成组件，在单块架构中，组件通常的形态叫做共享库（如 jar 包或者 DLL），但是当程序运行时，所有组件最终也会被加载到同一进程中运行。<br> &emsp;&emsp;在微服务架构中，应用程序由多个服务组成，每个服务都是高度自治的独立业务实体，可以运行在独立的进程中，不同的服务能非常容易地部署到不同的主机上。<br> &emsp;&emsp;理论上所有服务可以部署在同一个服务器节点，但是并不推荐这么做，因为微服务架构的主旨就是高度自治和高度隔离。</p>
+</li>
+</ol>
+<h4 id="微服务架构的本质"><a href="#微服务架构的本质" class="headerlink" title="微服务架构的本质"></a>微服务架构的本质</h4><ol>
+<li><p>服务作为组件<br>&emsp;&emsp;微服务也可以被认为是一种组件，但是跟传统组件的区别在于它可以独立部署，因此它的一个显著的优势。另外一个优点是，它在组件与组件之间定义了清晰的、语言无关、平台无关的规范接口，耦合度低，灵活性非常高。但它的不足之处是，分布式调用严重依赖于网络的可靠性和稳定性。</p>
+</li>
+<li><p>围绕业务组织团队<br>&emsp;&emsp;在单块架构中，企业一般会根据技能划分团队，在这种组织架构下，即便是简单的需求变更都有可能需要跨团队协作，沟通成本很高。而在微服务架构中，它提倡以业务为核心，按照业务能力来组织团队，团队中的成员具有多样性的技能。</p>
+</li>
+<li><p>关注产品而非项目<br>&emsp;&emsp;在单块架构中，应用基本上是基于“项目模式”构建的，即项目启动时从不同技能资源池中抽取相关资源组成团队，项目结束后释放所有资源。这种情况下团队成员缺乏主人翁意识和产品成就感。<br>&emsp;&emsp;在微服务架构中，提倡采用“产品模式”构建，即更倾向于让团队负责整个服务的生命周期，以便提供更优质的服务。</p>
+</li>
+<li><p>技术多样性<br>&emsp;&emsp;微服务架构中，提倡针对不同的业务特征选择合适的技术方案，有针对性的解决具体业务问题，而不是像单块架构中采用统一的平台或技术来解决所有问题。</p>
+</li>
+<li><p>业务数据独立<br>&emsp;&emsp;微服务架构提供自主管理其相关的业务数据，这样可以随着业务的发展提供数据接口集成，而不是以数据库的方式同其他服务集成。另外，随着业务的发展，可以方便地选择更合的工具管理或者迁移业务数据。</p>
+</li>
+<li><p>基础设施自动化<br>&emsp;&emsp;在微服务架构的实践过程中，对持续交付和部署流水线的要求很高，将促进企业不断寻找更高效的方式完成基础设施的自动化及 DevOps 运维能力的提升。</p>
+</li>
+</ol>
+<h4 id="微服务架构的落地的挑战"><a href="#微服务架构的落地的挑战" class="headerlink" title="微服务架构的落地的挑战"></a>微服务架构的落地的挑战</h4><ol>
+<li><p>分布式系统的复杂性<br>&emsp;&emsp;微服务架构是基于分布式的系统，而构建分布式系统必然会带来额外的开销。<br> &emsp;&emsp;  a、性能： 分布式系统是跨进程、跨网络的调用，受网络延迟和带宽的影响。<br> &emsp;&emsp;  b、可靠性： 由于高度依赖于网络状况，任何一次的远程调用都有可能失败，随着服务的增多还会出现更多的潜在故障点。因此，如何提高系统的可靠性、降低因网络引起的故障率，是系统构建的一大挑战。<br> &emsp;&emsp;  c、异步： 异步通信大大增加了功能实现的复杂度，并且伴随着定位难、调试难等问题。<br> &emsp;&emsp;  d、数据一致性： 要保证分布式系统的数据强一致性，成本是非常高的，需要在 C（一致性）A（可用性）P（分区容错性） 三者之间做出权衡。</p>
+</li>
+<li><p>运维成本<br>&emsp;&emsp;运维主要包括配置、部署、监控与告警和日志收集四大方面。微服务架构中，每个服务都需要独立地配置、部署、监控和收集日志，成本呈指数级增长。</p>
+</li>
+<li><p>自动化部署<br>&emsp;&emsp;在微服务架构中，每个服务都独立部署，交付周期短且频率高，人工部署已经无法适应业务的快速变化。因此如何有效地构建自动化部署体系，是微服务面临的另一个挑战。</p>
+</li>
+<li><p>DevOps 与组织架构<br>&emsp;&emsp;在微服务架构的实施过程中，开发人员和运维人员的角色发生了变化，开发者将承担起整个服务的生命周期的责任，包括部署和监控；而运维则更倾向于顾问式的角色，尽早考虑服务如何部署。因此，按需调整组织架构、构建全功能的团队，也是一个不小的挑战。</p>
+</li>
+<li><p>服务间的依赖测试<br>&emsp;&emsp;单块架构中，通常使用集成测试来验证依赖是否正常。而在微服务架构中，服务数量众多，每个服务都是独立的业务单元，服务主要通过接口进行交互，如何保证依赖的正常，是测试面临的主要挑战。</p>
+</li>
+<li><p>服务间的依赖管理<br>&emsp;&emsp;微服务架构中，服务数量众多，如何清晰有效地展示服务间的依赖关系也是个不小的挑战。</p>
+</li>
+</ol>
+<hr>
+<p>转载自：<br><a target="_blank" rel="noopener" href="https://blog.csdn.net/bntX2jSQfEHy7/article/details/79081314">https://blog.csdn.net/bntX2jSQfEHy7/article/details/79081314</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E6%9C%8D%E5%8A%A1%E5%AE%B9%E9%94%99%E6%A8%A1%E5%BC%8F/" rel="prev" title="服务容错模式">
+      <i class="fa fa-chevron-left"></i> 服务容错模式
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/" rel="next" title="分布式锁">
+      分布式锁 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8D%95%E4%BD%93%E6%9E%B6%E6%9E%84"><span class="nav-number">1.</span> <span class="nav-text">单体架构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%9E%B6%E6%9E%84"><span class="nav-number">2.</span> <span class="nav-text">微服务架构</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%9E%B6%E6%9E%84%E7%9A%84%E7%89%B9%E6%80%A7"><span class="nav-number">2.1.</span> <span class="nav-text">微服务架构的特性</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%9E%B6%E6%9E%84%E7%9A%84%E6%9C%AC%E8%B4%A8"><span class="nav-number">2.2.</span> <span class="nav-text">微服务架构的本质</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%9E%B6%E6%9E%84%E7%9A%84%E8%90%BD%E5%9C%B0%E7%9A%84%E6%8C%91%E6%88%98"><span class="nav-number">2.3.</span> <span class="nav-text">微服务架构的落地的挑战</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

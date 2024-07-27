@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="堆外内存&emsp;&emsp;堆外内存是相对于堆内内存的一个概念。堆内内存是由JVM所管控的Java进程内存，我们平时在Java中创建的对象都处于堆内内存中，并且它们遵循JVM的内存管理机制，JVM会采用垃圾回收机制统一管理它们的内存。那么堆外内存就是存在于JVM管控之外的一块内存区域，因此它是不受JVM的管控。&emsp;&emsp;可以使用ByteBuffer等类来操纵堆外内存了，使用Byt">
+<meta property="og:type" content="article">
+<meta property="og:title" content="DirectByteBuffer">
+<meta property="og:url" content="http://example.com/2024/03/05/Java/Java%E8%BF%9B%E9%98%B6/DirectByteBuffer/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="堆外内存&emsp;&emsp;堆外内存是相对于堆内内存的一个概念。堆内内存是由JVM所管控的Java进程内存，我们平时在Java中创建的对象都处于堆内内存中，并且它们遵循JVM的内存管理机制，JVM会采用垃圾回收机制统一管理它们的内存。那么堆外内存就是存在于JVM管控之外的一块内存区域，因此它是不受JVM的管控。&emsp;&emsp;可以使用ByteBuffer等类来操纵堆外内存了，使用Byt">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2024-03-04T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.398Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2024/03/05/Java/Java%E8%BF%9B%E9%98%B6/DirectByteBuffer/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>DirectByteBuffer | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/05/Java/Java%E8%BF%9B%E9%98%B6/DirectByteBuffer/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          DirectByteBuffer
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-03-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-05T00:00:00+08:00">2024-03-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/" itemprop="url" rel="index"><span itemprop="name">Java进阶</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><strong>堆外内存</strong><br>&emsp;&emsp;堆外内存是相对于堆内内存的一个概念。堆内内存是由JVM所管控的Java进程内存，我们平时在Java中创建的对象都处于堆内内存中，并且它们遵循JVM的内存管理机制，JVM会采用垃圾回收机制统一管理它们的内存。那么堆外内存就是存在于JVM管控之外的一块内存区域，因此它是不受JVM的管控。<br>&emsp;&emsp;可以使用ByteBuffer等类来操纵堆外内存了，使用ByteBuffer分配本地内存则非常简单，直接：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ByteBuffer buffer = ByteBuffer.allocateDirect(10 * 1024 * 1024);</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;可以通过指定JVM参数来确定堆外内存大小限制：<code>-XX:MaxDirectMemorySize=512m</code><br>&emsp;&emsp;对于这种direct buffer内存不够的时候会抛出错误： <code>java.lang.OutOfMemoryError: Direct buffer memory</code><br>&emsp;&emsp;堆外内存泄露的问题定位通常比较麻烦，可以借助google-perftools这个工具，它可以输出不同方法申请堆外内存的数量。</p>
+<p> </p>
+<p>&emsp;&emsp;使用ByteBuffer堆外内存时，必须要由我们自己释放；必须先释放堆内存中的对象(引用)，才能释放堆外内存，但是我们又不能强制JVM释放堆内存。例如：<code>ByteBuffer bb = ByteBuffer.allocateDirect(1024)</code>，这段代码的执行会在堆外占用1k的内存，Java堆内只会占用一个对象的指针引用的大小，堆外的这1k的空间只有当bb对象被回收时，才会被回收，这里会发现一个明显的不对称现象，就是堆外可能占用了很多，而堆内没占用多少，导致还没触发GC，那就很容易出现Direct Memory造成物理内存耗光。<br>&emsp;&emsp;再者，假设堆内 ByteBuffer对象的引用升级到了老年代，导致这个引用会长期存在无法回收，这时堆外的内存将长期无法得到回收。</p>
+ <span id="more"></span>
+
+<p><strong>堆外内存分配</strong><br>&emsp;&emsp;堆外内存申请：<code>ByteBuffer.allocateDirect(cap);</code><br>&emsp;&emsp;进行内存申请的时候，会调用：<code>DirectByteBuffer(int cap)</code>构造函数，如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">DirectByteBuffer(int cap) &#123;                   // package-private</span><br><span class="line">     super(-1, 0, cap, cap);</span><br><span class="line">     boolean pa = VM.isDirectMemoryPageAligned();</span><br><span class="line">     int ps = Bits.pageSize();</span><br><span class="line">     long size = Math.max(1L, (long)cap + (pa ? ps : 0));</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">     // 保留总分配内存(按页分配)的大小和实际内存的大小</span><br><span class="line">     Bits.reserveMemory(size, cap);</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">     long base = 0;</span><br><span class="line">     try &#123;</span><br><span class="line">         base = unsafe.allocateMemory(size);</span><br><span class="line">     &#125; catch (OutOfMemoryError x) &#123;</span><br><span class="line">         Bits.unreserveMemory(size, cap);</span><br><span class="line">         throw x;</span><br><span class="line">     &#125;</span><br><span class="line">     unsafe.setMemory(base, size, (byte) 0);</span><br><span class="line">     if (pa &amp;&amp; (base % ps != 0)) &#123;</span><br><span class="line">         // Round up to page boundary</span><br><span class="line">         address = base + ps - (base &amp; (ps - 1));</span><br><span class="line">     &#125; else &#123;</span><br><span class="line">         address = base;</span><br><span class="line">     &#125;</span><br><span class="line">     // 构建Cleaner对象用于跟踪DirectByteBuffer对象的垃圾回收</span><br><span class="line">     //以实现当DirectByteBuffer被垃圾回收时，堆外内存也会被释放</span><br><span class="line">     cleaner = Cleaner.create(this, new Deallocator(base, size, cap));</span><br><span class="line">     att = null;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line">// These methods should be called whenever direct memory is allocated or</span><br><span class="line">// freed.  They allow the user to control the amount of direct memory</span><br><span class="line">// which a process may access.  All sizes are specified in bytes.</span><br><span class="line">static void reserveMemory(long size, int cap) &#123;</span><br><span class="line">    synchronized (Bits.class) &#123;</span><br><span class="line">        // 获取最大可以申请的对外内存大小，默认值是64MB</span><br><span class="line">        // 可以通过参数-XX:MaxDirectMemorySize=&lt;size&gt;设置这个大小</span><br><span class="line">        if (!memoryLimitSet &amp;&amp; VM.isBooted()) &#123;</span><br><span class="line">            maxMemory = VM.maxDirectMemory();</span><br><span class="line">            memoryLimitSet = true;</span><br><span class="line">        &#125;</span><br><span class="line">        </span><br><span class="line">        // -XX:MaxDirectMemorySize限制的是用户申请的大小，而不考虑对齐情况</span><br><span class="line">        // 所以使用两个变量来统计：</span><br><span class="line">        //     reservedMemory：真实的目前保留的空间</span><br><span class="line">        //     totalCapacity：目前用户申请的空间</span><br><span class="line">        if (cap &lt;= maxMemory - totalCapacity) &#123;</span><br><span class="line">            reservedMemory += size;</span><br><span class="line">            totalCapacity += cap;</span><br><span class="line">            count++;</span><br><span class="line">            return;  // 如果空间足够，更新统计变量后直接返回</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    // 如果已经没有足够空间，则尝试GC</span><br><span class="line">    System.gc();</span><br><span class="line">    try &#123;</span><br><span class="line">        Thread.sleep(100);</span><br><span class="line">    &#125; catch (InterruptedException x) &#123;</span><br><span class="line">        // Restore interrupt status</span><br><span class="line">        Thread.currentThread().interrupt();</span><br><span class="line">    &#125;</span><br><span class="line">    synchronized (Bits.class) &#123;</span><br><span class="line">        // GC后再次判断，如果还是没有足够空间，则抛出OOME</span><br><span class="line">        if (totalCapacity + cap &gt; maxMemory)</span><br><span class="line">            throw new OutOfMemoryError(&quot;Direct buffer memory&quot;);</span><br><span class="line">        reservedMemory += size;</span><br><span class="line">        totalCapacity += cap;</span><br><span class="line">        count++;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;Bits.reserveMemory用于在系统中保存总分配内存(按页分配)的大小和实际内存的大小。该方法不管是直接内存的分配还是释放都会被调用，会检查直接内存的大小。如果空间不足，会调用<code>System.gc()</code>尝试释放内存，然后再进行判断，如果还是没有足够的空间，抛出OOME。<code>System.gc()</code>会触发一个FULL GC，当然前提是没有显示的设置<code>-XX:+DisableExplicitGC</code>来禁用显式GC。<br>&emsp;&emsp;最后，DirectByteBuffer使用Cleaner机制进行空间回收。</p>
+<p>&emsp;&emsp;注意，这里之所以用使用FULL GC的很重要的一个原因是：System.gc()会对新生代的老生代都会进行内存回收，这样会比较彻底地回收DirectByteBuffer对象以及它们关联的堆外内存。<br>&emsp;&emsp;sun.misc.Unsafe.allocateMemory这个函数是通过JNI调用C的malloc来申请内存；<br>申请内存时，可以通过<code>-XX:+PageAlignDirectMemory</code>指定申请的内存是否需要按页对齐，默认不对其；</p>
+<p>堆外内存回收<br>&emsp;&emsp;Cleaner是PhantomReference的子类，并通过自身的next和prev字段维护的一个双向链表。PhantomReference的作用在于跟踪垃圾回收过程，并不会对对象的垃圾回收过程造成任何的影响。<br>&emsp;&emsp;所以cleaner &#x3D; Cleaner.create(this, new Deallocator(base, size, cap))用于对当前构造的DirectByteBuffer对象的垃圾回收过程进行跟踪。<br>&emsp;&emsp;当DirectByteBuffer对象从pending状态变为 enqueue状态时，会触发Cleaner的clean()，而Cleaner的clean()的方法会实现通过unsafe对堆外内存的释放。也可以直接调用directByteBuffer.cleaner().clean()来主动释放：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"># Cleaner.java</span><br><span class="line"> public void clean() &#123;</span><br><span class="line">     if(remove(this)) &#123;</span><br><span class="line">         try &#123;</span><br><span class="line">             this.thunk.run();</span><br><span class="line">         &#125; catch (final Throwable var2) &#123;</span><br><span class="line">             AccessController.doPrivileged(new PrivilegedAction() &#123;</span><br><span class="line">                 public Void run() &#123;</span><br><span class="line">                     if(System.err != null) &#123;</span><br><span class="line">                         (new Error(&quot;Cleaner terminated abnormally&quot;, var2)).printStackTrace();</span><br><span class="line">                     &#125;</span><br><span class="line"> </span><br><span class="line">                     System.exit(1);</span><br><span class="line">                     return null;</span><br><span class="line">                 &#125;</span><br><span class="line">             &#125;);</span><br><span class="line">         &#125;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">     &#125;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+<p>这里的thunk即DirectByteBuffer构造函数中指定的Deallocator：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">private static class Deallocator</span><br><span class="line">    implements Runnable</span><br><span class="line">&#123;</span><br><span class="line">    private static Unsafe unsafe = Unsafe.getUnsafe();</span><br><span class="line"> </span><br><span class="line">    private long address;</span><br><span class="line">    private long size;</span><br><span class="line">    private int capacity;</span><br><span class="line"> </span><br><span class="line">    private Deallocator(long address, long size, int capacity) &#123;</span><br><span class="line">        assert (address != 0);</span><br><span class="line">        this.address = address;</span><br><span class="line">        this.size = size;</span><br><span class="line">        this.capacity = capacity;</span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line">    public void run() &#123;</span><br><span class="line">        if (address == 0) &#123;</span><br><span class="line">            // Paranoia</span><br><span class="line">            return;</span><br><span class="line">        &#125;</span><br><span class="line">        unsafe.freeMemory(address);</span><br><span class="line">        address = 0;</span><br><span class="line">        Bits.unreserveMemory(size, capacity);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>说明：sun.misc.Unsafe.freeMemory方法使用C标准库的free函数释放内存空间。</p>
+<p>默认情况下，可以申请的DirectByteBuffer大小为Runtime.getRuntime().maxMemory()，而这个值等于可用的最大Java堆大小，也就是我们-Xmx参数指定的值。</p>
+<p>参考：<a target="_blank" rel="noopener" href="http://www.importnew.com/29817.html">http://www.importnew.com/29817.html</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/liuxiao723846/article/details/89814005">https://blog.csdn.net/liuxiao723846/article/details/89814005</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.jianshu.com/p/007052ee3773">http://www.jianshu.com/p/007052ee3773</a></p>
+<p>主动分配和回收堆外内存：</p>
+<p>ByteBuffer byteBuffer &#x3D; ByteBuffer.allocateDirect();</p>
+<p>((DirectBuffer)byteBuffer).cleaner().clean();</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/03/05/Java/Java%E8%BF%9B%E9%98%B6/Java%E5%A0%86%E5%A4%96%E5%86%85%E5%AD%98%E6%8E%92%E6%9F%A5/" rel="prev" title="Java堆外内存排查">
+      <i class="fa fa-chevron-left"></i> Java堆外内存排查
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/03/10/Java/Java%E8%BF%9B%E9%98%B6/ThreadLocal/ThreadLocal%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" rel="next" title="ThreadLocal源码分析">
+      ThreadLocal源码分析 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

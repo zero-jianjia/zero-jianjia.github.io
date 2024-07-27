@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="前几天在一个开源项目的 github 里面看到这样的一个 pr： 光是看这个名字，里面有个 MemorySafe，我就有点陷进去了。我先给你看看这个东西：  这是阿里巴巴开发规范中截的图。为什么不建议使用  FixedThreadPool 和 SingleThreadPool 呢？ 因为队列太长了，请求会堆积，请求一堆积，容易造成 OOM。前面提到的线程池用的队列，使用 LinkedBlockin">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MemorySafeLinkedBlockingQueue">
+<meta property="og:url" content="http://example.com/2024/03/05/Java/Java%E8%BF%9B%E9%98%B6/MemorySafeLinkedBlockingQueue/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="前几天在一个开源项目的 github 里面看到这样的一个 pr： 光是看这个名字，里面有个 MemorySafe，我就有点陷进去了。我先给你看看这个东西：  这是阿里巴巴开发规范中截的图。为什么不建议使用  FixedThreadPool 和 SingleThreadPool 呢？ 因为队列太长了，请求会堆积，请求一堆积，容易造成 OOM。前面提到的线程池用的队列，使用 LinkedBlockin">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291654875.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291654870.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291654944.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291654952.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291655177.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291655954.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291655270.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291655112.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291655168.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291655778.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291655352.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291655269.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291655162.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291655699.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291656178.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291656301.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291656947.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291656250.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291656123.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291656655.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291656743.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291656304.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291656305.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291656451.png">
+<meta property="article:published_time" content="2024-03-04T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.412Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291654875.png">
+
+<link rel="canonical" href="http://example.com/2024/03/05/Java/Java%E8%BF%9B%E9%98%B6/MemorySafeLinkedBlockingQueue/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>MemorySafeLinkedBlockingQueue | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/05/Java/Java%E8%BF%9B%E9%98%B6/MemorySafeLinkedBlockingQueue/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          MemorySafeLinkedBlockingQueue
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-03-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-05T00:00:00+08:00">2024-03-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/" itemprop="url" rel="index"><span itemprop="name">Java进阶</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>前几天在一个开源项目的 github 里面看到这样的一个 pr：<br><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291654875.png" alt="500efdf515ee1c0dfca67a7544aeb993.png"></p>
+<p>光是看这个名字，里面有个 MemorySafe，我就有点陷进去了。我先给你看看这个东西：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291654870.png" alt="64726d0b970a92e9d5033b1c1c85a441.png"></p>
+<p>这是阿里巴巴开发规范中截的图。为什么不建议使用  FixedThreadPool 和 SingleThreadPool 呢？</p>
+<p>因为队列太长了，请求会堆积，请求一堆积，容易造成 OOM。前面提到的线程池用的队列，使用 LinkedBlockingQueue 是可能会导致 OOM 的。</p>
+<p>如果想避免这个 OOM 就需要在初始化的时候指定一个合理的值。“合理的值”，听起来轻描淡写的四个字，但是这个值到底是多少呢，基本上说不准。</p>
+<p>所以，当我看到 pr 上的 MemorySafeLinkedBlockingQueue 这个名字的时候，我就陷进去了。在 LinkedBlockingQueue 前面加上了 MemorySafe 这个限定词。表示这是一个内存安全的 LinkedBlockingQueue。</p>
+ <span id="more"></span>
+
+
+
+<h2 id="MemorySafeLBQ"><a href="#MemorySafeLBQ" class="headerlink" title="MemorySafeLBQ"></a>MemorySafeLBQ</h2><p>在这个 pr 里面我们看一下它主要是想干个什么事儿：</p>
+<blockquote>
+<p><a target="_blank" rel="noopener" href="https://github.com/apache/dubbo/pull/10021">https://github.com/apache/dubbo/pull/10021</a></p>
+</blockquote>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291654944.png" alt="d2c5091c2db4ef055a76b64cab3a28a4.png"></p>
+<p>提供代码的哥们是这样描述它的功能的：</p>
+<blockquote>
+<p>可以完全解决因为 LinkedBlockingQueue 造成的 OOM 问题，而且不依赖 instrumentation，比 MemoryLimitedLinkedBlockingQueue 更好用。</p>
+</blockquote>
+<p>然后可以看到这次提交涉及到 7 个文件。</p>
+<p>实际上真正核心的代码是这两个：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291654952.png" alt="c3b7a7b3b6d8a51e89326c85688c928b.png"></p>
+<p>这两个类的名字太长了，所以先约定一下，在本文中，<strong>用 MemoryLimitedLBQ 来代替 MemoryLimitedLinkedBlockingQueue。用 MemorySafeLBQ 来代替MemorySafeLinkedBlockingQueue。</strong></p>
+<p>可以看到，在 pr 里面它还提到了“比 MemoryLimitedLBQ 更好用”。也就是说，它是用来替代MemoryLimitedLBQ 这个类的。这个类从命名上也看得出来，也是一个 LinkedBlockingQueue，但是它的限定词是 MemoryLimited，可以限制内存的。</p>
+<p>我找了一下，这个类对应的 pr 是这个：</p>
+<blockquote>
+<p><a target="_blank" rel="noopener" href="https://github.com/apache/dubbo/pull/9722">https://github.com/apache/dubbo/pull/9722</a></p>
+</blockquote>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291655177.png" alt="83e3e144a7a45ca85d700dd76ef185a6.png"></p>
+<p>在这个 pr 里面，有大佬问他：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291655954.png" alt="ab41be4e9ada53e26163845e73b7ce85.png"></p>
+<p>你这个新队列实现的意义或目的是什么？你能不能说出当前版本库中需要被这个队列取代的队列？这样我们才好决定是否使用这个队列。</p>
+<p>也就是说他只是提交了一个新的队列，但是并没有说到应用场景是什么，导致官方不知道该不该接受这个 pr。于是，他补充了一个回复：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291655270.png" alt="2f8119d73b1280bc373d1f916d8eabfa.png"></p>
+<p>就是拿的 FixedThreadPool 做的示例。在这个里面，就使用了无参的 LinkedBlockingQueue，所以会有 OOM 的风险。那么就可以使用 MemoryLimitedLBQ 来代替这个队列。比如，我可以限制这个队列可以使用的最大内存为 100M，通过限制内存的方式来达到避免 OOM 的目的。</p>
+<p>MemoryLimitedLBQ 的队列，它可以限制这个队列最大可以占用的内存。然后，由于某些原因，又出现了一个叫做 MemorySafeLBQ 的队列，宣称比它更好用，所以来取代它。</p>
+<p>所以，接下来我就要梳理清楚三个问题：</p>
+<ul>
+<li>MemoryLimitedLBQ 的实现原理是什么？</li>
+<li>MemorySafeLBQ 的实现原理是什么？</li>
+<li>MemorySafeLBQ 为什么比 MemoryLimitedLBQ 更好用？</li>
+</ul>
+<h2 id="MemoryLimitedLBQ"><a href="#MemoryLimitedLBQ" class="headerlink" title="MemoryLimitedLBQ"></a>MemoryLimitedLBQ</h2><p>别看这个玩意我是在 Dubbo 的 pr 里面看到的，但是它本质上是一个队列的实现方式。所以，完全可以脱离于框架而存在。先给看看 MemoryLimitedLBQ 这个类，它就是继承自 LinkedBlockingQueue，然后重写了它的几个核心方法。</p>
+<p>只是自定义了一个 memoryLimiter 的对象，然后每个核心方法里面都操作了 memoryLimiter 对象：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291655112.png" alt="ef3a4e438f8bd35d4d926678f0a801c2.png"></p>
+<p>所以真正的秘密就藏在 memoryLimiter 对象里面。</p>
+<p>比如， put 方法：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291655168.png" alt="d5f09c59abc30ce53846ebc5f9b482ea.png"></p>
+<p>这里面调用了 memoryLimiter 对象的 acquireInterruptibly 方法。</p>
+<p>在解读 acquireInterruptibly 方法之前，先关注一下它的几个成员变量：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291655778.png" alt="49917dfbe2b33105bdff5c00c01499fd.png"></p>
+<ul>
+<li>memoryLimit 就是表示这个队列最大所能容纳的大小。</li>
+<li>memory 是 LongAdder 类型，表示的是当前已经使用的大小。</li>
+<li>acquireLock、notLimited、releaseLock、notEmpty 是锁相关的参数，从名字上可以知道，往队列里面放元素和释放队列里面的元素都需要获取对应的锁。</li>
+<li>inst 这个参数是 Instrumentation 类型的。</li>
+</ul>
+<p>前面几个参数至少我还很眼熟的，但是这个 inst 就有点奇怪了。这玩意日常开发中基本上用不上，但是用好了，这就是个黑科技了。很多工具都是基于这个玩意来实现的，比如大名鼎鼎的 Arthas。</p>
+<p>它可以更加方便的做字节码增强操作，允许我们对已经加载甚至还没有被加载的类进行修改的操作，实现类似于性能监控的功能。可以说 Instrumentation 就是 memoryLimiter 的关键点：</p>
+<p>比如在 memoryLimiter 的 acquireInterruptibly 方法里面，它是这样的用的：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291655352.png" alt="f72cb536e65232796a7882ba9300f135.png"></p>
+<p>看方法名称你也知道了，get 这个 object 的 size，这个 object 就是方法的入参，也就是要放入到队列里面的元素。</p>
+<p>为了证明我没有乱说，我带你看看这个方法上的注释：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291655269.png" alt="fc058db325bd2b040d1ceb01e14c3be9.png"></p>
+<blockquote>
+<p>an implementation-specific approximation of the amount of storage consumed by the specified object</p>
+</blockquote>
+<p>返回指定对象所消耗的存储量的一个特定实现的近似值。</p>
+<p>再说的直白点就是你传进来的这个对象，在内存里面到底占用了多长的长度，这个长度不是一个非常精确的值。</p>
+<p>所以，理解了 inst.getObjectSize(e) 这行代码，我们再仔细看看 acquireInterruptibly 是怎么样的：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291655162.png" alt="4b180b7c3192f17a83aaf5e756e33ec4.png"></p>
+<p>首先，两个标号为 ① 的地方，表示操作这个方法是要上锁的，整个 try 里面的方法是线程安全的。然后标号为 ② 的里面干了什么事儿？</p>
+<p>就是计算 memory 这个 LongAdder 类型的 sum 值加上当前这个对象的值之后，是不是大于或者等于 memoryLimit。如果计算后的值真的超过了 memoryLimit，那么说明需要阻塞一下下了，调用 notLimited.await() 方法。</p>
+<p>如果没有超过 memoryLimit，说明还能往队列里面放东西，那么就更新 memory 的值。</p>
+<p>接着到了标号为 ③ 的地方。</p>
+<p>来到这里，再次判断一下当前已经使用的值是否没有超过 memoryLimit，如果是的话，就调用 notLimited.signal() 方法，唤醒一下之前由于 memoryLimit 参数限制导致不能放入的对象。</p>
+<p>整个逻辑非常的清晰。</p>
+<p>而整个逻辑里面的核心逻辑就是调用 Instrumentation 类型的 getObjectSize 方法获得当前放入对象的一个 size，并判断当前已经使用的值加上这个 size 之后，是否大于了我们设置的最大值。</p>
+<p>所以，你用脚趾头猜也能猜到了，在 release 方法里面，肯定也是计算当前对象的 size，然后再从 memory 里面减出去：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291655699.png" alt="f997242fd68beecd4b0dcf7312dfa40b.png"></p>
+<p>然后，你再次审视一下这个 acquireInterruptibly 方法的 try 代码块里面的逻辑，你有没有发现什么 BUG：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291656178.png" alt="e96c7804cd42a038bdb32bb020fec6ea.png"></p>
+<p>如果你没反应过来，那我再提个醒：你认真的分析一下 sum 这个局部变量是不是有点不妥？</p>
+<p>你要是还没反应过来，那我直接给你上个代码。后面有一次提交，是把 sum 修改为了 memory.sum() ：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291656301.png" alt="fd8adcb4a2c4070ad6b4c29d01e4d1fc.png"></p>
+<p>为什么这样改呢？</p>
+<p>这个地方是个 BUG，还是个死循环的 BUG。前面代码截图中还出现了一个链接，就是说的这个 BUG：</p>
+<blockquote>
+<p><a target="_blank" rel="noopener" href="https://github.com/apache/incubator-shenyu/pull/3335">https://github.com/apache/incubator-shenyu/pull/3335</a></p>
+</blockquote>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291656947.png" alt="03e43b0ce068de7554ae0120f127671d.png"></p>
+<p>另外，你可以看到链接中的项目名称是 incubator-shenyu，这是一个开源的 API 网关：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291656250.png" alt="2b3f0b224e08913bd1a6cb1091702156.png"></p>
+<p><strong>本文中的 MemoryLimitedLBQ 和 MemorySafeLBQ 最先都是出自这个开源项目。</strong></p>
+<h2 id="MemorySafeLBQ-1"><a href="#MemorySafeLBQ-1" class="headerlink" title="MemorySafeLBQ"></a>MemorySafeLBQ</h2><p>前面了解了 MemoryLimitedLBQ 的基本原理。接下来我带你看看 MemorySafeLBQ 这个玩意。它的源码可以通过这个链接直接获取到：</p>
+<blockquote>
+<p><a target="_blank" rel="noopener" href="https://github.com/apache/dubbo/pull/10021/files">https://github.com/apache/dubbo/pull/10021/files</a></p>
+</blockquote>
+<p>也是拿出来就可以放到自己的项目跑，把文件作者修改为自己的名字的那种。让我们回到最开始的地方：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291656123.png" alt="504bb5afb6042e7ee43f1d04be30c17a.png"></p>
+<p>这个 pr 里面说了，我搞 MemorySafeLBQ 出来，就是为了替代 MemoryLimitedLBQ 的，因为我比它好用，而且我还不依赖于 Instrumentation。</p>
+<p>但是看了源码之后，会发现其实思路都是差不多的。只不过 MemorySafeLBQ 属于是反其道而行之。怎么个“反其道”法呢？看一下源码：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291656655.png" alt="d4d6cb2f5f9b25ccb99a9f63bbaebd18.png"></p>
+<p>MemorySafeLBQ 还是继承自 LinkedBlockingQueue，只是多了一个自定义的成员变量，叫做 maxFreeMemory，初始值是 256 * 1024 * 1024。</p>
+<p>maxFreeMemory，最大的剩余内存，默认是 256M。前面一节讲的 MemoryLimitedLBQ 限制的是这个队列最多能使用多少空间，是站在队列的角度。而 MemorySafeLBQ 限制的是 JVM 里面的剩余空间。比如默认就是当整个 JVM 只剩下 256M 可用内存的时候，再往队列里面加元素我就不让你加了。</p>
+<p>因为整个内存都比较吃紧了，队列就不能无限制的继续添加了，从这个角度来规避了 OOM 的风险。</p>
+<p>这样的一个反其道而行之。</p>
+<p>另外，它说它不依赖 Instrumentation 了，那么它怎么检测内存的使用情况呢？</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291656743.png" alt="d2acbf34c6547db09661a08e8ccb0a99.png"></p>
+<p>使用的是 ManagementFactory 里面的 MemoryMXBean。这个 MemoryMXBean 其实你一点也不陌生。JConsole 你用过吧？</p>
+<p>所以，确实它没有使用 Instrumentation，但是它使用了 ManagementFactory。目的都是为了获取内存的运行状态。那么怎么看出来它比 MemoryLimitedLBQ 更好用呢？</p>
+<p>我看了，关键方法就是这个 hasRemainedMemory，在调用 put、offer 方法之前就要先调用这个方法：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291656304.png" alt="cffada06024ce9b5e5f9d0ebcbe892cf.png"></p>
+<p>而且你看 MemorySafeLBQ 只是重写了放入元素的 put、offer 方法，并不关注移除元素。</p>
+<p>为什么呢？</p>
+<p>因为它的设计理念是只关心添加元素时候的剩余空间大小，它甚至都不会去关注当前这个元素的大小。</p>
+<p>而还记得前面讲的 MemoryLimitedLBQ 吗？它里面还计算了每个元素的大小，然后搞了一个变量来累加。</p>
+<p>MemoryLimitedLBQ 的 hasRemainedMemory 方法里面也只有一行代码，其中 maxFreeMemory 是类初始化的时候就指定好了。那么关键的代码就是 MemoryLimitCalculator.maxAvailable()。</p>
+<p>所以我们看看 MemoryLimitCalculator 的源码。</p>
+<p>这个类的源码写的非常的简单，我全部截完都只有这么一点内容，全部加起来也就是 20 多行代码：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291656305.png" alt="818cd9c85157c97b683c27d30b43b21a.png"></p>
+<p>而整个方法的核心就是我框起来的 static 代码块，里面一共有三行代码。</p>
+<p>第一行是调用 refresh 方法，也就是对 maxAvilable 这个参数进行重新赋值，这个参数代表的意思是当前还可以使用的 JVM 内存。</p>
+<p>第二行是注入了一个每 50ms 运行一次的定时任务。到点了，就触发一下 refresh 方法，保证 maxAvilable 参数的准实时性。</p>
+<p>第三行是加入了 JVM 的 ShutdownHook，停服务的时候需要把这个定时任务给停了，达到优雅停机的目的。</p>
+<p>核心逻辑就这么点。</p>
+<p>从我的角度来说，确实是比 MemoryLimitedLBQ 使用起来更简单，更好用。</p>
+<p>最后，再看看作者提供的 MemorySafeLBQ 测试用例，我补充了一点注释，很好理解，自己去品，不再多说：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291656451.png" alt="0667c24c7695b82cb9a005df6bb3be41.png"></p>
+<h2 id="它是你的了"><a href="#它是你的了" class="headerlink" title="它是你的了"></a>它是你的了</h2><p>文章里面提到的 MemoryLimitedLBQ 和 MemorySafeLBQ，我说了，这两个玩意是完全独立于框架的，代码直接粘过来就可以用。</p>
+<p>代码也没几行，不管是用 Instrumentation 还是 ManagementFactory，核心思想都是限制内存。</p>
+<p>思路扩展一下，比如我们有的项目里面用 Map 来做本地缓存，就会放很多元素进去，也会有 OOM 的风险，那么通过前面说的思路，是不是就找到了一个问题的解决方案？</p>
+<p>所以，思路是很重要的，掌握到了这个思路，面试的时候也能多掰扯几句嘛。</p>
+<p>再比如，我看到这个玩意的时候，联想到了之前写过的线程池参数动态调整。</p>
+<p>就拿 MemorySafeLBQ 这个队列来说，它里面的 maxFreeMemory 这个参数，可不可以做成动态调整的？不外乎就是把之前的队列长度可调整修改为了队列占用的内存空间可调整。一个参数的变化而已，实现方案可以直接套用。</p>
+<hr>
+<p>转载自：<br><a target="_blank" rel="noopener" href="https://xuliugencn.blog.csdn.net/article/details/125229930?spm=1001.2014.3001.5502">https://xuliugencn.blog.csdn.net/article/details/125229930?spm=1001.2014.3001.5502</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/03/05/Java/Java%E8%BF%9B%E9%98%B6/Java%E9%9B%86%E5%90%88/" rel="prev" title="Java集合">
+      <i class="fa fa-chevron-left"></i> Java集合
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/03/05/Java/Java%E8%BF%9B%E9%98%B6/Java8%20Lambdas%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/" rel="next" title="Java8 Lambdas实现原理">
+      Java8 Lambdas实现原理 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#MemorySafeLBQ"><span class="nav-number">1.</span> <span class="nav-text">MemorySafeLBQ</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#MemoryLimitedLBQ"><span class="nav-number">2.</span> <span class="nav-text">MemoryLimitedLBQ</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#MemorySafeLBQ-1"><span class="nav-number">3.</span> <span class="nav-text">MemorySafeLBQ</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%83%E6%98%AF%E4%BD%A0%E7%9A%84%E4%BA%86"><span class="nav-number">4.</span> <span class="nav-text">它是你的了</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

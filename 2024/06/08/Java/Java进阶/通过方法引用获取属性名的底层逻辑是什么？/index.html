@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="在用MyBatis-Plus时，构造 where 条件的时候，可以直接通过方法引用的方式去指定属性名： 1234LambdaQueryWrapper&lt;Book&gt; qw &#x3D; new LambdaQueryWrapper&lt;&gt;();qw.eq(Book::getId, 2);List&lt;Book&gt; list &#x3D; bookMapper.selectList(qw);Sys">
+<meta property="og:type" content="article">
+<meta property="og:title" content="通过方法引用获取属性名的底层逻辑是什么？">
+<meta property="og:url" content="http://example.com/2024/06/08/Java/Java%E8%BF%9B%E9%98%B6/%E9%80%9A%E8%BF%87%E6%96%B9%E6%B3%95%E5%BC%95%E7%94%A8%E8%8E%B7%E5%8F%96%E5%B1%9E%E6%80%A7%E5%90%8D%E7%9A%84%E5%BA%95%E5%B1%82%E9%80%BB%E8%BE%91%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="在用MyBatis-Plus时，构造 where 条件的时候，可以直接通过方法引用的方式去指定属性名： 1234LambdaQueryWrapper&lt;Book&gt; qw &#x3D; new LambdaQueryWrapper&lt;&gt;();qw.eq(Book::getId, 2);List&lt;Book&gt; list &#x3D; bookMapper.selectList(qw);Sys">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2024-06-07T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.573Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2024/06/08/Java/Java%E8%BF%9B%E9%98%B6/%E9%80%9A%E8%BF%87%E6%96%B9%E6%B3%95%E5%BC%95%E7%94%A8%E8%8E%B7%E5%8F%96%E5%B1%9E%E6%80%A7%E5%90%8D%E7%9A%84%E5%BA%95%E5%B1%82%E9%80%BB%E8%BE%91%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>通过方法引用获取属性名的底层逻辑是什么？ | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/06/08/Java/Java%E8%BF%9B%E9%98%B6/%E9%80%9A%E8%BF%87%E6%96%B9%E6%B3%95%E5%BC%95%E7%94%A8%E8%8E%B7%E5%8F%96%E5%B1%9E%E6%80%A7%E5%90%8D%E7%9A%84%E5%BA%95%E5%B1%82%E9%80%BB%E8%BE%91%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          通过方法引用获取属性名的底层逻辑是什么？
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-06-08 00:00:00" itemprop="dateCreated datePublished" datetime="2024-06-08T00:00:00+08:00">2024-06-08</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/" itemprop="url" rel="index"><span itemprop="name">Java进阶</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>在用MyBatis-Plus时，构造 where 条件的时候，可以直接通过方法引用的方式去指定属性名：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">LambdaQueryWrapper&lt;Book&gt; qw = <span class="keyword">new</span> <span class="title class_">LambdaQueryWrapper</span>&lt;&gt;();</span><br><span class="line">qw.eq(Book::getId, <span class="number">2</span>);</span><br><span class="line">List&lt;Book&gt; list = bookMapper.selectList(qw);</span><br><span class="line">System.out.println(<span class="string">&quot;list = &quot;</span> + list);</span><br></pre></td></tr></table></figure>
+
+<p><code>Book::getId</code>这就是方法引用，为什么 MP 通过 <code>Book::getId</code> 就可以识别出来这里的属性名。</p>
+<span id="more"></span>
+
+<h2 id="源码分析"><a href="#源码分析" class="headerlink" title="源码分析"></a>源码分析</h2><p>顺着 qw.eq 这个方法往下看，这个方法在执行的过程中几经辗转会来到 getColumnCache 方法中，这个方法就是解析出来属性值的地方。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> ColumnCache <span class="title function_">getColumnCache</span><span class="params">(SFunction&lt;T, ?&gt; column)</span> &#123;</span><br><span class="line">    <span class="type">LambdaMeta</span> <span class="variable">meta</span> <span class="operator">=</span> LambdaUtils.extract(column);</span><br><span class="line">    <span class="type">String</span> <span class="variable">fieldName</span> <span class="operator">=</span> PropertyNamer.methodToProperty(meta.getImplMethodName());</span><br><span class="line">    Class&lt;?&gt; instantiatedClass = meta.getInstantiatedClass();</span><br><span class="line">    tryInitCache(instantiatedClass);</span><br><span class="line">    <span class="keyword">return</span> getColumnCache(fieldName, instantiatedClass);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>首先这里先将传入的 Lambda 表达式通过 LambdaUtils.extract 方法解析出来一个 LambdaMeta 对象。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> &lt;T&gt; LambdaMeta <span class="title function_">extract</span><span class="params">(SFunction&lt;T, ?&gt; func)</span> &#123;</span><br><span class="line">    <span class="comment">// 1. IDEA 调试模式下 lambda 表达式是一个代理</span></span><br><span class="line">    <span class="keyword">if</span> (func <span class="keyword">instanceof</span> Proxy) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">IdeaProxyLambdaMeta</span>((Proxy) func);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 2. 反射读取</span></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="type">Method</span> <span class="variable">method</span> <span class="operator">=</span> func.getClass().getDeclaredMethod(<span class="string">&quot;writeReplace&quot;</span>);</span><br><span class="line">        method.setAccessible(<span class="literal">true</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">ReflectLambdaMeta</span>((SerializedLambda) method.invoke(func), func.getClass().getClassLoader());</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable e) &#123;</span><br><span class="line">        <span class="comment">// 3. 反射失败使用序列化的方式读取</span></span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">ShadowLambdaMeta</span>(com.baomidou.mybatisplus.core.toolkit.support.SerializedLambda.extract(func));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这块的重点其实就在反射读取这块，这是从传入的 Lambda 中找到了一个名为 writeReplace 的方法，并且通过反射执行了这个方法，然后将执行结果封装为一个 ReflectLambdaMeta 对象返回。</p>
+<p>接下来回到 getColumnCache 方法中，继续通过<br><code>String fieldName = PropertyNamer.methodToProperty(meta.getImplMethodName()); </code><br>获取到属性名称。</p>
+<p>这里有一个 <code>meta.getImplMethodName()</code> 方法，这个方法的拿到的其实就是 Lambda 表达式中的方法名，也就是 getId，然后再通过 <code>PropertyNamer.methodToProperty</code> 对这个方法名进行处理，最终拿到属性名：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> String <span class="title function_">methodToProperty</span><span class="params">(String name)</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (name.startsWith(<span class="string">&quot;is&quot;</span>)) &#123;</span><br><span class="line">        name = name.substring(<span class="number">2</span>);</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (name.startsWith(<span class="string">&quot;get&quot;</span>) || name.startsWith(<span class="string">&quot;set&quot;</span>)) &#123;</span><br><span class="line">        name = name.substring(<span class="number">3</span>);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">ReflectionException</span>(</span><br><span class="line">            <span class="string">&quot;Error parsing property name &#x27;&quot;</span> + name + <span class="string">&quot;&#x27;.  Didn&#x27;t start with &#x27;is&#x27;, &#x27;get&#x27; or &#x27;set&#x27;.&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (name.length() == <span class="number">1</span> || name.length() &gt; <span class="number">1</span> &amp;&amp; !Character.isUpperCase(name.charAt(<span class="number">1</span>))) &#123;</span><br><span class="line">        name = name.substring(<span class="number">0</span>, <span class="number">1</span>).toLowerCase(Locale.ENGLISH) + name.substring(<span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> name;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个解析的过程其实就是把方法名的前缀 get&#x2F;set&#x2F;is 这些去掉，然后剩余的字符串首字母小写之后返回。</p>
+<p>这就是传入 <code>Book::getId</code>，最终能够拿到 id 这个名称的原因。</p>
+<p>现在的问题变成了 writeReplace 方法究竟是个什么方法？</p>
+<h2 id="writeReplace"><a href="#writeReplace" class="headerlink" title="writeReplace"></a>writeReplace</h2><p>这个方法其实是系统底层自动生成的。可以将 Lambda 表达式在运行时生成的字节码保存下来，然后进行反编译，这样就能够看到 writeReplace 方法了。如果需要将 Lambda 运行时生成的字节码保存，需要在启动参数中添加如下内容：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-Djdk.internal.lambda.dumpProxyClasses=/Users/sang/workspace/code/mp_demo/lambda/</span><br></pre></td></tr></table></figure>
+
+<p>等于号后面的部分是指定生成的字节码的保存位置，大家可以根据自己的实际情况去配置。</p>
+<p>以本文一开头的 Lambda 表达式为例，最终生成的字节码反编译之后，内容如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> <span class="keyword">class</span> <span class="title class_">MpDemo02ApplicationTests$$Lambda$1164</span> <span class="keyword">implements</span> <span class="title class_">SFunction</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> MpDemo02ApplicationTests$$Lambda$<span class="number">1164</span>() &#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> Object <span class="title function_">apply</span><span class="params">(Object var1)</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> ((Book)var1).getId();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> Object <span class="title function_">writeReplace</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">SerializedLambda</span>(MpDemo02ApplicationTests.class, <span class="string">&quot;com/baomidou/mybatisplus/core/toolkit/support/SFunction&quot;</span>, <span class="string">&quot;apply&quot;</span>, <span class="string">&quot;(Ljava/lang/Object;)Ljava/lang/Object;&quot;</span>, <span class="number">5</span>, <span class="string">&quot;org/javaboy/mp_demo02/model/Book&quot;</span>, <span class="string">&quot;getId&quot;</span>, <span class="string">&quot;()Ljava/lang/Integer;&quot;</span>, <span class="string">&quot;(Lorg/javaboy/mp_demo02/model/Book;)Ljava/lang/Object;&quot;</span>, <span class="keyword">new</span> <span class="title class_">Object</span>[<span class="number">0</span>]);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>可以看到，apply 方法实际上是重写的接口的方法，在这个方法中将传入的对象强转为 Book 类型，然后调用其 getId 方法。</p>
+<p>反编译之后多了一个 writeReplace 方法，这个方法的返回值是一个 SerializedLambda，这个 SerializedLambda 对象其实就是对 Lambda 表达式的描述。基本上每个参数都能做到见名知意，这里说一下第七个参数，值是 getId，这个参数的变量名是 implMethodName，这就是 Lambda 表达式中给出来的变量名。这也是第一小节中，<code>meta.getImplMethodName()</code> 所获取到的值。</p>
+<p>这下就清楚了，为什么写了<code>Book::getId</code>就能拿到属性名了。</p>
+<h2 id="扩展知识"><a href="#扩展知识" class="headerlink" title="扩展知识"></a>扩展知识</h2><p>在 <code>qw.eq(Book::getId, 2);</code> 方法中，第一个参数是一个 SFunction 的实例，那直接给一个 SFunction 的实例，不用 Lambda。注意，这种写法不对！</p>
+<p>原因在于经过前面的源码分析之后，MP 中根据 <code>Book::getId</code> 去获取属性名称，一个关键点是利用 Lambda 在执行的时候生成的字节码去获取，如果没有用 Lambda，那也就不会生成所谓的 Lambda 字节码，也就不存在 writeReplace 方法，按照前文所分析的源码，就无法获取到属性名称。</p>
+<p>那不用方法引用行不行？像下面这样写行不行？</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">LambdaQueryWrapper&lt;Book&gt; qw = <span class="keyword">new</span> <span class="title class_">LambdaQueryWrapper</span>&lt;&gt;();</span><br><span class="line">qw.eq(b -&gt; b.getId(), <span class="number">2</span>);</span><br><span class="line">List&lt;Book&gt; list = bookMapper.selectList(qw);</span><br><span class="line">System.out.println(<span class="string">&quot;list = &quot;</span> + list);</span><br></pre></td></tr></table></figure>
+
+<p>这也是一个 Lambda，但是如果这样写了，运行之后就会报错。为什么呢？来看下这个 Lambda 生成的字节码反编译之后是什么样的：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> <span class="keyword">class</span> <span class="title class_">MpDemo02ApplicationTests$$Lambda$1164</span> <span class="keyword">implements</span> <span class="title class_">SFunction</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> MpDemo02ApplicationTests$$Lambda$<span class="number">1164</span>() &#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> Object <span class="title function_">apply</span><span class="params">(Object var1)</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> MpDemo02ApplicationTests.lambda$test18$3fed5817$<span class="number">1</span>((Book)var1);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> Object <span class="title function_">writeReplace</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">SerializedLambda</span>(MpDemo02ApplicationTests.class, <span class="string">&quot;com/baomidou/mybatisplus/core/toolkit/support/SFunction&quot;</span>, <span class="string">&quot;apply&quot;</span>, <span class="string">&quot;(Ljava/lang/Object;)Ljava/lang/Object;&quot;</span>, <span class="number">6</span>, <span class="string">&quot;org/javaboy/mp_demo02/MpDemo02ApplicationTests&quot;</span>, <span class="string">&quot;lambda$test18$3fed5817$1&quot;</span>, <span class="string">&quot;(Lorg/javaboy/mp_demo02/model/Book;)Ljava/lang/Object;&quot;</span>, <span class="string">&quot;(Lorg/javaboy/mp_demo02/model/Book;)Ljava/lang/Object;&quot;</span>, <span class="keyword">new</span> <span class="title class_">Object</span>[<span class="number">0</span>]);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>首先 apply 方法生成的就不一样，apply 里边调用了 <code>MpDemo02ApplicationTests.lambda$test18$3fed5817$1</code> 方法，传入了 Book 对象作为参数。这个方法内容相当于就是 <code>return book.getId();</code>。<br>然后在 writeReplace 方法中，返回 SerializedLambda 对象的时候，implMethodName 的值就是 lambda$test18$3fed5817$1 了。回到本文一开始的源码分析中，会发现这样的方法名就无法提取出来想要的属性名。所以这种写法也不对。</p>
+<p>从这里大家也可以看到，类似于<code>b -&gt; b.getId()</code>这样的 Lambda，和方法引用 <code>Book::getId</code> 在底层是不同的。</p>
+<p>再举个例子，比如下面一段代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Demo01</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        Consumer&lt;String&gt; out1 = System.out::println;</span><br><span class="line">        out1.accept(<span class="string">&quot;javaboy&quot;</span>);</span><br><span class="line">        Consumer&lt;String&gt; out2 = s -&gt; System.out.println(s);</span><br><span class="line">        out2.accept(<span class="string">&quot;江南一点雨&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里有两个输出，第一个是一个方法引用，第二个则是一个常规的 Lambda 表达式。这两个执行起来效果是一致的，但是底层原理不同。</p>
+<p>先来看第一个底层生成的 Lambda 字节码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> <span class="keyword">class</span> <span class="title class_">Demo01$$Lambda$14</span> <span class="keyword">implements</span> <span class="title class_">Consumer</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> PrintStream arg$<span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> Demo01$$Lambda$<span class="number">14</span>(PrintStream var1) &#123;</span><br><span class="line">        <span class="built_in">this</span>.arg$<span class="number">1</span> = var1;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">accept</span><span class="params">(Object var1)</span> &#123;</span><br><span class="line">        <span class="built_in">this</span>.arg$<span class="number">1.</span>println((String)var1);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，这里把 System.out 的值 PrintStream 作为构造函数的参数传进来赋值给 arg$1 变量，当调用 accept 方法的时候，再调用 arg$1.println 方法将字符串输出。</p>
+<p>对于第二个底层生成的 Lambda 字节码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> <span class="keyword">class</span> <span class="title class_">Demo01$$Lambda$16</span> <span class="keyword">implements</span> <span class="title class_">Consumer</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> Demo01$$Lambda$<span class="number">16</span>() &#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">accept</span><span class="params">(Object var1)</span> &#123;</span><br><span class="line">        Demo01.lambda$main$<span class="number">0</span>((String)var1);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，这里有一个新的 lambda$main$0 方法，这个方法的底层逻辑其实就是我们自定义 Lambda 的时候写的<code>System.out.println(s)</code>。</p>
+<hr>
+<p>转载自：<a target="_blank" rel="noopener" href="https://wangsong.blog.csdn.net/article/details/137512589">https://wangsong.blog.csdn.net/article/details/137512589</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/06/07/Spring/spring%20boot/Spring%E4%BD%BF%E7%94%A8TransactionalEventListener%E8%A7%A3%E5%86%B3%E4%BA%8B%E5%8A%A1%E6%9C%AA%E6%8F%90%E4%BA%A4%E8%AF%BB%E5%8F%96%E4%B8%8D%E5%88%B0%E6%95%B0%E6%8D%AE%E9%97%AE%E9%A2%98/" rel="prev" title="Spring使用TransactionalEventListener解决事务未提交读取不到数据问题">
+      <i class="fa fa-chevron-left"></i> Spring使用TransactionalEventListener解决事务未提交读取不到数据问题
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/06/09/Spring/spring%20boot/%E8%87%AA%E5%8A%A8%E9%85%8D%E7%BD%AE%E6%B3%A8%E8%A7%A3@EnableAutoConfiguration%E8%A7%A3%E5%AF%86/" rel="next" title="自动配置注解@EnableAutoConfiguration解密">
+      自动配置注解@EnableAutoConfiguration解密 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90"><span class="nav-number">1.</span> <span class="nav-text">源码分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#writeReplace"><span class="nav-number">2.</span> <span class="nav-text">writeReplace</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%89%A9%E5%B1%95%E7%9F%A5%E8%AF%86"><span class="nav-number">3.</span> <span class="nav-text">扩展知识</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="[toc] 一、遇到的问题Total time for which application threads were stop 超级长时间，这行日志代表什么，以及为什么时间会这么长 ?">
+<meta property="og:type" content="article">
+<meta property="og:title" content="stop the world案例">
+<meta property="og:url" content="http://example.com/2024/04/01/Java/JVM/stop%20the%20world%E6%A1%88%E4%BE%8B/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="[toc] 一、遇到的问题Total time for which application threads were stop 超级长时间，这行日志代表什么，以及为什么时间会这么长 ?">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291316004.webp">
+<meta property="article:published_time" content="2024-03-31T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.330Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291316004.webp">
+
+<link rel="canonical" href="http://example.com/2024/04/01/Java/JVM/stop%20the%20world%E6%A1%88%E4%BE%8B/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>stop the world案例 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Java/JVM/stop%20the%20world%E6%A1%88%E4%BE%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          stop the world案例
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/JVM/" itemprop="url" rel="index"><span itemprop="name">JVM</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>[toc]</p>
+<h3 id="一、遇到的问题"><a href="#一、遇到的问题" class="headerlink" title="一、遇到的问题"></a>一、遇到的问题</h3><p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291316004.webp"><br>Total time for which application threads were stop 超级长时间，这行日志代表什么，以及为什么时间会这么长 ?</p>
+<span id="more"></span>
+
+
+
+<h3 id="二、日志的含义"><a href="#二、日志的含义" class="headerlink" title="二、日志的含义"></a>二、日志的含义</h3><p>当GC发生时，每个线程只有进入了SafePoint才算是真正挂起，也就是真正的停顿，这个日志的含义是整个GC过程中STW的时间，配置了  <strong>-XX:+PrintGCApplicationStoppedTime</strong>  这个参数才会打印这个信息。<br><strong>重点：</strong> 第一个 2.81 seconds 是JVM启动后的秒数?，第二个 2.68 seconds 是 JVM发起STW的开始到结束的时间。特别地，如果是GC引发的STW，这条内容会紧挨着出现在GC log的下面。</p>
+<p>日志统计脚本： </p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">tail -f xxx.gc.log | grep &#x27;application threads were stopped&#x27; | awk &#x27;$(NF-6)&gt;0.05&#x27;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="三、安全点是什么"><a href="#三、安全点是什么" class="headerlink" title="三、安全点是什么"></a>三、安全点是什么</h3><p>从线程角度看，safepoint可以理解成是在代码执行过程中的一些特殊位置，当线程执行到这些位置的时候，说明虚拟机当前的状态是安全的，如果有需要，可以在这个位置暂停，比如发生GC时，需要暂停暂停所以活动线程，但是线程在这个时刻，还没有执行到一个安全点，所以该线程应该继续执行，到达下一个安全点的时候暂停，等待GC结束。</p>
+<ol>
+<li>从线程的角度，安全点是代码执行中的一些特殊位置，当线程执行到这些特殊的位置，如果此时在GC，那么在这个地方线程会暂停，直到GC结束。</li>
+<li>GC的时候要挂起所有活动的线程，因此线程挂起，会选择在到达安全点的时候挂起。</li>
+<li>安全点这个特殊的位置保存了线程上下文的全部信息。说白了，在进入安全点的时候打印日志信息能看出线程此刻都在干嘛。</li>
+</ol>
+<p>有关安全点的详细说明，请移步：<br><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/c79c5e02ebe6">JVM源码分析之安全点safepoint</a></p>
+<h3 id="四、什么时候会STW？（换句话说什么时候会触发进入安全点？）"><a href="#四、什么时候会STW？（换句话说什么时候会触发进入安全点？）" class="headerlink" title="四、什么时候会STW？（换句话说什么时候会触发进入安全点？）"></a>四、什么时候会STW？（换句话说什么时候会触发进入安全点？）</h3><ul>
+<li>Garbage collection pauses（垃圾回收）</li>
+<li>JIT相关，比如Code deoptimization, Flushing code cache</li>
+<li>Class redefinition (e.g. javaagent，AOP代码植入的产生的instrumentation)</li>
+<li>Biased lock revocation 取消偏向锁</li>
+<li>Various debug operation (e.g. thread dump or deadlock check) dump 线程</li>
+</ul>
+<h3 id="五、STW的说明"><a href="#五、STW的说明" class="headerlink" title="五、STW的说明"></a>五、STW的说明</h3><p>配置 <code>-XX:+PrintSafepointStatistics  –XX:PrintSafepointStatisticsCount=1</code> 参数，虚拟机会打印如下日志文件:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vmop [threads: total initially_running wait_to_block]  [time: spin block sync cleanup vmop] page_trap_count  370337.312: GenCollectForAllocation     [  1070     2       3  ]   [ 8830   0 8831   1  24  ] </span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>-XX:+PrintSafepointStatistics 打印安全点统计信息，<br>-XX:PrintSafepointStatisticsCount&#x3D;n 设置打印安全点统计信息的次数；</p>
+</blockquote>
+<h4 id="5-1-日志分析"><a href="#5-1-日志分析" class="headerlink" title="5.1 日志分析"></a>5.1 日志分析</h4><ol>
+<li><strong>vmop：</strong> 引发STW的原因，以及触发时间。该项常见的输出有：RevokeBias、BulkRevokeBias、Deoptimize、G1IncCollectionPause。数字370337.312是虚拟机启动后运行的秒数。GC log可以根据该项内容定位Total time for which application threads…引发的详细信息。</li>
+<li><strong>total ：</strong> STW发生时，JVM存在的线程数目，这里的值是1070。</li>
+<li><strong>initially_running ：</strong> STW发生时，仍在运行的线程数，这里的值是2。这项是Spin阶段的 时间来源。</li>
+<li><strong>wait_to_block ：</strong> STW需要阻塞的线程数目，这里的值是3。这项是block阶段的时间来源</li>
+<li><strong>sync</strong> &#x3D; spin + block + 其他。</li>
+</ol>
+<h4 id="5-2-由日志可以看出，safepoint的执行分为四个阶段"><a href="#5-2-由日志可以看出，safepoint的执行分为四个阶段" class="headerlink" title="5.2 由日志可以看出，safepoint的执行分为四个阶段"></a>5.2 由日志可以看出，safepoint的执行分为四个阶段</h4><ol>
+<li>Spin阶段。因为jvm在决定进入全局safepoint的时候，有的线程在安全点上，而有的线程不在安全点上，这个阶段是等待未在安全点上的用户线程进入安全点。</li>
+<li>Block阶段。即使进入safepoint，用户线程这时候仍然是running状态，保证用户不在继续执行，需要将用户线程阻塞。</li>
+<li>Cleanup。这个阶段是JVM做的一些内部的清理工作。</li>
+<li>VM Operation. JVM 执行的一些全局性工作，例如 GC, 代码反优化。</li>
+</ol>
+<h4 id="5-3-vmop-输出说明"><a href="#5-3-vmop-输出说明" class="headerlink" title="5.3 vmop 输出说明"></a>5.3 vmop 输出说明</h4><p>RevokeBias、BulkRevokeBias、偏向锁取消情况。<br>Deoptimize、<br>G1IncCollectionPause GC GC 执行情况。</p>
+<h4 id="5-4-优化说明"><a href="#5-4-优化说明" class="headerlink" title="5.4 优化说明"></a>5.4 优化说明</h4><p>分析 -XX:+PrintSafepointStatistics –XX:PrintSafepointStatisticsCount&#x3D;1 产生的日志信息基本上STW的原因都是RevokeBias或者BulkRevokeBias。</p>
+<p>这个是撤销偏向锁操作，虽然每次暂停的 时间很短，但是特别频繁出现也会很耗时。一些高并发的系统中，禁掉JVM偏向锁优化，可以提升系统的吞吐量。</p>
+<p>禁用偏向锁的参数为: -XX:-UseBiasedLocking</p>
+<p>还有一种常见会有长时间STW：</p>
+<p>当发生GC时，有线程迟迟进入不到safepoint进行阻塞，导致其他已经停止的线程也一直等待，VM Thread也在等待所有的Java线程挂起才能开始GC，这里需要分析业务代码中是否存在有界的大循环逻辑，可能在JIT优化时，这些循环操作没有插入safepoint检查。</p>
+<hr>
+<p>转载自：<br><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/91937583">https://zhuanlan.zhihu.com/p/91937583</a><br><a target="_blank" rel="noopener" href="https://xie.infoq.cn/article/60db3144cb07afba7060bd36f">https://xie.infoq.cn/article/60db3144cb07afba7060bd36f</a><br><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/91937583">https://zhuanlan.zhihu.com/p/91937583</a><br><a target="_blank" rel="noopener" href="https://blog.csdn.net/iter_zc/article/details/41892567">https://blog.csdn.net/iter_zc/article/details/41892567</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/04/01/Java/JVM/%E4%B8%89%E8%89%B2%E6%A0%87%E8%AE%B0%E6%B3%95%E4%B8%8E%E8%AF%BB%E5%86%99%E5%B1%8F%E9%9A%9C/" rel="prev" title="三色标记法与读写屏障">
+      <i class="fa fa-chevron-left"></i> 三色标记法与读写屏障
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E6%8F%AD%E7%A7%98Nacos%E7%9A%84AP%E6%9E%B6%E6%9E%84%E3%80%8CDistro%E4%B8%80%E8%87%B4%E6%80%A7%E5%8D%8F%E8%AE%AE%E3%80%8D/" rel="next" title="揭秘Nacos的AP架构「Distro一致性协议」">
+      揭秘Nacos的AP架构「Distro一致性协议」 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E9%81%87%E5%88%B0%E7%9A%84%E9%97%AE%E9%A2%98"><span class="nav-number">1.</span> <span class="nav-text">一、遇到的问题</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E6%97%A5%E5%BF%97%E7%9A%84%E5%90%AB%E4%B9%89"><span class="nav-number">2.</span> <span class="nav-text">二、日志的含义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E5%AE%89%E5%85%A8%E7%82%B9%E6%98%AF%E4%BB%80%E4%B9%88"><span class="nav-number">3.</span> <span class="nav-text">三、安全点是什么</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E4%BB%80%E4%B9%88%E6%97%B6%E5%80%99%E4%BC%9ASTW%EF%BC%9F%EF%BC%88%E6%8D%A2%E5%8F%A5%E8%AF%9D%E8%AF%B4%E4%BB%80%E4%B9%88%E6%97%B6%E5%80%99%E4%BC%9A%E8%A7%A6%E5%8F%91%E8%BF%9B%E5%85%A5%E5%AE%89%E5%85%A8%E7%82%B9%EF%BC%9F%EF%BC%89"><span class="nav-number">4.</span> <span class="nav-text">四、什么时候会STW？（换句话说什么时候会触发进入安全点？）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BA%94%E3%80%81STW%E7%9A%84%E8%AF%B4%E6%98%8E"><span class="nav-number">5.</span> <span class="nav-text">五、STW的说明</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#5-1-%E6%97%A5%E5%BF%97%E5%88%86%E6%9E%90"><span class="nav-number">5.1.</span> <span class="nav-text">5.1 日志分析</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#5-2-%E7%94%B1%E6%97%A5%E5%BF%97%E5%8F%AF%E4%BB%A5%E7%9C%8B%E5%87%BA%EF%BC%8Csafepoint%E7%9A%84%E6%89%A7%E8%A1%8C%E5%88%86%E4%B8%BA%E5%9B%9B%E4%B8%AA%E9%98%B6%E6%AE%B5"><span class="nav-number">5.2.</span> <span class="nav-text">5.2 由日志可以看出，safepoint的执行分为四个阶段</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#5-3-vmop-%E8%BE%93%E5%87%BA%E8%AF%B4%E6%98%8E"><span class="nav-number">5.3.</span> <span class="nav-text">5.3 vmop 输出说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#5-4-%E4%BC%98%E5%8C%96%E8%AF%B4%E6%98%8E"><span class="nav-number">5.4.</span> <span class="nav-text">5.4 优化说明</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

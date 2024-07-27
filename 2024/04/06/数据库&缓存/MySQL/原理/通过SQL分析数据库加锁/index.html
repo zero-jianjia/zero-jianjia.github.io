@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="[toc] Update &amp; Delete语句加锁1）主键索引（查询命中）1UPDATE students SET score &#x3D; 100 WHERE id &#x3D; 15; &#x2F;&#x2F; id主键   RC、RR都是对聚簇索引加X锁。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="通过SQL分析数据库加锁">
+<meta property="og:url" content="http://example.com/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/MySQL/%E5%8E%9F%E7%90%86/%E9%80%9A%E8%BF%87SQL%E5%88%86%E6%9E%90%E6%95%B0%E6%8D%AE%E5%BA%93%E5%8A%A0%E9%94%81/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="[toc] Update &amp; Delete语句加锁1）主键索引（查询命中）1UPDATE students SET score &#x3D; 100 WHERE id &#x3D; 15; &#x2F;&#x2F; id主键   RC、RR都是对聚簇索引加X锁。">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407170956106.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407170956235.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407170956849.jpeg">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407170956030.jpeg">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407170957467.jpeg">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407170957449.jpeg">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407170957661.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407170957632.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407170957687.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407170957701.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407170957087.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407170957035.png">
+<meta property="article:published_time" content="2024-04-05T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.775Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407170956106.png">
+
+<link rel="canonical" href="http://example.com/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/MySQL/%E5%8E%9F%E7%90%86/%E9%80%9A%E8%BF%87SQL%E5%88%86%E6%9E%90%E6%95%B0%E6%8D%AE%E5%BA%93%E5%8A%A0%E9%94%81/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>通过SQL分析数据库加锁 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/MySQL/%E5%8E%9F%E7%90%86/%E9%80%9A%E8%BF%87SQL%E5%88%86%E6%9E%90%E6%95%B0%E6%8D%AE%E5%BA%93%E5%8A%A0%E9%94%81/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          通过SQL分析数据库加锁
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-06 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-06T00:00:00+08:00">2024-04-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93-%E7%BC%93%E5%AD%98/" itemprop="url" rel="index"><span itemprop="name">数据库&缓存</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93-%E7%BC%93%E5%AD%98/MySQL/" itemprop="url" rel="index"><span itemprop="name">MySQL</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93-%E7%BC%93%E5%AD%98/MySQL/%E5%8E%9F%E7%90%86/" itemprop="url" rel="index"><span itemprop="name">原理</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>[toc]</p>
+<h2 id="Update-Delete语句加锁"><a href="#Update-Delete语句加锁" class="headerlink" title="Update &amp; Delete语句加锁"></a>Update &amp; Delete语句加锁</h2><h3 id="1）主键索引（查询命中）"><a href="#1）主键索引（查询命中）" class="headerlink" title="1）主键索引（查询命中）"></a>1）主键索引（查询命中）</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">UPDATE students SET score = 100 WHERE id = 15; // id主键</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407170956106.png" alt="图片"></p>
+<p>RC、RR都是对聚簇索引加X锁。</p>
+<span id="more"></span>
+
+<h3 id="2）主键索引（查询未命中）"><a href="#2）主键索引（查询未命中）" class="headerlink" title="2）主键索引（查询未命中）"></a>2）主键索引（查询未命中）</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">UPDATE students SET score = 100 WHERE id = 16; // id主键</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407170956235.png" alt="图片"></p>
+<p>RC不加锁，RR在16之前和之后的范围里加GAP锁。</p>
+<h3 id="3）二级唯一索引（查询命中）"><a href="#3）二级唯一索引（查询命中）" class="headerlink" title="3）二级唯一索引（查询命中）"></a>3）二级唯一索引（查询命中）</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">UPDATE students SET score = 100 WHERE no = &#x27;S0003&#x27;;  // id主键，no唯一索引</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407170956849.jpeg" alt="图片"></p>
+<p>RC、RR会对二级和主键索引都加X锁（防止其他事务通过聚簇改数据）。</p>
+<h3 id="4）二级唯一索引（查询未命中）"><a href="#4）二级唯一索引（查询未命中）" class="headerlink" title="4）二级唯一索引（查询未命中）"></a>4）二级唯一索引（查询未命中）</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">UPDATE students SET score = 100 WHERE no = &#x27;S0008&#x27;;  // id主键，no唯一索引</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407170956030.jpeg" alt="图片"></p>
+<p>RC不加锁，RR只在二级索引加GAP。</p>
+<h3 id="5）二级非唯一索引（查询命中）"><a href="#5）二级非唯一索引（查询命中）" class="headerlink" title="5）二级非唯一索引（查询命中）"></a>5）二级非唯一索引（查询命中）</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">UPDATE students SET score = 100 WHERE name = &#x27;Tom&#x27;;  // id主键，name非唯一索引</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407170957467.jpeg" alt="图片"></p>
+<p>RC对二级和聚簇加X锁，RR对二级加X锁和Gap对聚簇加X锁。</p>
+<h3 id="6）二级非唯一索引（查询未命中）"><a href="#6）二级非唯一索引（查询未命中）" class="headerlink" title="6）二级非唯一索引（查询未命中）"></a>6）二级非唯一索引（查询未命中）</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">UPDATE students SET score = 100 WHERE name = &#x27;John&#x27;;  // id主键，name非唯一索引</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407170957449.jpeg" alt="图片"></p>
+<p>RC不加锁，RR只在二级索引加GAP。</p>
+<h2 id="INSERT语句加锁"><a href="#INSERT语句加锁" class="headerlink" title="INSERT语句加锁"></a>INSERT语句加锁</h2><ul>
+<li>为了防止幻读，如果记录之间加有GAP锁，此时不能INSERT。</li>
+<li>如果INSERT的记录和已有记录造成唯一键冲突，此时不能INSERT。</li>
+</ul>
+<h2 id="MySQL的加锁分析实战"><a href="#MySQL的加锁分析实战" class="headerlink" title="MySQL的加锁分析实战"></a>MySQL的加锁分析实战</h2><p>下面两条简单的SQL，他们加什么锁？</p>
+<ul>
+<li><strong>SQL1：</strong>select * from t1 where id &#x3D; 10;</li>
+<li><strong>SQL2：</strong>delete from t1 where id &#x3D; 10;</li>
+</ul>
+<p>针对这个问题，该怎么回答？我能想象到的一个答案是：</p>
+<ul>
+<li><strong>SQL1：</strong>不加锁。因为MySQL是使用多版本并发控制的，读不加锁。</li>
+<li><strong>SQL2：</strong>对id &#x3D; 10的记录加写锁 (走主键索引)。</li>
+</ul>
+<p>这个答案对吗？说不上来。即可能是正确的，也有可能是错误的，已知条件不足，这个问题没有答案。如果让我来回答这个问题，我必须还要知道以下的一些前提，前提不同，我能给出的答案也就不同。要回答这个问题，还缺少哪些前提条件？</p>
+<ul>
+<li><strong>前提一：</strong>id列是不是主键？</li>
+<li><strong>前提二：</strong>当前系统的隔离级别是什么？</li>
+<li><strong>前提三：</strong>id列如果不是主键，那么id列上有索引吗？</li>
+<li><strong>前提四：</strong>id列上如果有二级索引，那么这个索引是唯一索引吗？</li>
+<li><strong>前提五：</strong>两个SQL的执行计划是什么？索引扫描？全表扫描？</li>
+</ul>
+<p>没有这些前提，直接就给定一条SQL，然后问这个SQL会加什么锁，都是很业余的表现。而当这些问题有了明确的答案之后，给定的SQL会加什么锁，也就一目了然。下面，我将这些问题的答案进行组合，然后按照从易到难的顺序，逐个分析每种组合下，对应的SQL会加哪些锁？</p>
+<p><strong>注：</strong>下面的这些组合，我做了一个前提假设，也就是有索引时，执行计划一定会选择使用索引进行过滤 (索引扫描)。但实际情况会复杂很多，真正的执行计划，还是需要根据MySQL输出的为准。</p>
+<ul>
+<li><strong>组合一：</strong>id列是主键，RC隔离级别</li>
+<li><strong>组合二：</strong>id列是二级唯一索引，RC隔离级别</li>
+<li><strong>组合三：</strong>id列是二级非唯一索引，RC隔离级别</li>
+<li><strong>组合四：</strong>id列上没有索引，RC隔离级别</li>
+<li><strong>组合五：</strong>id列是主键，RR隔离级别</li>
+<li><strong>组合六：</strong>id列是二级唯一索引，RR隔离级别</li>
+<li><strong>组合七：</strong>id列是二级非唯一索引，RR隔离级别</li>
+<li><strong>组合八：</strong>id列上没有索引，RR隔离级别</li>
+<li><strong>组合九：</strong>Serializable隔离级别</li>
+</ul>
+<p>排列组合还没有列举完全，但是看起来，已经很多了。真的有必要这么复杂吗？事实上，要分析加锁，就是需要这么复杂。但是从另一个角度来说，只要你选定了一种组合，SQL需要加哪些锁，其实也就确定了。接下来，就让我们来逐个分析这9种组合下的SQL加锁策略。</p>
+<p>注：在前面八种组合下，也就是RC，RR隔离级别下，SQL1：select操作均不加锁，采用的是快照读，因此在下面的讨论中就忽略了，主要讨论SQL2：delete操作的加锁。</p>
+<h3 id="1-组合一：id主键-RC"><a href="#1-组合一：id主键-RC" class="headerlink" title="1 组合一：id主键+RC"></a><strong>1 组合一：id主键+RC</strong></h3><p>这个组合，是最简单，最容易分析的组合。</p>
+<p>id是主键，Read Committed隔离级别，给定SQL：delete from t1 where id &#x3D; 10; 只需要将主键上，id &#x3D; 10的记录加上X锁即可。如下图所示：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407170957661.png" alt="img"></p>
+<p>结论：id是主键时，此SQL只需要在id&#x3D;10这条记录上加X锁即可。</p>
+<h3 id="2-组合二：id唯一索引-RC"><a href="#2-组合二：id唯一索引-RC" class="headerlink" title="2 组合二：id唯一索引+RC"></a>2 组合二：id唯一索引+RC</h3><p>这个组合，id不是主键，而是一个Unique的二级索引键值。那么在RC隔离级别下，delete from t1 where id &#x3D; 10; 需要加什么锁呢？见下图：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407170957632.png" alt="img"></p>
+<p>​        此组合中，id是unique索引，而主键是name列。此时，加锁的情况由于组合一有所不同。由于id是unique索引，因此delete语句会选择走id列的索引进行where条件的过滤，在找到id&#x3D;10的记录后，首先会将unique索引上的id&#x3D;10索引记录加上X锁，同时，会根据读取到的name列，回主键索引(聚簇索引)，然后将聚簇索引上的name &#x3D; ‘d’ 对应的主键索引项加X锁。</p>
+<p>​        为什么聚簇索引上的记录也要加锁？试想一下，如果并发的一个SQL，是通过主键索引来更新：update t1 set id &#x3D; 100 where name &#x3D; ‘d’; 此时，如果delete语句没有将主键索引上的记录加锁，那么并发的update就会感知不到delete语句的存在，违背了同一记录上的更新&#x2F;删除需要串行执行的约束。</p>
+<p>​        结论：若id列是unique列，其上有unique索引。那么SQL需要加两个X锁，一个对应于id unique索引上的id &#x3D; 10的记录，另一把锁对应于聚簇索引上的[name&#x3D;’d’,id&#x3D;10]的记录。</p>
+<h3 id="3-组合三：id非唯一索引-RC"><a href="#3-组合三：id非唯一索引-RC" class="headerlink" title="3 组合三：id非唯一索引+RC"></a>3 组合三：id非唯一索引+RC</h3><p>相对于组合一、二，组合三又发生了变化，隔离级别仍旧是RC不变，但是id列上的约束又降低了，id列不再唯一，只有一个普通的索引。假设delete from t1 where id &#x3D; 10; 语句，仍旧选择id列上的索引进行过滤where条件，那么此时会持有哪些锁？同样见下图：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407170957687.png" alt="img"></p>
+<p>根据此图，可以看到，首先，id列索引上，满足id &#x3D; 10查询条件的记录，均已加锁。同时，这些记录对应的主键索引上的记录也都加上了锁。与组合二唯一的区别在于，组合二最多只有一个满足等值查询的记录，而组合三会将所有满足查询条件的记录都加锁。</p>
+<p>结论：若id列上有非唯一索引，那么对应的所有满足SQL查询条件的记录，都会被加锁。同时，这些记录在主键索引上的记录，也会被加锁。</p>
+<h3 id="4-组合四：id无索引-RC"><a href="#4-组合四：id无索引-RC" class="headerlink" title="4 组合四：id无索引+RC"></a>4 组合四：id无索引+RC</h3><p>相对于前面三个组合，这是一个比较特殊的情况。id列上没有索引，where id &#x3D; 10;这个过滤条件，没法通过索引进行过滤，那么只能走全表扫描做过滤。对应于这个组合，SQL会加什么锁？或者是换句话说，全表扫描时，会加什么锁？这个答案也有很多：有人说会在表上加X锁；有人说会将聚簇索引上，选择出来的id &#x3D; 10;的记录加上X锁。那么实际情况呢？请看下图：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407170957701.png" alt="img"></p>
+<p>​        由于id列上没有索引，因此只能走聚簇索引，进行全部扫描。从图中可以看到，满足删除条件的记录有两条，但是，聚簇索引上所有的记录，都被加上了X锁。无论记录是否满足条件，全部被加上X锁。既不是加表锁，也不是在满足条件的记录上加行锁。</p>
+<p>​        有人可能会问？为什么不是只在满足条件的记录上加锁呢？这是由于MySQL的实现决定的。如果一个条件无法通过索引快速过滤，那存储引擎层面就会将所有记录加锁后返回，然后由MySQL Server层进行过滤。因此也就把所有的记录，都锁上了。</p>
+<p>​       注：在实际的实现中，MySQL有一些改进，在MySQL Server过滤条件，发现不满足后，会调用unlock_row方法，把不满足条件的记录放锁 (违背了2PL的约束)。这样做，保证了最后只会持有满足条件记录上的锁，但是每条记录的加锁操作还是不能省略的。</p>
+<p>​        <strong>结论：</strong>若id列上没有索引，SQL会走聚簇索引的全扫描进行过滤，由于过滤是由MySQL Server层面进行的。因此每条记录，无论是否满足条件，都会被加上X锁。但是，为了效率考量，MySQL做了优化，对于不满足条件的记录，会在判断后放锁，最终持有的，是满足条件的记录上的锁，但是不满足条件的记录上的加锁&#x2F;放锁动作不会省略。同时，优化也违背了2PL的约束。</p>
+<h3 id="5-组合五：id主键-RR"><a href="#5-组合五：id主键-RR" class="headerlink" title="5 组合五：id主键+RR"></a><strong>5 组合五：id主键+RR</strong></h3><p>上面的四个组合，都是在Read Committed隔离级别下的加锁行为，接下来的四个组合，是在Repeatable Read隔离级别下的加锁行为。</p>
+<p>组合五，id列是主键列，Repeatable Read隔离级别，针对delete from t1 where id &#x3D; 10; 这条SQL，加锁与组合一致。</p>
+<h3 id="6-组合六：id唯一索引-RR"><a href="#6-组合六：id唯一索引-RR" class="headerlink" title="6 组合六：id唯一索引+RR"></a><strong>6 组合六：id唯一索引+RR</strong></h3><p>与组合五类似，组合六的加锁，与组合二：一致。两个X锁，id唯一索引满足条件的记录上一个，对应的聚簇索引上的记录一个。</p>
+<h3 id="7-组合七：id非唯一索引-RR"><a href="#7-组合七：id非唯一索引-RR" class="headerlink" title="7 组合七：id非唯一索引+RR"></a><strong>7 组合七：id非唯一索引+RR</strong></h3><p>还记得前面提到的MySQL的四种隔离级别的区别吗？RC隔离级别允许幻读，而RR隔离级别，不允许存在幻读。但是在组合五、组合六中，加锁行为又是与RC下的加锁行为完全一致。那么RR隔离级别下，如何防止幻读呢？问题的答案，就在组合七中揭晓。</p>
+<p>组合七，Repeatable Read隔离级别，id上有一个非唯一索引，执行delete from t1 where id &#x3D; 10; 假设选择id列上的索引进行条件过滤，最后的加锁行为，是怎么样的呢？同样看下面这幅图：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407170957087.png" alt="img"></p>
+<p>此图，相对于组合三看似相同，其实却有很大的区别。最大的区别在于，这幅图中多了一个GAP锁，而且GAP锁看起来也不是加在记录上的，倒像是加载两条记录之间的位置，GAP锁有何用？</p>
+<p>其实这个多出来的GAP锁，就是RR隔离级别，相对于RC隔离级别，不会出现幻读的关键。确实，GAP锁锁住的位置，也不是记录本身，而是两条记录之间的GAP。所谓幻读，就是同一个事务，连续做两次当前读 (例如：select * from t1 where id &#x3D; 10 for update;)，那么这两次当前读返回的是完全相同的记录 (记录数量一致，记录本身也一致)，第二次的当前读，不会比第一次返回更多的记录 (幻象)。</p>
+<p>如何保证两次当前读返回一致的记录，那就需要在第一次当前读与第二次当前读之间，其他的事务不会插入新的满足条件的记录并提交。为了实现这个功能，GAP锁应运而生。</p>
+<p>如图中所示，有哪些位置可以插入新的满足条件的项 (id &#x3D; 10)，考虑到B+树索引的有序性，满足条件的项一定是连续存放的。记录[6,c]之前，不会插入id&#x3D;10的记录；[6,c]与[10,b]间可以插入[10, aa]；[10,b]与[10,d]间，可以插入新的[10,bb],[10,c]等；[10,d]与[11,f]间可以插入满足条件的[10,e],[10,z]等；而[11,f]之后也不会插入满足条件的记录。因此，为了保证[6,c]与[10,b]间，[10,b]与[10,d]间，[10,d]与[11,f]不会插入新的满足条件的记录，MySQL选择了用GAP锁，将这三个GAP给锁起来。</p>
+<p>Insert操作，如insert [10,aa]，首先会定位到[6,c]与[10,b]间，然后在插入前，会检查这个GAP是否已经被锁上，如果被锁上，则Insert不能插入记录。因此，通过第一遍的当前读，不仅将满足条件的记录锁上 (X锁)，与组合三类似。同时还是增加3把GAP锁，将可能插入满足条件记录的3个GAP给锁上，保证后续的Insert不能插入新的id&#x3D;10的记录，也就杜绝了同一事务的第二次当前读，出现幻象的情况。</p>
+<p>有心的朋友看到这儿，可以会问：既然防止幻读，需要靠GAP锁的保护，为什么组合五、组合六，也是RR隔离级别，却不需要加GAP锁呢？</p>
+<p>首先，这是一个好问题。其次，回答这个问题，也很简单。GAP锁的目的，是为了防止同一事务的两次当前读，出现幻读的情况。而组合五，id是主键；组合六，id是unique键，都能够保证唯一性。一个等值查询，最多只能返回一条记录，而且新的相同取值的记录，一定不会在新插入进来，因此也就避免了GAP锁的使用。</p>
+<p><strong>结论：</strong>Repeatable Read隔离级别下，id列上有一个非唯一索引，对应SQL：delete from t1 where id &#x3D; 10; 首先，通过id索引定位到第一条满足查询条件的记录，加记录上的X锁，加GAP上的GAP锁，然后加主键聚簇索引上的记录X锁，然后返回；然后读取下一条，重复进行。直至进行到第一条不满足条件的记录[11,f]，此时，不需要加记录X锁，但是仍旧需要加GAP锁，最后返回结束。</p>
+<h3 id="8-组合八：id无索引-RR"><a href="#8-组合八：id无索引-RR" class="headerlink" title="8 组合八：id无索引+RR"></a><strong>8 组合八：id无索引+RR</strong></h3><p>组合八，Repeatable Read隔离级别下的最后一种情况，id列上没有索引。此时SQL：delete from t1 where id &#x3D; 10; 没有其他的路径可以选择，只能进行全表扫描。最终的加锁情况，如下图所示：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407170957035.png" alt="img"></p>
+<p>如图，这是一个很恐怖的现象。首先，聚簇索引上的所有记录，都被加上了X锁。其次，聚簇索引每条记录间的间隙(GAP)，也同时被加上了GAP锁。这个示例表，只有6条记录，一共需要6个记录锁，7个GAP锁。试想，如果表上有1000万条记录呢？</p>
+<p>在这种情况下，这个表上，除了不加锁的快照度，其他任何加锁的并发SQL，均不能执行，不能更新，不能删除，不能插入，全表被锁死。</p>
+<p>当然，跟组合四类似，这个情况下，MySQL也做了一些优化，就是所谓的semi-consistent read。semi-consistent read开启的情况下，对于不满足查询条件的记录，MySQL会提前放锁。针对上面的这个用例，就是除了记录[d,10]，[g,10]之外，所有的记录锁都会被释放，同时不加GAP锁。semi-consistent read如何触发：要么是read committed隔离级别；要么是Repeatable Read隔离级别，同时设置了innodb_locks_unsafe_for_binlog参数。更详细的关于semi-consistent read的介绍，可参考我之前的一篇博客：<a target="_blank" rel="noopener" href="http://hedengcheng.com/?p=220">MySQL+InnoDB semi-consitent read原理及实现分析</a> 。</p>
+<p><strong>结论：</strong>在Repeatable Read隔离级别下，如果进行全表扫描的当前读，那么会锁上表中的所有记录，同时会锁上聚簇索引内的所有GAP，杜绝所有的并发 更新&#x2F;删除&#x2F;插入 操作。当然，也可以通过触发semi-consistent read，来缓解加锁开销与并发影响，但是semi-consistent read本身也会带来其他问题，不建议使用。</p>
+<h3 id="9-组合九：Serializable"><a href="#9-组合九：Serializable" class="headerlink" title="9 组合九：Serializable"></a><strong>9 组合九：Serializable</strong></h3><p>针对前面提到的简单的SQL，最后一个情况：Serializable隔离级别。对于SQL2：delete from t1 where id &#x3D; 10; 来说，Serializable隔离级别与Repeatable Read隔离级别完全一致，因此不做介绍。</p>
+<p>Serializable隔离级别，影响的是SQL1：select * from t1 where id &#x3D; 10; 这条SQL，在RC，RR隔离级别下，都是快照读，不加锁。但是在Serializable隔离级别，SQL1会加读锁，也就是说快照读不复存在，MVCC并发控制降级为Lock-Based CC。</p>
+<p><strong>结论：</strong>在MySQL&#x2F;InnoDB中，所谓的读不加锁，并不适用于所有的情况，而是隔离级别相关的。Serializable隔离级别，读不加锁就不再成立，所有的读操作，都是当前读。</p>
+<hr>
+<p>转载自：<br><a target="_blank" rel="noopener" href="https://blog.csdn.net/fedorafrog/article/details/104249140">https://blog.csdn.net/fedorafrog/article/details/104249140</a><br><a target="_blank" rel="noopener" href="https://blog.csdn.net/huaishu/article/details/112977474?spm=1001.2014.3001.5502">https://blog.csdn.net/huaishu/article/details/112977474?spm=1001.2014.3001.5502</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/04/06/MQ/Kafka%E7%B4%A2%E5%BC%95%E7%9A%84%E4%BA%8C%E5%88%86%E6%9F%A5%E6%89%BE%E7%AE%97%E6%B3%95/" rel="prev" title="Kafka索引的二分查找算法">
+      <i class="fa fa-chevron-left"></i> Kafka索引的二分查找算法
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/MySQL/%E5%8E%9F%E7%90%86/%E4%B8%80%E6%9D%A1%20SQL%20%E7%9A%84%E6%89%A7%E8%A1%8C%E8%BF%87%E7%A8%8B%E8%AF%A6%E8%A7%A3/" rel="next" title="通过SQL分析数据库加锁">
+      通过SQL分析数据库加锁 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Update-Delete%E8%AF%AD%E5%8F%A5%E5%8A%A0%E9%94%81"><span class="nav-number">1.</span> <span class="nav-text">Update &amp; Delete语句加锁</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1%EF%BC%89%E4%B8%BB%E9%94%AE%E7%B4%A2%E5%BC%95%EF%BC%88%E6%9F%A5%E8%AF%A2%E5%91%BD%E4%B8%AD%EF%BC%89"><span class="nav-number">1.1.</span> <span class="nav-text">1）主键索引（查询命中）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2%EF%BC%89%E4%B8%BB%E9%94%AE%E7%B4%A2%E5%BC%95%EF%BC%88%E6%9F%A5%E8%AF%A2%E6%9C%AA%E5%91%BD%E4%B8%AD%EF%BC%89"><span class="nav-number">1.2.</span> <span class="nav-text">2）主键索引（查询未命中）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3%EF%BC%89%E4%BA%8C%E7%BA%A7%E5%94%AF%E4%B8%80%E7%B4%A2%E5%BC%95%EF%BC%88%E6%9F%A5%E8%AF%A2%E5%91%BD%E4%B8%AD%EF%BC%89"><span class="nav-number">1.3.</span> <span class="nav-text">3）二级唯一索引（查询命中）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4%EF%BC%89%E4%BA%8C%E7%BA%A7%E5%94%AF%E4%B8%80%E7%B4%A2%E5%BC%95%EF%BC%88%E6%9F%A5%E8%AF%A2%E6%9C%AA%E5%91%BD%E4%B8%AD%EF%BC%89"><span class="nav-number">1.4.</span> <span class="nav-text">4）二级唯一索引（查询未命中）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5%EF%BC%89%E4%BA%8C%E7%BA%A7%E9%9D%9E%E5%94%AF%E4%B8%80%E7%B4%A2%E5%BC%95%EF%BC%88%E6%9F%A5%E8%AF%A2%E5%91%BD%E4%B8%AD%EF%BC%89"><span class="nav-number">1.5.</span> <span class="nav-text">5）二级非唯一索引（查询命中）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6%EF%BC%89%E4%BA%8C%E7%BA%A7%E9%9D%9E%E5%94%AF%E4%B8%80%E7%B4%A2%E5%BC%95%EF%BC%88%E6%9F%A5%E8%AF%A2%E6%9C%AA%E5%91%BD%E4%B8%AD%EF%BC%89"><span class="nav-number">1.6.</span> <span class="nav-text">6）二级非唯一索引（查询未命中）</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#INSERT%E8%AF%AD%E5%8F%A5%E5%8A%A0%E9%94%81"><span class="nav-number">2.</span> <span class="nav-text">INSERT语句加锁</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#MySQL%E7%9A%84%E5%8A%A0%E9%94%81%E5%88%86%E6%9E%90%E5%AE%9E%E6%88%98"><span class="nav-number">3.</span> <span class="nav-text">MySQL的加锁分析实战</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E7%BB%84%E5%90%88%E4%B8%80%EF%BC%9Aid%E4%B8%BB%E9%94%AE-RC"><span class="nav-number">3.1.</span> <span class="nav-text">1 组合一：id主键+RC</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E7%BB%84%E5%90%88%E4%BA%8C%EF%BC%9Aid%E5%94%AF%E4%B8%80%E7%B4%A2%E5%BC%95-RC"><span class="nav-number">3.2.</span> <span class="nav-text">2 组合二：id唯一索引+RC</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E7%BB%84%E5%90%88%E4%B8%89%EF%BC%9Aid%E9%9D%9E%E5%94%AF%E4%B8%80%E7%B4%A2%E5%BC%95-RC"><span class="nav-number">3.3.</span> <span class="nav-text">3 组合三：id非唯一索引+RC</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-%E7%BB%84%E5%90%88%E5%9B%9B%EF%BC%9Aid%E6%97%A0%E7%B4%A2%E5%BC%95-RC"><span class="nav-number">3.4.</span> <span class="nav-text">4 组合四：id无索引+RC</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-%E7%BB%84%E5%90%88%E4%BA%94%EF%BC%9Aid%E4%B8%BB%E9%94%AE-RR"><span class="nav-number">3.5.</span> <span class="nav-text">5 组合五：id主键+RR</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-%E7%BB%84%E5%90%88%E5%85%AD%EF%BC%9Aid%E5%94%AF%E4%B8%80%E7%B4%A2%E5%BC%95-RR"><span class="nav-number">3.6.</span> <span class="nav-text">6 组合六：id唯一索引+RR</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-%E7%BB%84%E5%90%88%E4%B8%83%EF%BC%9Aid%E9%9D%9E%E5%94%AF%E4%B8%80%E7%B4%A2%E5%BC%95-RR"><span class="nav-number">3.7.</span> <span class="nav-text">7 组合七：id非唯一索引+RR</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#8-%E7%BB%84%E5%90%88%E5%85%AB%EF%BC%9Aid%E6%97%A0%E7%B4%A2%E5%BC%95-RR"><span class="nav-number">3.8.</span> <span class="nav-text">8 组合八：id无索引+RR</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#9-%E7%BB%84%E5%90%88%E4%B9%9D%EF%BC%9ASerializable"><span class="nav-number">3.9.</span> <span class="nav-text">9 组合九：Serializable</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="1 背景业务处理过程，发现了以下问题，代码一是原代码能正常执行，代码二是经过迭代一次非正常执行代码。 代码一：以下代码开启线程后，代码正常执行： 12345678910111213141516171819ThreadPoolExecutor executor &#x3D; new ThreadPoolExecutor(5, 10, 200, TimeUnit.MILLISECONDS,">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Spring使用TransactionalEventListener解决事务未提交读取不到数据问题">
+<meta property="og:url" content="http://example.com/2024/06/07/Spring/spring%20boot/Spring%E4%BD%BF%E7%94%A8TransactionalEventListener%E8%A7%A3%E5%86%B3%E4%BA%8B%E5%8A%A1%E6%9C%AA%E6%8F%90%E4%BA%A4%E8%AF%BB%E5%8F%96%E4%B8%8D%E5%88%B0%E6%95%B0%E6%8D%AE%E9%97%AE%E9%A2%98/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="1 背景业务处理过程，发现了以下问题，代码一是原代码能正常执行，代码二是经过迭代一次非正常执行代码。 代码一：以下代码开启线程后，代码正常执行： 12345678910111213141516171819ThreadPoolExecutor executor &#x3D; new ThreadPoolExecutor(5, 10, 200, TimeUnit.MILLISECONDS,">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2024-06-06T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.630Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2024/06/07/Spring/spring%20boot/Spring%E4%BD%BF%E7%94%A8TransactionalEventListener%E8%A7%A3%E5%86%B3%E4%BA%8B%E5%8A%A1%E6%9C%AA%E6%8F%90%E4%BA%A4%E8%AF%BB%E5%8F%96%E4%B8%8D%E5%88%B0%E6%95%B0%E6%8D%AE%E9%97%AE%E9%A2%98/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>Spring使用TransactionalEventListener解决事务未提交读取不到数据问题 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/06/07/Spring/spring%20boot/Spring%E4%BD%BF%E7%94%A8TransactionalEventListener%E8%A7%A3%E5%86%B3%E4%BA%8B%E5%8A%A1%E6%9C%AA%E6%8F%90%E4%BA%A4%E8%AF%BB%E5%8F%96%E4%B8%8D%E5%88%B0%E6%95%B0%E6%8D%AE%E9%97%AE%E9%A2%98/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Spring使用TransactionalEventListener解决事务未提交读取不到数据问题
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-06-07 00:00:00" itemprop="dateCreated datePublished" datetime="2024-06-07T00:00:00+08:00">2024-06-07</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/Spring-Boot/" itemprop="url" rel="index"><span itemprop="name">Spring Boot</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="1-背景"><a href="#1-背景" class="headerlink" title="1 背景"></a><strong>1 背景</strong></h2><p>业务处理过程，发现了以下问题，代码一是原代码能正常执行，代码二是经过迭代一次非正常执行代码。</p>
+<p>代码一：以下代码开启线程后，代码正常执行：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">ThreadPoolExecutor</span> <span class="variable">executor</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ThreadPoolExecutor</span>(<span class="number">5</span>, <span class="number">10</span>, <span class="number">200</span>, TimeUnit.MILLISECONDS,</span><br><span class="line">                                                     <span class="keyword">new</span> <span class="title class_">ArrayBlockingQueue</span>&lt;Runnable&gt;(<span class="number">5</span>));</span><br><span class="line"></span><br><span class="line"><span class="meta">@Transactional</span></span><br><span class="line"><span class="keyword">public</span> Long <span class="title function_">test</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="comment">// ......</span></span><br><span class="line">    <span class="comment">// 插入记录</span></span><br><span class="line">    <span class="type">Long</span> <span class="variable">studentId</span> <span class="operator">=</span> studentService.insert(student);</span><br><span class="line">    <span class="comment">// 异步线程</span></span><br><span class="line">    writeStatisticsData(studentId);</span><br><span class="line">    <span class="keyword">return</span> studentId;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">writeStatisticsData</span><span class="params">(Long studentId)</span> &#123;</span><br><span class="line">    executor.execute(() -&gt; &#123;</span><br><span class="line">        <span class="type">Student</span> <span class="variable">student</span> <span class="operator">=</span> studentService.findById(studentId);</span><br><span class="line">        <span class="comment">//........</span></span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>代码二：以下代码开启线程后，代码不正常执行（获取不到student对象了）:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Transactional</span></span><br><span class="line"><span class="keyword">public</span> Long <span class="title function_">test</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="comment">// ......</span></span><br><span class="line">    <span class="comment">// 插入记录</span></span><br><span class="line">    <span class="type">Long</span> <span class="variable">studentId</span> <span class="operator">=</span> studentService.insert(student);</span><br><span class="line">    <span class="comment">// 异步线程</span></span><br><span class="line">    writeStatisticsData(studentId);</span><br><span class="line">    <span class="comment">// 插入学生地址记录</span></span><br><span class="line">    <span class="type">Long</span> <span class="variable">addressId</span> <span class="operator">=</span> addressService.insert(address);</span><br><span class="line">    <span class="keyword">return</span> studentId;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">writeStatisticsData</span><span class="params">(Long studentId)</span> &#123;</span><br><span class="line">    executor.execute(() -&gt; &#123;</span><br><span class="line">        <span class="type">Student</span> <span class="variable">student</span> <span class="operator">=</span> studentService.findById(studentId);</span><br><span class="line">        <span class="comment">//........</span></span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<span id="more"></span>
+
+<h2 id="2-问题分析"><a href="#2-问题分析" class="headerlink" title="2 问题分析"></a><strong>2 问题分析</strong></h2><p>这里使用了spring事务，显然需要考虑事务的隔离级别。<br>查看mysql隔离级别：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">SELECT @<span class="meta">@tx_isolation</span>;</span><br><span class="line">READ-COMMITTED</span><br></pre></td></tr></table></figure>
+
+
+<p>读提交，即在事务A插入数据过程中，事务B在A提交之前读取不到A插入的数据。</p>
+<p>问题原因分析，代码一正常运行的原因：</p>
+<blockquote>
+<p>由于mysql事务的隔离级别是 读提交，test方法在开启异步线程后，异步线程也开启了事务，同时以读者身份去读 test 方法中插入的 student 记录，但此时 test 方法已经提交了事务，所以可以读取到 student 记录（即在异步方法中可以读取到 student 记录），但此代码有风险，若事务提交的时间晚一点，异步线程也有可能读取不到 student 记录。</p>
+</blockquote>
+<p>代码二不能正常运行的原因：</p>
+<blockquote>
+<p>经过上面分析，很明显异步方法中不能读取到 student 记录，由于代码二在异步线程下面又执行了其他操作，延时了test方法中事务的提交，所以代码二不能正常运行。</p>
+</blockquote>
+<h2 id="3-解决问题方案"><a href="#3-解决问题方案" class="headerlink" title="3 解决问题方案"></a><strong>3 解决问题方案</strong></h2><p>解决思路是在事务提交后再做其他的处理（如异步发消息处理等），这里还是从Spring执行事务的过程中入手，Spring事务的处理过程不再分析，这里直接看Spring事务增强器TransactionInterceptor的核心处理流程，源码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> Object <span class="title function_">invokeWithinTransaction</span><span class="params">(Method method, Class&lt;?&gt; targetClass, <span class="keyword">final</span> InvocationCallback invocation)</span> <span class="keyword">throws</span> Throwable &#123;</span><br><span class="line">    <span class="comment">// 获取事务属性</span></span><br><span class="line">    <span class="keyword">final</span> <span class="type">TransactionAttribute</span> <span class="variable">txAttr</span> <span class="operator">=</span> getTransactionAttributeSource().getTransactionAttribute(method, targetClass);</span><br><span class="line">    <span class="comment">//加载配置中配置的TransactionManager</span></span><br><span class="line">    <span class="keyword">final</span> <span class="type">PlatformTransactionManager</span> <span class="variable">tm</span> <span class="operator">=</span> determineTransactionManager(txAttr);</span><br><span class="line">    <span class="keyword">final</span> <span class="type">String</span> <span class="variable">joinpointIdentification</span> <span class="operator">=</span> methodIdentification(method, targetClass, txAttr);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 声明式事务的处理</span></span><br><span class="line">    <span class="keyword">if</span> (txAttr == <span class="literal">null</span> || !(tm <span class="keyword">instanceof</span> CallbackPreferringPlatformTransactionManager)) &#123;</span><br><span class="line">        <span class="type">TransactionInfo</span> <span class="variable">txInfo</span> <span class="operator">=</span> createTransactionIfNecessary(tm, txAttr, joinpointIdentification);</span><br><span class="line">        <span class="type">Object</span> <span class="variable">retVal</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">        <span class="comment">//......</span></span><br><span class="line">        retVal = invocation.proceedWithInvocation();</span><br><span class="line">        <span class="comment">//......</span></span><br><span class="line">        commitTransactionAfterReturning(txInfo);</span><br><span class="line">        <span class="keyword">return</span> retVal;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">// 编程式事务的处理......</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//......</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>这里主要看声明式事务的处理，因为编程式事务的处理及提交都是用户在编码中进行控制。在声明式事务处理中，当方法执行完后，会执行 commitTransactionAfterReturning 方法来进行提交事务，该方法在 TransactionAspectSupport 类中，源码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">commitTransactionAfterReturning</span><span class="params">(TransactionInfo txInfo)</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (txInfo != <span class="literal">null</span> &amp;&amp; txInfo.hasTransaction()) &#123;</span><br><span class="line">        txInfo.getTransactionManager().commit(txInfo.getTransactionStatus());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>再看 commit 方法，该方法在 AbstractPlatformTransactionManager 类中，源码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title function_">commit</span><span class="params">(TransactionStatus status)</span> <span class="keyword">throws</span> TransactionException &#123;</span><br><span class="line">    <span class="comment">// 这里省略很多代码，如事务回滚......</span></span><br><span class="line">    processCommit(defStatus);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">processCommit</span><span class="params">(DefaultTransactionStatus status)</span> <span class="keyword">throws</span> TransactionException &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="type">boolean</span> <span class="variable">beforeCompletionInvoked</span> <span class="operator">=</span> <span class="literal">false</span>;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            prepareForCommit(status);</span><br><span class="line">            triggerBeforeCommit(status);</span><br><span class="line">            triggerBeforeCompletion(status);</span><br><span class="line">            beforeCompletionInvoked = <span class="literal">true</span>;</span><br><span class="line">            <span class="type">boolean</span> <span class="variable">globalRollbackOnly</span> <span class="operator">=</span> <span class="literal">false</span>;</span><br><span class="line">            <span class="keyword">if</span> (status.isNewTransaction() || isFailEarlyOnGlobalRollbackOnly()) &#123;</span><br><span class="line">                globalRollbackOnly = status.isGlobalRollbackOnly();</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">if</span> (status.hasSavepoint()) &#123;</span><br><span class="line">                status.releaseHeldSavepoint();</span><br><span class="line">            &#125; <span class="keyword">else</span> <span class="keyword">if</span> (status.isNewTransaction()) &#123;</span><br><span class="line">                <span class="comment">// 提交事务</span></span><br><span class="line">                doCommit(status);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">//......</span></span><br><span class="line">        &#125; <span class="keyword">catch</span> (......) &#123;</span><br><span class="line">            <span class="comment">// 事务异常处理......</span></span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">// 事务提交成功后的处理-----这里是重点</span></span><br><span class="line">            triggerAfterCommit(status);</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            triggerAfterCompletion(status, TransactionSynchronization.STATUS_COMMITTED);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">finally</span> &#123;</span><br><span class="line">        cleanupAfterCompletion(status);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">triggerAfterCommit</span><span class="params">(DefaultTransactionStatus status)</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (status.isNewSynchronization()) &#123;</span><br><span class="line">        TransactionSynchronizationUtils.triggerAfterCommit();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>最终会走到 TransactionSynchronizationUtils.triggerAfterCommit() 方法中，</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">triggerAfterCommit</span><span class="params">()</span> &#123;</span><br><span class="line">    invokeAfterCommit(TransactionSynchronizationManager.getSynchronizations());</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">invokeAfterCommit</span><span class="params">(List&lt;TransactionSynchronization&gt; synchronizations)</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (synchronizations != <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="keyword">for</span> (TransactionSynchronization synchronization : synchronizations) &#123;</span><br><span class="line">            synchronization.afterCommit();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>上面会把缓存在 TransactionSynchronizationManager 中的 TransactionSynchronization 按顺序来执行 afterCommit 方法，其中 TransactionSynchronization 以集合形式缓存在 TransactionSynchronizationManager 的 ThreadLocal 中。</p>
+<ul>
+<li><p>方式一<br>经过上面分析，只需要代码中重新生成个 TransactionSynchronization 并加入到 TransactionSynchronizationManager 的 TransactionSynchronization 集合中即可，所以有了解决方案，如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">writeStatisticsData</span><span class="params">(Long studentId)</span> &#123;</span><br><span class="line">    <span class="keyword">if</span>(TransactionSynchronizationManager.isActualTransactionActive()) &#123;</span><br><span class="line">        <span class="comment">// 当前存在事务</span></span><br><span class="line">        TransactionSynchronizationManager.registerSynchronization(<span class="keyword">new</span> <span class="title class_">TransactionSynchronizationAdapter</span>() &#123;</span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">afterCommit</span><span class="params">()</span> &#123;</span><br><span class="line">                executor.execute(() -&gt; &#123;</span><br><span class="line">                    <span class="type">Student</span> <span class="variable">student</span> <span class="operator">=</span> studentService.findById(studentId);</span><br><span class="line">                    <span class="comment">//........</span></span><br><span class="line">                &#125;);</span><br><span class="line">            &#125;&#125;);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">// 当前不存在事务</span></span><br><span class="line">        executor.execute(() -&gt; &#123;</span><br><span class="line">            <span class="type">Student</span> <span class="variable">student</span> <span class="operator">=</span> studentService.findById(studentId);</span><br><span class="line">            <span class="comment">//........</span></span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+</li>
+<li><p>方式二<br>使用 @TransactionalEventListener 结合 Spring事件监听机制，该注解自从Spring4.2版本开始有的，如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 事件</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">StudentEvent</span> <span class="keyword">extends</span> <span class="title class_">ApplicationEvent</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">StudentEvent</span><span class="params">(Long studentId)</span> &#123;</span><br><span class="line">        <span class="built_in">super</span>(studentId);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 监听器</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">StudentEventListener</span>&#123;</span><br><span class="line">    <span class="meta">@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">writeStatisticsData</span><span class="params">(StudentEvent studentEvent)</span> &#123;</span><br><span class="line">        executor.execute(() -&gt; &#123;</span><br><span class="line">            <span class="type">Student</span> <span class="variable">student</span> <span class="operator">=</span> studentService.findById(studentEvent.getSource());</span><br><span class="line">            <span class="comment">//........</span></span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Service</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">StudentService</span> &#123;</span><br><span class="line">    <span class="comment">// Spring4.2之后，ApplicationEventPublisher自动被注入到容器中，采用Autowired即可获取</span></span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    <span class="keyword">private</span> ApplicationEventPublisher applicationEventPublisher;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Transactional</span></span><br><span class="line">    <span class="keyword">public</span> Long <span class="title function_">test</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="comment">// ......</span></span><br><span class="line">        <span class="comment">// 插入记录</span></span><br><span class="line">        <span class="type">Long</span> <span class="variable">studentId</span> <span class="operator">=</span> studentService.insert(student);</span><br><span class="line">        <span class="comment">// 发布事件</span></span><br><span class="line">        applicationEventPublisher.publishEvent(<span class="keyword">new</span> <span class="title class_">StudentEvent</span>(studentId));</span><br><span class="line">        <span class="comment">// 插入学生地址记录</span></span><br><span class="line">        <span class="type">Long</span> <span class="variable">addressId</span> <span class="operator">=</span> addressService.insert(address);</span><br><span class="line">        <span class="keyword">return</span> studentId;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure></li>
+</ul>
+<p>原理分析：<br>Spring Bean在加载配置文件时，会使用 AnnotationDrivenBeanDefinitionParser注册TransactionalEventListenerFactory		：</p>
+  <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">AnnotationDrivenBeanDefinitionParser</span> <span class="keyword">implements</span> <span class="title class_">BeanDefinitionParser</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> BeanDefinition <span class="title function_">parse</span><span class="params">(Element element, ParserContext parserContext)</span> &#123;</span><br><span class="line">        <span class="comment">// 重点——将TransactionalEventListenerFactory加入到容器中</span></span><br><span class="line">        registerTransactionalEventListenerFactory(parserContext);</span><br><span class="line">        <span class="type">String</span> <span class="variable">mode</span> <span class="operator">=</span> element.getAttribute(<span class="string">&quot;mode&quot;</span>);</span><br><span class="line">        <span class="keyword">if</span> (<span class="string">&quot;aspectj&quot;</span>.equals(mode)) &#123;</span><br><span class="line">            <span class="comment">// mode=&quot;aspectj&quot;</span></span><br><span class="line">            registerTransactionAspect(element, parserContext);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="comment">// mode=&quot;proxy&quot;</span></span><br><span class="line">            AopAutoProxyConfigurer.configureAutoProxyCreator(element, parserContext);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">registerTransactionalEventListenerFactory</span><span class="params">(ParserContext parserContext)</span> &#123;</span><br><span class="line">        <span class="type">RootBeanDefinition</span> <span class="variable">def</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">RootBeanDefinition</span>();</span><br><span class="line">        def.setBeanClass(TransactionalEventListenerFactory.class);</span><br><span class="line">        parserContext.registerBeanComponent(<span class="keyword">new</span> <span class="title class_">BeanComponentDefinition</span>(def,</span><br><span class="line">                                                                        TransactionManagementConfigUtils.TRANSACTIONAL_EVENT_LISTENER_FACTORY_BEAN_NAME));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+  <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">TransactionalEventListenerFactory</span> <span class="keyword">implements</span> <span class="title class_">EventListenerFactory</span>, Ordered &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//省略部分代码......</span></span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> ApplicationListener&lt;?&gt; createApplicationListener(String beanName, Class&lt;?&gt; type, Method method) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">ApplicationListenerMethodTransactionalAdapter</span>(beanName, type, method);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+  <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">ApplicationListenerMethodTransactionalAdapter</span> <span class="keyword">extends</span> <span class="title class_">ApplicationListenerMethodAdapter</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//省略部分代码......</span></span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">onApplicationEvent</span><span class="params">(ApplicationEvent event)</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (TransactionSynchronizationManager.isSynchronizationActive()) &#123;</span><br><span class="line">            <span class="comment">// 事务存在时，生成TransactionSynchronization并加入到 TransactionSynchronizationManager的缓存集合中</span></span><br><span class="line">            <span class="type">TransactionSynchronization</span> <span class="variable">transactionSynchronization</span> <span class="operator">=</span> createTransactionSynchronization(event);</span><br><span class="line">            TransactionSynchronizationManager.registerSynchronization(transactionSynchronization);</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (<span class="built_in">this</span>.annotation.fallbackExecution()) &#123;</span><br><span class="line">            <span class="comment">//.......</span></span><br><span class="line">        &#125;</span><br><span class="line">        processEvent(event);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">// 当前不存在事务什么也不做</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>上述 @TransactionalEventListener 本质上是一个 @EventListener，TransactionalEventListenerFactory类会将每一个扫描到的方法有TransactionalEventListener注解包装成ApplicationListenerMethodTransactionalAdapter对象，通过ApplicationListenerMethodTransactionalAdapter的onApplicationEvent方法可以看到若当前存在事务，就会生成TransactionSynchronization并加入到 TransactionSynchronizationManager的缓存ThreadLocal集合中，剩余流程同上述分析。</p>
+<p>转载自：<a target="_blank" rel="noopener" href="https://blog.csdn.net/zhuqiuhui/article/details/89299360">https://blog.csdn.net/zhuqiuhui/article/details/89299360</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/06/06/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%8F%AF%E8%A7%82%E6%B5%8B/%E4%BB%8EOpentracing%E3%80%81OpenCensus%20%E5%88%B0%20OpenTelemetry%EF%BC%8C%E7%9C%8B%E5%8F%AF%E8%A7%82%E6%B5%8B%E6%95%B0%E6%8D%AE%E6%A0%87%E5%87%86%E6%BC%94%E8%BF%9B%E5%8F%B2/" rel="prev" title="从Opentracing、OpenCensus 到 OpenTelemetry，看可观测数据标准演进史">
+      <i class="fa fa-chevron-left"></i> 从Opentracing、OpenCensus 到 OpenTelemetry，看可观测数据标准演进史
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/06/08/Java/Java%E8%BF%9B%E9%98%B6/%E9%80%9A%E8%BF%87%E6%96%B9%E6%B3%95%E5%BC%95%E7%94%A8%E8%8E%B7%E5%8F%96%E5%B1%9E%E6%80%A7%E5%90%8D%E7%9A%84%E5%BA%95%E5%B1%82%E9%80%BB%E8%BE%91%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F/" rel="next" title="通过方法引用获取属性名的底层逻辑是什么？">
+      通过方法引用获取属性名的底层逻辑是什么？ <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%83%8C%E6%99%AF"><span class="nav-number">1.</span> <span class="nav-text">1 背景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90"><span class="nav-number">2.</span> <span class="nav-text">2 问题分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E8%A7%A3%E5%86%B3%E9%97%AE%E9%A2%98%E6%96%B9%E6%A1%88"><span class="nav-number">3.</span> <span class="nav-text">3 解决问题方案</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

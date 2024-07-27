@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="[toc]  首先介绍下分布式共识算法。分布式共识算法是指：多个参与者 针对 某一件事 达成完全 一致 ：一件事，一个结论；已达成一致的结论，不可推翻。   目前分布式共识算法有如下：  Paxos：被认为是分布式共识算法的根本，其他都是其变种，但是 Paxos 论文中只给出了单个提案的过程，并没有给出复制状态机中需要的 multi-paxos 的相关细节的描述，实现 Paxos 具有很高的工程复">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Raft算法">
+<meta property="og:url" content="http://example.com/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/Raft%E7%AE%97%E6%B3%95/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="[toc]  首先介绍下分布式共识算法。分布式共识算法是指：多个参与者 针对 某一件事 达成完全 一致 ：一件事，一个结论；已达成一致的结论，不可推翻。   目前分布式共识算法有如下：  Paxos：被认为是分布式共识算法的根本，其他都是其变种，但是 Paxos 论文中只给出了单个提案的过程，并没有给出复制状态机中需要的 multi-paxos 的相关细节的描述，实现 Paxos 具有很高的工程复">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171318872.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171319141.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171319524.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171320669.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171320787.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171321139.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171323020.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171323343.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171324228.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171324277.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171324209.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171326671.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171326806.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171326095.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171326530.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171327875.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171327168.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171329272.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171329440.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171329621.webp">
+<meta property="article:published_time" content="2024-04-04T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.661Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171318872.webp">
+
+<link rel="canonical" href="http://example.com/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/Raft%E7%AE%97%E6%B3%95/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>Raft算法 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/Raft%E7%AE%97%E6%B3%95/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Raft算法
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-05T00:00:00+08:00">2024-04-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/" itemprop="url" rel="index"><span itemprop="name">分布式与微服务</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>[toc]<br>  首先介绍下<strong>分布式共识算法。分布式共识算法是指：多个参与者</strong> 针对 <strong>某一件事</strong> 达成完全 <strong>一致</strong> ：一件事，一个结论；已达成一致的结论，不可推翻。</p>
+<p>  <strong>目前分布式共识算法有如下：</strong></p>
+<ul>
+<li>Paxos：被认为是分布式共识算法的根本，其他都是其变种，但是 Paxos 论文中只给出了单个提案的过程，并没有给出复制状态机中需要的 multi-paxos 的相关细节的描述，实现 Paxos 具有很高的工程复杂度（如多点可写，允许日志空洞等）。</li>
+<li>Zab：被应用在 Zookeeper 中，业界使用广泛，但没有抽象成通用的 library。</li>
+<li>Raft：以容易理解著称，业界也涌现出很多 Raft 实现，比如大名鼎鼎的 etcd, braft, tikv 等。</li>
+</ul>
+ <span id="more"></span>
+
+<h1 id="什么是-Raft？"><a href="#什么是-Raft？" class="headerlink" title="什么是 Raft？"></a>什么是 Raft？</h1><p>​	Raft 是一种更易于理解的分布式共识算法，核心协议本质上还是师承 Paxos 的精髓，不同的是依靠 Raft 模块化的拆分以及更加简化的设计，Raft 协议相对更容易实现。</p>
+<p>​	模块化的拆分主要体现在：Raft 把一致性协议划分为 Leader 选举、Membership 变更、日志复制、Snapshot 等几个几乎完全解耦的模块。</p>
+<p>​	更加简化的设计则体现在：Raft不允许类似 Paxos 中的乱序提交、简化系统中的角色状态（只有 Leader、Follower、Candidate 三种角色）、限制仅 Leader 可写入、使用随机化的超时时间来设计 Leader Election 等等。</p>
+<p>​	Raft算法中系统必须存在且同一时刻只能有一个 Leader，只有 Leader 可以接受 Clients 发过来的请求；Leader 负责主动与所有 Followers 通信，负责将“提案”发送给所有 Followers，同时收集多数派的 Followers 应答；Leader 还需向所有 Followers 主动发送心跳维持领导地位(保持存在感)。</p>
+<h1 id="1-Raft-节点状态"><a href="#1-Raft-节点状态" class="headerlink" title="1. Raft 节点状态"></a>1. Raft 节点状态</h1><p>每个节点有<strong>三种状态：Follower，Candidate，Leader</strong>，状态之间是互相转换的。状态转换图:</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171318872.webp" alt="img"></p>
+<p>  每个节点上都有一个倒计时器 (Election Timeout)，时间随机在 150ms ~300ms 之间。有几种情况会重设 Timeout：</p>
+<ol>
+<li>收到选举的请求</li>
+<li>收到 Leader 的 Heartbeat</li>
+</ol>
+<p>在 Raft 运行过程中，最主要进行两个活动：</p>
+<ol>
+<li>选主 Leader Election</li>
+<li>复制日志 Log Replication</li>
+</ol>
+<h1 id="2-选主-Leader-Election"><a href="#2-选主-Leader-Election" class="headerlink" title="2. 选主 Leader Election"></a>2. 选主 Leader Election</h1><h2 id="2-1-正常情况下选主"><a href="#2-1-正常情况下选主" class="headerlink" title="2.1 正常情况下选主"></a>2.1 正常情况下选主</h2><p>假设现在有如图5个节点，5个节点一开始的状态都是 Follower。在一个节点election timeout到期后，这个节点的状态变成 Candidate 开始选举，它会会先投自己一票，然后向整个集群发起选举请求 (RequestVote)</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171319141.webp"></p>
+<p>其他四个节点都返回成功，这个节点的状态由 Candidate 变成了 Leader，并在每个一小段时间后，就给所有的 Follower 发送一个 Heartbeat 以保持所有节点的状态，Follower 收到 Leader 的 Heartbeat 后重设 Timeout。心跳检测时间很短，要远远小于选举超时时间election timout。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171319524.webp"></p>
+<p>这是最简单的选主情况，<strong>只要有超过一半的节点投支持票了，Candidate才会被选举为 Leader</strong>，5个节点的情况下，3个节点 (包括 Candidate 本身) 投了支持就行。</p>
+<p>除此之外，每个节点中还有一个字段，叫term，意思就是任期，这个term是一个全局的、连续递增的整数，每进行一次选举，term就会加一，如果candidate赢得选举，它会当leader直到此次任期结束。</p>
+<h2 id="2-2-Leader出故障情况下的选主"><a href="#2-2-Leader出故障情况下的选主" class="headerlink" title="2.2 Leader出故障情况下的选主"></a>2.2 Leader出故障情况下的选主</h2><p>一开始已经有一个 Leader，所有节点正常运行。Leader 出故障挂掉了，其他四个 Follower 将进行重新选主。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171320669.webp" alt="img"></p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171320787.webp" alt="img"></p>
+<p>4个节点的选主过程和5个节点的类似，假设在选出一个新的 Leader 后，原来的 Leader 恢复了又重新加入了，这个时候怎么处理？在 Raft 里，第几轮选举是有记录的，重新加入的 Leader 是第一轮选举 (Term 1) 选出来的，而现在的 Leader 则是 Term 2，所有原来的 Leader 会自觉降级为 Follower。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171321139.webp" alt="img"></p>
+<h2 id="2-3-多个-Candidate-情况下的选主"><a href="#2-3-多个-Candidate-情况下的选主" class="headerlink" title="2.3 多个 Candidate 情况下的选主"></a>2.3 多个 Candidate 情况下的选主</h2><p>假设一开始有4个节点，都还是 Follower。这时，有两个 Follower 同时 Timeout，都变成了 Candidate 开始选举，分别给 Follower 发送了投票请求。两个 Follower 分别返回了ok，这时两个 Candidate 都只有2票，要3票才能被选成 Leader。两个 Candidate 会分别给另外一个还没有给自己投票的 Follower 发送投票请求。但是因为 Follower 在这一轮选举中，都已经投完票了，所以都拒绝了他们的请求。所以在 Term 2 没有 Leader 被选出来。</p>
+<p>这时，两个节点的状态是 Candidate，两个是 Follower，但是他们的倒计时器仍然在运行，最先 Timeout 的那个节点会进行发起新一轮 Term 3 的投票。两个 Follower 在 Term 3 还没投过票，所以返回 OK，这时 Candidate 一共有三票，被选为了 Leader。</p>
+<p>如果 Leader Heartbeat 的时间晚于另外一个 Candidate timeout 的时间，另外一个 Candidate 仍然会发送选举请求。两个 Follower 已经投完票了，拒绝了这个 Candidate 的投票请求。Leader 进行 Heartbeat， Candidate 收到后状态自动转为 Follower，完成选主。</p>
+<h1 id="3-复制日志-Log-Replication"><a href="#3-复制日志-Log-Replication" class="headerlink" title="3. 复制日志 Log Replication"></a>3. 复制日志 Log Replication</h1><h2 id="3-1-正常情况下复制日志"><a href="#3-1-正常情况下复制日志" class="headerlink" title="3.1 正常情况下复制日志"></a>3.1 正常情况下复制日志</h2><p>Raft 在实际应用场景中的一致性更多的是体现在不同节点之间的数据一致性，客户端发送请求到任何一个节点都能收到一致的返回，当一个节点出故障后，其他节点仍然能以已有的数据正常进行。在选主之后的复制日志就是为了达到这个目的。</p>
+<p>Raft算法中无论读和写都会由leader节点来处理。读也由leader来处理，leader拿到请求后，再决定由哪一个节点来处理，要么将请求分发，要么自己处理；即使client端请求的是follower节点，Follower节点也会现将请求信息转给leader，再由leader决定由哪个节点来处理。</p>
+<p>一开始，Leader 和 两个 Follower 都没有任何数据。客户端发送请求给 Leader，储存数据 “sally”，Leader 先将数据写在本地日志，这时候数据还是 <strong>Uncommitted</strong> (还没最终确认)。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171323020.webp" alt="img"></p>
+<p>Leader 给两个 Follower 发送 AppendEntries 请求，数据在 Follower 上没有冲突，则将数据暂时写在本地日志，Follower 的数据也还是 Uncommitted。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171323343.webp" alt="img"></p>
+<p>Follower将数据写到本地后，返回 OK。Leader 收到后成功返回，<strong>只要收到的成功返回的数量超过半数</strong> **(****包含Leader)**，Leader 将数据 “sally” 的状态改成 Committed。( 这个时候 Leader 就可以返回给客户端了)。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171324228.webp" alt="img"></p>
+<p>Leader 再次给 Follower 发送 AppendEntries 请求（相当于commit的通知），收到请求后，Follower 将本地日志里 Uncommitted 数据改成 Committed。这样就完成了一整个复制日志的过程，三个节点的数据是一致的。</p>
+<h2 id="3-2-Network-Partition-情况下进行复制日志"><a href="#3-2-Network-Partition-情况下进行复制日志" class="headerlink" title="3.2 Network Partition 情况下进行复制日志"></a>3.2 Network Partition 情况下进行复制日志</h2><p>在 Network Partition 的情况下，部分节点之间没办法互相通信，Raft 也能保证在这种情况下数据的一致性。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171324277.webp" alt="img"></p>
+<p>假设，一开始有 5 个节点处于同一网络状态下。Network Partition 将节点分成两边，一边有两个节点，一边三个节点。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171324209.webp" alt="img"></p>
+<p>两个节点这边已经有 Leader 了，来自客户端的数据 “bob” 通过 Leader 同步到 Follower。因为只有两个节点，少于3个节点，所以 “bob” 的状态仍是 Uncommitted。所以在这里，<strong>服务器会返回错误给客户端</strong>。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171326671.webp" alt="img"></p>
+<p>另外一个 Partition 有三个节点，进行重新选主。客户端数据 “tom” 发到新的 Leader，通过和上节网络状态下相似的过程，同步到另外两个 Follower。因为这个 Partition 有3个节点，超过半数，所以数据 “tom” 都 Commit 了。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171326806.webp" alt="img"></p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171326095.webp" alt="img"></p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171326530.webp" alt="img"></p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171327875.webp" alt="img"></p>
+<p>网络状态恢复，5个节点再次处于同一个网络状态下。但是这里出现了数据冲突 “bob” 和 “tom”。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171327168.webp" alt="img"></p>
+<p>三个节点的 Leader 广播 AppendEntries，两个节点 Partition 的 Leader 自动降级为 Follower，因为这个 Partition 的数据 “bob” 没有 Commit，返回给客户端的是错误，客户端知道请求没有成功，所以 Follower 在收到 AppendEntries 请求时，可以把 “bob“ 删除，然后同步 ”tom”，通过这么一个过程，就完成了在 Network Partition 情况下的复制日志，保证了数据的一致性。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171329272.webp" alt="img"> </p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171329440.webp" alt="img"></p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171329621.webp" alt="img"></p>
+<p>可以参考：</p>
+<p>图解Raft：<a target="_blank" rel="noopener" href="https://blog.csdn.net/i6448038/article/details/85525040">https://blog.csdn.net/i6448038/article/details/85525040</a></p>
+<p>Raft 原理动画：<a target="_blank" rel="noopener" href="https://link.jianshu.com/?t=http://thesecretlivesofdata.com/raft/">http://thesecretlivesofdata.com/raft/</a></p>
+<hr>
+<p><strong>使用 Raft 算法，会有什么痛点呢?</strong></p>
+<p>受限于 Raft 的强领导者模型。所有请求都在领导者节点上处理，整个集群的性能等于单机性能。这样会造成集群接入性能低下，无法支撑海量或大数据量的时序数据。</p>
+<p>受限于强领导者模型，以及 Raft 的节点和副本一一对应的限制，无法实现水平扩展，分布式集群扩展了读性能，但写性能并没有提升。这样会出现写性能低下，和因为架构上的限制，无法提升写性能的问题。 Raft 的“一切以领导者为准”的日志复制特性，会导致 DATA 节点丢数据，出现时序数据记录缺失的问题。</p>
+<hr>
+<p>转载自：<br><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/8e4bbe7e276c">https://www.jianshu.com/p/8e4bbe7e276c</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F%E7%9A%84SLA/" rel="prev" title="分布式系统的SLA">
+      <i class="fa fa-chevron-left"></i> 分布式系统的SLA
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/04/05/Dubbo/%E5%A6%82%E4%BD%95%E8%AE%BE%E8%AE%A1RPC%E6%A1%86%E6%9E%B6/" rel="next" title="如何设计RPC框架">
+      如何设计RPC框架 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF-Raft%EF%BC%9F"><span class="nav-number">1.</span> <span class="nav-text">什么是 Raft？</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#1-Raft-%E8%8A%82%E7%82%B9%E7%8A%B6%E6%80%81"><span class="nav-number">2.</span> <span class="nav-text">1. Raft 节点状态</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-%E9%80%89%E4%B8%BB-Leader-Election"><span class="nav-number">3.</span> <span class="nav-text">2. 选主 Leader Election</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#2-1-%E6%AD%A3%E5%B8%B8%E6%83%85%E5%86%B5%E4%B8%8B%E9%80%89%E4%B8%BB"><span class="nav-number">3.1.</span> <span class="nav-text">2.1 正常情况下选主</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-2-Leader%E5%87%BA%E6%95%85%E9%9A%9C%E6%83%85%E5%86%B5%E4%B8%8B%E7%9A%84%E9%80%89%E4%B8%BB"><span class="nav-number">3.2.</span> <span class="nav-text">2.2 Leader出故障情况下的选主</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-3-%E5%A4%9A%E4%B8%AA-Candidate-%E6%83%85%E5%86%B5%E4%B8%8B%E7%9A%84%E9%80%89%E4%B8%BB"><span class="nav-number">3.3.</span> <span class="nav-text">2.3 多个 Candidate 情况下的选主</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-%E5%A4%8D%E5%88%B6%E6%97%A5%E5%BF%97-Log-Replication"><span class="nav-number">4.</span> <span class="nav-text">3. 复制日志 Log Replication</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#3-1-%E6%AD%A3%E5%B8%B8%E6%83%85%E5%86%B5%E4%B8%8B%E5%A4%8D%E5%88%B6%E6%97%A5%E5%BF%97"><span class="nav-number">4.1.</span> <span class="nav-text">3.1 正常情况下复制日志</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-2-Network-Partition-%E6%83%85%E5%86%B5%E4%B8%8B%E8%BF%9B%E8%A1%8C%E5%A4%8D%E5%88%B6%E6%97%A5%E5%BF%97"><span class="nav-number">4.2.</span> <span class="nav-text">3.2 Network Partition 情况下进行复制日志</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

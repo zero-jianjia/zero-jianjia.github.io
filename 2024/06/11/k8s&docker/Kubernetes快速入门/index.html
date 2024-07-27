@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="[toc] 一、Docker在介绍docker之前，先简单回顾一下操作系统是如何管理进程的。 首先，当我们登录到操作系统之后，可以通过 ps 等操作看到各式各样的进程，这些进程包括系统自带的服务和用户的应用进程。那么，这些进程都有什么样的特点？  第一，这些进程可以相互看到、相互通信； 第二，它们使用的是同一个文件系统，可以对同一个文件进行读写操作； 第三，这些进程会使用相同的系统资源。  这样的">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Kubernetes快速入门">
+<meta property="og:url" content="http://example.com/2024/06/11/k8s&docker/Kubernetes%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="[toc] 一、Docker在介绍docker之前，先简单回顾一下操作系统是如何管理进程的。 首先，当我们登录到操作系统之后，可以通过 ps 等操作看到各式各样的进程，这些进程包括系统自带的服务和用户的应用进程。那么，这些进程都有什么样的特点？  第一，这些进程可以相互看到、相互通信； 第二，它们使用的是同一个文件系统，可以对同一个文件进行读写操作； 第三，这些进程会使用相同的系统资源。  这样的">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240612144954.gif">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240612145048.gif">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240612145103.gif">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240612145145.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240612145202.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240612145406.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240612151059.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240612151157.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240612151243.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240612151256.png">
+<meta property="article:published_time" content="2024-06-10T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.573Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240612144954.gif">
+
+<link rel="canonical" href="http://example.com/2024/06/11/k8s&docker/Kubernetes%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>Kubernetes快速入门 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/06/11/k8s&docker/Kubernetes%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Kubernetes快速入门
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-06-11 00:00:00" itemprop="dateCreated datePublished" datetime="2024-06-11T00:00:00+08:00">2024-06-11</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/k8s-docker/" itemprop="url" rel="index"><span itemprop="name">k8s&docker</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>[toc]</p>
+<h1 id="一、Docker"><a href="#一、Docker" class="headerlink" title="一、Docker"></a>一、Docker</h1><p>在介绍docker之前，先简单回顾一下操作系统是如何管理进程的。</p>
+<p>首先，当我们登录到操作系统之后，可以通过 ps 等操作看到各式各样的进程，这些进程包括系统自带的服务和用户的应用进程。那么，这些进程都有什么样的特点？</p>
+<ul>
+<li>第一，这些进程可以相互看到、相互通信；</li>
+<li>第二，它们使用的是同一个文件系统，可以对同一个文件进行读写操作；</li>
+<li>第三，这些进程会使用相同的系统资源。</li>
+</ul>
+<p>这样的三个特点会带来什么问题呢？</p>
+<ul>
+<li>因为这些进程能够相互看到并且进行通信，高级权限的进程可以攻击其他进程；</li>
+<li>因为它们使用的是同一个文件系统，因此会带来两个问题：这些进程可以对于已有的数据进行增删改查，具有高级权限的进程可能会将其他进程的数据删除掉，破坏掉其他进程的正常运行；此外，进程与进程之间的依赖可能会存在冲突，如此一来就会给运维带来很大的压力；</li>
+<li>因为这些进程使用的是同一个宿主机的资源，应用之间可能会存在资源抢占的问题，当一个应用需要消耗大量 CPU 和内存资源的时候，就可能会破坏其他应用的运行，导致其他应用无法正常地提供服务。</li>
+</ul>
+<p>针对上述的三个问题，如何为进程提供一个独立的运行环境呢？</p>
+<ul>
+<li>针对不同进程使用同一个文件系统所造成的问题而言，Linux 和 Unix 操作系统可以通过 chroot 系统调用将子目录变成根目录，达到视图级别的隔离；进程在 chroot 的帮助下可以具有独立的文件系统，对于这样的文件系统进行增删改查不会影响到其他进程；</li>
+<li>因为进程之间相互可见并且可以相互通信，使用 Namespace 技术来实现进程在资源的视图上进行隔离。在 chroot 和 Namespace 的帮助下，进程就能够运行在一个独立的环境下了；</li>
+<li>但在独立的环境下，进程所使用的还是同一个操作系统的资源，一些进程可能会侵蚀掉整个系统的资源。为了减少进程彼此之间的影响，可以通过 Cgroup 来限制其资源使用率，设置其能够使用的 CPU 以及内存量。</li>
+</ul>
+<p><strong>容器就是一个视图隔离、资源可限制、独立文件系统的进程集合。</strong>容器就是一个进程集合，它将系统的其他资源隔离开来，具有自己独立的资源视图。Docker 就是基于上述技术实现的。</p>
+<span id="more"></span>
+
+<h1 id="二、Docker-compose"><a href="#二、Docker-compose" class="headerlink" title="二、Docker-compose"></a>二、Docker-compose</h1><p>Docker-compose 是一个单节点编排技术。如果把 docker 比喻成一堆杂乱无章的集装箱，而 compose 能够对这些集装箱整理归类，作为一个整体启动运行，docker-compose 是以 docker 为核心进行构建的，本身只支持单节点编排，在复杂多变的生产环境是无法投入使用的。docker-compose 适合于需要多个容器相互配合来完成服务的运行，当我们在开发工作中遇到一个项目运行，需要多个服务配合甚至数据库、负载均衡等这个时候我们可以考虑使用 Compose 编排管理，提高部署效率。</p>
+<h1 id="三、Kubernetes"><a href="#三、Kubernetes" class="headerlink" title="三、Kubernetes"></a>三、Kubernetes</h1><p>工业级的编排平台主要提供服务的部署、弹性和管理；Kubernetes是希腊语，翻译中文是“舵手、飞行员”的意思。k8s，省略中间8个ubernete替换为8，而得来k8s。<br>如果说 docker 把应用打包成镜像，那么 Kubernetes 保证容器化应用简单高效运行。他跟 docker-swarm、moby 项目不同，它不在以 docker 为核心，而是把 docker 作为一个运行时组件，更多是提供应用部署，规划，更新，维护，在复杂多变的生产环境中，这些往往是我们更加需要的。</p>
+<h2 id="3-1、Kubernetes-核心功能"><a href="#3-1、Kubernetes-核心功能" class="headerlink" title="3.1、Kubernetes 核心功能"></a>3.1、Kubernetes 核心功能</h2><p>1、服务发现和负载均衡：主要通过 Service 资源对象其底层是基于 iptables 实现。</p>
+<p>2、服务自动装箱：主要是通过调度 组件 Scheduler 实现，它能够自动给帮助我们把容器调度到某几台机器上自动启动运行。</p>
+<p>3、容器存储编排：Kubernetes 有跟 compose 类似的编排 yml 文件，让存储的生命周期和容器的生命周期有一个链接。</p>
+<p>4、容器故障恢复：在集群环境中经常会因为系统原因、以及宿主机问题导致容器不可用，Kubernetes 会帮助我们把不可用的容器进行恢复或者转移到正常节点上面去。</p>
+<p>5、自动发布和回滚：Kubernetes 能够对我们的应用进行自动的发布和回滚，并且根据不同应用场景提供了不同发布和回滚策略。</p>
+<p>6、配置和密钥存储：Kubernetes 提供了 ConfigMap 解决了集群环境中配置文件的存储问题，其底层是基于数据卷实现，原应用不用修改任何代码即可无缝对接。</p>
+<p>7、服务水平伸缩：Kubernetes 为了让集群更具有弹性提供了水平伸缩功能，如果线上有某种大流量活动，我们可以直接水平扩展应用部署应用的数量，当活动结束后，再减少应用部署的数量，从而高效应对高并发场景。</p>
+<p>8、批量执行以及守护进程任务：Kubernentes 可以对 Job 类型的任务，进行批量的执行，比如数据同步、备份等；如果我们想要集群环境中每个节点都运行一份守护进程进行节点任务执行，我们可以使用 Kubernetes DeamonSet 资源类型进行任务执行。</p>
+<p>9、探针：Kubernetes 主要提供了存活和就绪两种探针，支持 http、tcp、socket 或者脚本的形式进行检测服务是否正常，对原有服务架构没有任何侵入性。</p>
+<h2 id="3-2、图文演示-Kubernetes-部分特性"><a href="#3-2、图文演示-Kubernetes-部分特性" class="headerlink" title="3.2、图文演示 Kubernetes 部分特性"></a>3.2、图文演示 Kubernetes 部分特性</h2><ul>
+<li><p>Kubernetes 的调度器 Scheduler 可以把用户提交的容器，根据其规格大小调度到其中的一个节点上。如下动图所示：<br><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240612144954.gif" alt="图片"></p>
+</li>
+<li><p>Kubernetes 平台有健康检查的功能，当集群中的某个节点或者应用出现故障时，能够自动转移到健康节点上。如下动图所示：<br><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240612145048.gif" alt="图片"></p>
+</li>
+<li><p>Kubernetes 具备 HPA 自动扩容的能力，目前只支持按照 CPU 指标和用户自定义（比如 TPS 或 QPS）达到某个数量级触发自动扩容，当请求高峰过去之后，pod 可以恢复到原来的水平。如下图所示检测到白色节点负载过高，自动把服务复制两份，分发到其它节点运行：<br><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240612145103.gif" alt="图片"></p>
+</li>
+</ul>
+<h2 id="3-3、架构介绍"><a href="#3-3、架构介绍" class="headerlink" title="3.3、架构介绍"></a>3.3、架构介绍</h2><p>Kubernetes 基于两层架构设计，主要包含主节点 master 和计算节点 node，master 包含 web UI 界面和 cli 命令行，支持多个 master 高可用部署，master 主要下发命令到 node，node 主要用于容器任务执行。<br><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240612145145.png" alt="img"></p>
+<h2 id="3-4、master"><a href="#3-4、master" class="headerlink" title="3.4、master"></a>3.4、master</h2><p>master 主要包含 APIServer、Scheduler、Controller、Etcd 等组件。<br><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240612145202.png" alt="img"></p>
+<h3 id="3-4-1、API-Server"><a href="#3-4-1、API-Server" class="headerlink" title="3.4.1、API Server"></a>3.4.1、API Server</h3><p>API Server 提供了资源的增、删、改、查等操作的唯一入口，并提供认证、授权、访问控制、API注册和发现等机制，集群内部组件与组件之间不能直接调用，调用过程都要经过 ApiServer，其中 Apiserver 支持高可用配置。</p>
+<h3 id="3-4-2、Scheduler"><a href="#3-4-2、Scheduler" class="headerlink" title="3.4.2、Scheduler"></a>3.4.2、Scheduler</h3><p>Scheduler 负责资源的调度策略，能够按照预设的策略把 pod 调度到相应的节点上，支持热备。</p>
+<h3 id="3-4-3、Controller"><a href="#3-4-3、Controller" class="headerlink" title="3.4.3、Controller"></a>3.4.3、Controller</h3><p>Controller 负责维护集群的状态，资源对象的自动化控制中心，比如故障检测、自动扩展、滚动更新、服务帐户和令牌控制器等功能都是由 Kubernetes Controller 完成，支持热备。</p>
+<h3 id="3-4-4、etcd"><a href="#3-4-4、etcd" class="headerlink" title="3.4.4、etcd"></a>3.4.4、etcd</h3><p>etcd 主要功能保存整个集群的状态；etcd 本身是一个独立与 Kubernetes 集群之外的分布式存储系统。支持高可用配置。</p>
+<h2 id="3-5、node"><a href="#3-5、node" class="headerlink" title="3.5、node"></a>3.5、node</h2><p>Kubernetes 的业务是在 node上运行，而业务都是以最小单元 pod 进行运行的，而 pod 中可以运行一个或者多个容器，pod 本身在 kubelet 组件上运行，它通过跟 apiserver 进行交互获得 pod 的状态。node 主要包含 Kubelet、kube-proxy、Container Runtime、存储插件、网路插件等。<br><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240612145406.png" alt="img"></p>
+<h3 id="3-5-1、kubelet"><a href="#3-5-1、kubelet" class="headerlink" title="3.5.1、kubelet"></a>3.5.1、kubelet</h3><p>kubelet 主要负责 pod 的创建、启动停止等任务，与 master 节点密切交互完成集群管理和运行的基本功能。</p>
+<h3 id="3-5-2、kube-proxy"><a href="#3-5-2、kube-proxy" class="headerlink" title="3.5.2、kube-proxy"></a>3.5.2、kube-proxy</h3><p>kube-proxy 主要用于通过 Service 提供集群内部的服务发现和负载均衡。</p>
+<h3 id="3-5-3、Container-Runtime"><a href="#3-5-3、Container-Runtime" class="headerlink" title="3.5.3、Container Runtime"></a>3.5.3、Container Runtime</h3><p>Container Runtime 主要负责镜像管理以及 pod 内容器运行环境配置。</p>
+<h2 id="3-6、Kubernetes-资源对象"><a href="#3-6、Kubernetes-资源对象" class="headerlink" title="3.6、Kubernetes 资源对象"></a>3.6、Kubernetes 资源对象</h2><p>Kubernetes 提供了多种资源对象、配置对象、存储对象、策略对象，可以根据需求选择使用：</p>
+<p>1、资源对象：Pod、ReplicaSet、ReplicationController、Deployment、StatefulSet、DaemonSet、Job、CronJob、HorizontalPodAutoscaling。<br>2、配置对象：Node、Namespace、Service、Secret、ConfigMap、Ingress、Label、ThirdPartyResource、 ServiceAccount。<br>3、存储对象：Volume、Persistent Volume及三方插件（NFS、ceph、gfs）。<br>4、策略对象：SecurityContext、ResourceQuota、LimitRange。</p>
+<h2 id="3-7、Kubernetes-集群平台中-pod-执行过程"><a href="#3-7、Kubernetes-集群平台中-pod-执行过程" class="headerlink" title="3.7、Kubernetes 集群平台中 pod 执行过程"></a>3.7、Kubernetes 集群平台中 pod 执行过程</h2><p>用户可以通过命令行提交一个 pod 到 API Server，API Server 把 pod 当前信息存储到 etcd 数据库中，Scheduler 调度器根据 pod 规格资源配置调度某个节点上，通知 API Server 把调度的节点信息和 pod 存储到 etcd 中，API Server 会通知相应节点的 kubelet 执行启动，kubelet 首先调用 Container RunTime 配置容器以及运行环境，然后调度存储插件配置存储，网络插件配置网络，从而完成容器的运行。</p>
+<h2 id="3-8、pod"><a href="#3-8、pod" class="headerlink" title="3.8、pod"></a>3.8、pod</h2><ol>
+<li><p>最小调度以及资源单位，为什么 pod 是最小调度单位？<br>这里举个例子：我们有个多进程应用（比如 rsyslog 就是多进程应用），其中包含三个进程 p1，p2，p3，这三个进程必须运行在一台机器上，每个进程需要占用 0.5GB 内存，现在我们有三台机器，node1（2G）node2（1G）node3（1G）；假设 pod 不是最小调度单位，p1 调度到 node2 上，这完全是有可能的，因为 node2 资源足够 p1 使用，紧接着 p2 也被调度到 node2 上，那么问题来了 p3 呢？当然我们可以通过加锁的方式解决，但是如何加锁呢，都是问题，但是 Kubernetes 通过把 pod 作为最小调度单位从而解决了此问题；</p>
+</li>
+<li><p>包含一个或者多个容器，如果说我们服务之间存在大量 rpc 调用，这时我们可以把应用放在一个 pod 中运行，共享同一个网络环境，直接本地调用，而 pod 和 pod 之间是网络隔离，可以通过 Service 访问；</p>
+</li>
+<li><p>定义容器运行时方式（命令和环境变量）；</p>
+</li>
+<li><p>提供给容器共享的运行环境（网络和进程空间）。</p>
+</li>
+</ol>
+<h3 id="3-8-1、pod-结构"><a href="#3-8-1、pod-结构" class="headerlink" title="3.8.1、pod 结构"></a>3.8.1、pod 结构</h3><p>pod 相当于一个容器，pod 有独立的 ip 地址，也有自己的 hostname，利用 namespace 进行资源隔离，相当于一个独立沙箱环境。</p>
+<p>pod 内部封装的是容器，可以封装一个，或者多个容器（通常是一组相关的容器）</p>
+<h3 id="3-8-2、pod-网络"><a href="#3-8-2、pod-网络" class="headerlink" title="3.8.2、pod 网络"></a>3.8.2、pod 网络</h3><p>pod 有自己独立的 IP 地址</p>
+<p>pod 内部的容器之间是通过 localhost 进行访问</p>
+<h3 id="3-8-3、pod-如何对外提供访问"><a href="#3-8-3、pod-如何对外提供访问" class="headerlink" title="3.8.3、pod 如何对外提供访问"></a>3.8.3、pod 如何对外提供访问</h3><p>首先 pod 有自己的 IP 和 hostname，但 pod 是虚拟的资源对象 (在计算机中表现为进程)，没有对应实体 (物理机，物理网卡) 与之对应，所以是无法直接对外提供服务访问的。因此如果 pod 想对外提供服务，必须绑定物理机端口 (即在物理机上开启端口，让这个端口和 pod 的端口进行映射)，这样就可以通过物理机进行数据包的转发。</p>
+<h3 id="3-8-4、pod-的负载均衡"><a href="#3-8-4、pod-的负载均衡" class="headerlink" title="3.8.4、pod 的负载均衡"></a>3.8.4、pod 的负载均衡</h3><p>很关键的一个问题：一组相关的 pod 副本，如何实现访问负载均衡？就如当请求达到，请求转发给哪个 pod 比较好？<br>一个想法就是用 pod 再部署一个 Nginx。但pod 是一个进程，是有生命周期的，一旦宕机、版本更新都会创建新的 pod（ IP 地址会变化，hostname 会变化），此时再使用 Nginx 做负载均衡不太合适，因为它不知道 pod 发生了改变，那请求就不能被接受了。所以服务发生了变化它根本不知道，Nginx 无法发现服务，不能用 Nginx 做负载均衡。那该如何实现呢？使用 Service 资源对象。</p>
+<h2 id="3-9、Deployment"><a href="#3-9、Deployment" class="headerlink" title="3.9、Deployment"></a>3.9、Deployment</h2><blockquote>
+<ol>
+<li>定义 pod 副本数量、版本等；</li>
+<li>通过 ReplicaSet 控制 pod 数量（自动重启失败的 pod）；</li>
+<li>按照指定策略控制版本（版本升级、回滚、重新生成）；</li>
+</ol>
+</blockquote>
+<p>Deployment 是一个控制器，能够用来控制 pod 数量跟期望数量一致，配置 pod 的发布方式，Deployment 会按照给定策略进行发布 pod，保证在更新过程中不可用数量在限定范围内。看了上面的介绍感觉像是 Deployment 直接控制 pod，其实不然，Deployment 控制 ReplicateSet　ReplicateSet 控制 pod 副本的数量，pod 所属于 replicaset，同一个 replicaset 下的 pod 版本都是一样的。</p>
+<h2 id="3-10、Volume"><a href="#3-10、Volume" class="headerlink" title="3.10、Volume"></a>3.10、Volume</h2><blockquote>
+<ol>
+<li>Pod中一个或者多个容器可以访问的目录</li>
+<li>支持多种存储的抽象 本地存储、分布式存储、云存储</li>
+</ol>
+</blockquote>
+<p>在 docker 中 volume 就是对应磁盘或者其它容器中的目录，docker 对它的管理比较松散，没有生命周期管理，而 Kubernetes 中的 volume 的生命周期和 pod 的生命周期相同。相比与 pod 中的容器来说，存储数据可能比容器生命周期更长，并且在容器重新启动后保留存储信息。在 Kubernetes 支持多种类型的卷，而 Pod 可以同时使用各种类型和任意数量的存储卷。</p>
+<h2 id="3-11、Service"><a href="#3-11、Service" class="headerlink" title="3.11、Service"></a>3.11、Service</h2><p>提供访问多个pod的稳定访问方式 （IP、域名、环境变量）。说到Service不得不介绍kubernetes网络模型和通信方式。</p>
+<ol>
+<li>网络模型：一个完整的 Kubernetes 集群应该包含三层网络，首先第一层是 mater 和 node 节点之间的网络，这个网络需要在部署 kubernetes 集群之前配置完成。第二层网络是 pod 的网络通过 kubenet 或者 cni 插件实现，用于 pod 之间或者内部的通信，集群中的所有 pod 均处在同一个网络平面空间内，可以直接通信。第三层网络是 Service 资源的网络，是一个虚拟网络，用于为 Kubernetes 集群配置 IP 地址，但此地址并不配置于任何主机或者容器的网络接口之上，而是通过 kubeproxy 配置为 iptables 规则，将发往该地址的所有流量调度至后端的 pod 之上。</li>
+<li>通信方式：同一个 pod 的内部通信；各个 pod 彼此通信；pod 和 service 的通信；集群外部流向 service 的通信。</li>
+<li>端口介绍：containerPort是一个信息性数据，只是为集群提供一个可以快速了解相关  pod 可以访问端口的途径，而且显式指定容器端口，无论你是否指定都不影响其他节点上的客户端 pod 对其进行访问；port 是服务提供端口，用于 kubernetes 集群内部服务访问；targetPort 是 pod 目标端口，如果不设置使用默认 port 端口，port 和 nodePort 的数据通过这个端口进入到 Pod 内部，Pod 里面的 container 的端口映射到这个端口，提供服务；nodePort 是外部用户访问端口。</li>
+</ol>
+<h3 id="3-11-1、Service-资源对象是什么？"><a href="#3-11-1、Service-资源对象是什么？" class="headerlink" title="3.11.1、Service 资源对象是什么？"></a>3.11.1、Service 资源对象是什么？</h3><ul>
+<li>POD IP：pod 的 IP 地址</li>
+<li>NODE IP：物理机的 IP 地址</li>
+<li>cluster IP：虚拟 IP，是由 kubernetes 抽象出的 service 对象，这个 service 对象就是一个 VIP (virtual IP, VIP) 的资源对象</li>
+</ul>
+<h3 id="3-11-2、service-如何实现负载均衡"><a href="#3-11-2、service-如何实现负载均衡" class="headerlink" title="3.11.2、service 如何实现负载均衡"></a>3.11.2、service 如何实现负载均衡</h3><p>例如现在要负载均衡地访问一组相同的服务副本——订单，这时就要去做一个 service，对外表现出是一个进程或资源对象，有虚拟的 IP (VIP) 和端口。请求会访问 service，然后 service 自己会 负载均衡 地发送给相应服务的 POD，也就是下图中 4 个相同的 pod。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240612151059.png" alt="img"></p>
+<h3 id="3-11-3、深入-service-VIP"><a href="#3-11-3、深入-service-VIP" class="headerlink" title="3.11.3、深入 service VIP"></a>3.11.3、深入 service VIP</h3><ul>
+<li>service 和 pod 都是一个进程，都是虚拟的，因此实际上 service 也不能对外网提供服务</li>
+<li>service 和 pod 之间可以直接进行通信，它们的通信属于局域网通信</li>
+<li>负载策略：把请求交给 service 后，service 使用 iptables，ipvs 来实现数据包的分发</li>
+</ul>
+<p>而要对外网提供服务，首先需要和之前一样 在物理机上也绑定一个端口 来接受访问请求，然后把请求转发给 service，service 再把数据包分发给相应的 POD。访问流程如下图所示：<br><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240612151157.png" alt="img"></p>
+<p><strong>那 service 对象是如何和 pod 进行关联的呢？</strong>它们之间的关联利用的 还是标签选择器 selector。且service 只能对 一组相同的副本 提供服务，不能跨组提供服务。如果有另一组，需要再创建一个 service。因此不同的业务会有不同的 service。举例：service 和 一组 pod 副本是通过标签选择器进行关联的，相同的副本的标签是一样的。selector：app &#x3D; x 选择一组订单的服务的 pod，创建一个 service；app &#x3D; y 选择了一组支付的服务的 pod。通过一个 endpoints 属性存储这组 pod 的 IP 地址，这样就有了映射关系了 (关联起来)。<br><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240612151243.png" alt="img"></p>
+<p>pod 宕机或发布新版本了，service 是如何发现 pod 已经发生变化的？通过 k8s 中的一个组件 —— kube-proxy 每个 NODE 里都运行着这个服务。它需要做的工作如下图右侧：<br><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240612151256.png" alt="img"></p>
+<p>service 实现服务的发现：kube-proxy 监控 pod，一旦发现 pod 服务变化，将会把新的 ip 地址更新到 service。注意：endpoints 那些都是存储在 etcd 里的，所以 kube-proxy 更新的存储在 etcd 里的映射关系。</p>
+<h2 id="3-12、API-基础知识"><a href="#3-12、API-基础知识" class="headerlink" title="3.12、API 基础知识"></a>3.12、API 基础知识</h2><p>通过命令行提交一个pod到时候，其提交的内容是yml，yml是一种特殊资源配置文件，主要包含 apiversion、kind、metadata、spec几部分组成。</p>
+<blockquote>
+<p>apiVersion：用来描述当前操作的资源对象；<br>kind：是指资源类型，比如 Pod、Department 等；<br>metadata：是写上当前 pod 的名称，比如 nginx。刚刚介绍的 Deployment，它可能是代表一组的 Pod，它是一组 Pod 的抽象，一组 Pod 就是通过 label selector 来表达的，Service 通过选择一组 pod 统一进行访问。<br>spec：描述了pod预期达到状态，比如内部需要哪些container运行，需要哪些镜像，暴露什么端口等等信息，需要在这里定义。</p>
+</blockquote>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">apps/v1beta1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">nginx-deployment</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">replicas:</span> <span class="number">2</span> <span class="comment"># tells deployment to run 2 pods matching the template </span></span><br><span class="line">  <span class="attr">template:</span> <span class="comment"># create pods using pod definition in this template </span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">     <span class="comment"># unlike pod-nginx.yaml, the name is not included in the meta data as a unique name is </span></span><br><span class="line">     <span class="comment">#       # generated from the deployment name  </span></span><br><span class="line">     <span class="attr">labels:</span></span><br><span class="line">        <span class="attr">app:</span> <span class="string">nginx</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">nginx</span></span><br><span class="line">        <span class="attr">image:</span> <span class="string">docker.hub.com/ops/openresty:1.15.8.2-6</span></span><br><span class="line">        <span class="attr">ports:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">80</span></span><br></pre></td></tr></table></figure>
+
+
+
+<hr>
+<p>转载自：<br><a target="_blank" rel="noopener" href="https://blog.csdn.net/u012562943/article/details/122337223">https://blog.csdn.net/u012562943/article/details/122337223</a><br><a target="_blank" rel="noopener" href="https://blog.csdn.net/alisystemsoftware/article/details/100780078">https://blog.csdn.net/alisystemsoftware/article/details/100780078</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/06/10/%E7%9B%AE%E5%BD%95%E5%BE%85%E5%AE%9A/leaf%E5%88%86%E5%B8%83%E5%BC%8Fid%E7%94%9F%E6%88%90-%E5%8F%B7%E6%AE%B5%E6%A8%A1%E5%BC%8F%E5%8E%9F%E7%90%86/" rel="prev" title="leaf分布式id生成-号段模式原理">
+      <i class="fa fa-chevron-left"></i> leaf分布式id生成-号段模式原理
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/06/11/k8s&docker/%E6%8E%A7%E5%88%B6%E5%99%A8/" rel="next" title="控制器">
+      控制器 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81Docker"><span class="nav-number">1.</span> <span class="nav-text">一、Docker</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81Docker-compose"><span class="nav-number">2.</span> <span class="nav-text">二、Docker-compose</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81Kubernetes"><span class="nav-number">3.</span> <span class="nav-text">三、Kubernetes</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#3-1%E3%80%81Kubernetes-%E6%A0%B8%E5%BF%83%E5%8A%9F%E8%83%BD"><span class="nav-number">3.1.</span> <span class="nav-text">3.1、Kubernetes 核心功能</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-2%E3%80%81%E5%9B%BE%E6%96%87%E6%BC%94%E7%A4%BA-Kubernetes-%E9%83%A8%E5%88%86%E7%89%B9%E6%80%A7"><span class="nav-number">3.2.</span> <span class="nav-text">3.2、图文演示 Kubernetes 部分特性</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-3%E3%80%81%E6%9E%B6%E6%9E%84%E4%BB%8B%E7%BB%8D"><span class="nav-number">3.3.</span> <span class="nav-text">3.3、架构介绍</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-4%E3%80%81master"><span class="nav-number">3.4.</span> <span class="nav-text">3.4、master</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-1%E3%80%81API-Server"><span class="nav-number">3.4.1.</span> <span class="nav-text">3.4.1、API Server</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-2%E3%80%81Scheduler"><span class="nav-number">3.4.2.</span> <span class="nav-text">3.4.2、Scheduler</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-3%E3%80%81Controller"><span class="nav-number">3.4.3.</span> <span class="nav-text">3.4.3、Controller</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-4%E3%80%81etcd"><span class="nav-number">3.4.4.</span> <span class="nav-text">3.4.4、etcd</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-5%E3%80%81node"><span class="nav-number">3.5.</span> <span class="nav-text">3.5、node</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-5-1%E3%80%81kubelet"><span class="nav-number">3.5.1.</span> <span class="nav-text">3.5.1、kubelet</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-5-2%E3%80%81kube-proxy"><span class="nav-number">3.5.2.</span> <span class="nav-text">3.5.2、kube-proxy</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-5-3%E3%80%81Container-Runtime"><span class="nav-number">3.5.3.</span> <span class="nav-text">3.5.3、Container Runtime</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-6%E3%80%81Kubernetes-%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1"><span class="nav-number">3.6.</span> <span class="nav-text">3.6、Kubernetes 资源对象</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-7%E3%80%81Kubernetes-%E9%9B%86%E7%BE%A4%E5%B9%B3%E5%8F%B0%E4%B8%AD-pod-%E6%89%A7%E8%A1%8C%E8%BF%87%E7%A8%8B"><span class="nav-number">3.7.</span> <span class="nav-text">3.7、Kubernetes 集群平台中 pod 执行过程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-8%E3%80%81pod"><span class="nav-number">3.8.</span> <span class="nav-text">3.8、pod</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-8-1%E3%80%81pod-%E7%BB%93%E6%9E%84"><span class="nav-number">3.8.1.</span> <span class="nav-text">3.8.1、pod 结构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-8-2%E3%80%81pod-%E7%BD%91%E7%BB%9C"><span class="nav-number">3.8.2.</span> <span class="nav-text">3.8.2、pod 网络</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-8-3%E3%80%81pod-%E5%A6%82%E4%BD%95%E5%AF%B9%E5%A4%96%E6%8F%90%E4%BE%9B%E8%AE%BF%E9%97%AE"><span class="nav-number">3.8.3.</span> <span class="nav-text">3.8.3、pod 如何对外提供访问</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-8-4%E3%80%81pod-%E7%9A%84%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1"><span class="nav-number">3.8.4.</span> <span class="nav-text">3.8.4、pod 的负载均衡</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-9%E3%80%81Deployment"><span class="nav-number">3.9.</span> <span class="nav-text">3.9、Deployment</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-10%E3%80%81Volume"><span class="nav-number">3.10.</span> <span class="nav-text">3.10、Volume</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-11%E3%80%81Service"><span class="nav-number">3.11.</span> <span class="nav-text">3.11、Service</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-11-1%E3%80%81Service-%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-number">3.11.1.</span> <span class="nav-text">3.11.1、Service 资源对象是什么？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-11-2%E3%80%81service-%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1"><span class="nav-number">3.11.2.</span> <span class="nav-text">3.11.2、service 如何实现负载均衡</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-11-3%E3%80%81%E6%B7%B1%E5%85%A5-service-VIP"><span class="nav-number">3.11.3.</span> <span class="nav-text">3.11.3、深入 service VIP</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-12%E3%80%81API-%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86"><span class="nav-number">3.12.</span> <span class="nav-text">3.12、API 基础知识</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

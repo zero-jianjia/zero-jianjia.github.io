@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="Spring的事务属于逻辑事务。不是物理事务。　　Spring并不直接管理事务，而是提供了多种事务管理器，它们将事务管理的职责委托给JDBC或者JTA等持久化机制所提供的相关平台框架的事务来实现。例如JDBC的事物管理器就是DataSourceTransactionManager。　　Spring事务管理器的接口是org.springframework.transaction.PlatformTr">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Spring事务源码解析">
+<meta property="og:url" content="http://example.com/2024/03/20/Spring/%E4%BA%8B%E5%8A%A1/Spring%E4%BA%8B%E5%8A%A1%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="Spring的事务属于逻辑事务。不是物理事务。　　Spring并不直接管理事务，而是提供了多种事务管理器，它们将事务管理的职责委托给JDBC或者JTA等持久化机制所提供的相关平台框架的事务来实现。例如JDBC的事物管理器就是DataSourceTransactionManager。　　Spring事务管理器的接口是org.springframework.transaction.PlatformTr">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2024-03-19T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.646Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2024/03/20/Spring/%E4%BA%8B%E5%8A%A1/Spring%E4%BA%8B%E5%8A%A1%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>Spring事务源码解析 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/20/Spring/%E4%BA%8B%E5%8A%A1/Spring%E4%BA%8B%E5%8A%A1%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Spring事务源码解析
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-03-20 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-20T00:00:00+08:00">2024-03-20</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/%E4%BA%8B%E5%8A%A1/" itemprop="url" rel="index"><span itemprop="name">事务</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>Spring的事务属于逻辑事务。不是物理事务。<br>　　Spring并不直接管理事务，而是提供了多种事务管理器，它们将事务管理的职责委托给JDBC或者JTA等持久化机制所提供的相关平台框架的事务来实现。例如JDBC的事物管理器就是<code>DataSourceTransactionManager</code>。<br>　　Spring事务管理器的接口是<code>org.springframework.transaction.PlatformTransactionManager</code>：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">PlatformTransactionManager</span> &#123;</span><br><span class="line">	TransactionStatus <span class="title function_">getTransaction</span><span class="params">(TransactionDefinition definition)</span> <span class="keyword">throws</span> TransactionException;</span><br><span class="line">	<span class="keyword">void</span> <span class="title function_">commit</span><span class="params">(TransactionStatus status)</span> <span class="keyword">throws</span> TransactionException;</span><br><span class="line">	<span class="keyword">void</span> <span class="title function_">rollback</span><span class="params">(TransactionStatus status)</span> <span class="keyword">throws</span> TransactionException;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>　通过这个接口，Spring为各个平台如JDBC、Hibernate等都提供了对应的事务管理器，但是具体的实现就是各个平台自己的事情了。所以Spring事务管理的一个优点就是为不同的事务API提供一致的编程模型。</p>
+<p>　　Spring Boot 使用事务非常简单，需要<code>@EnableTransactionManagement</code>和<code>@Transactional</code>配合使用。首先使用注解<code>@EnableTransactionManagement </code>开启事务支持后，然后在Service方法上添加注解<code>@Transactional</code>便可。<code>@EnableTransactionManagement</code>，启注解事务管理等同于xml配置方式的 <code>&lt;tx:annotation-driven /&gt;</code>。</p>
+<span id="more"></span>
+
+<p>首先是EnableTransactionManagement类：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Target(ElementType.TYPE)</span></span><br><span class="line"><span class="meta">@Retention(RetentionPolicy.RUNTIME)</span></span><br><span class="line"><span class="meta">@Documented</span></span><br><span class="line"><span class="meta">@Import(TransactionManagementConfigurationSelector.class)</span></span><br><span class="line"><span class="keyword">public</span> <span class="meta">@interface</span> EnableTransactionManagement &#123;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>这里会import <code>TransactionManagementConfigurationSelector</code>类：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">TransactionManagementConfigurationSelector</span> <span class="keyword">extends</span> <span class="title class_">AdviceModeImportSelector</span>&lt;EnableTransactionManagement&gt; &#123;</span><br><span class="line"></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="keyword">protected</span> String[] selectImports(AdviceMode adviceMode) &#123;</span><br><span class="line">		<span class="keyword">switch</span> (adviceMode) &#123;</span><br><span class="line">			<span class="keyword">case</span> PROXY:</span><br><span class="line">			  <span class="comment">// 默认就是 PROXY</span></span><br><span class="line">				<span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">String</span>[] &#123;AutoProxyRegistrar.class.getName(), ProxyTransactionManagementConfiguration.class.getName()&#125;;</span><br><span class="line">			<span class="keyword">case</span> ASPECTJ:</span><br><span class="line">				<span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">String</span>[] &#123;TransactionManagementConfigUtils.TRANSACTION_ASPECT_CONFIGURATION_CLASS_NAME&#125;;</span><br><span class="line">			<span class="keyword">default</span>:</span><br><span class="line">				<span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>selectImports</code>会返回两个类：<code>AutoProxyRegistrar</code> 和 <code>ProxyTransactionManagementConfiguration</code>。</p>
+<ul>
+<li><p><code>AutoProxyRegistrar</code>的作用就是向BeanFactory注册<code>InfrastructureAdvisorAutoProxyCreator.class</code>。而InfrastructureAdvisorAutoProxyCreator继承自AbstractAdvisorAutoProxyCreator，就是让容器支持了AOP。</p>
+</li>
+<li><p><code>ProxyTransactionManagementConfiguration</code>会加载关键的几个bean：</p>
+</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Configuration</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ProxyTransactionManagementConfiguration</span> <span class="keyword">extends</span> <span class="title class_">AbstractTransactionManagementConfiguration</span> &#123;</span><br><span class="line"></span><br><span class="line">	<span class="meta">@Bean(name = TransactionManagementConfigUtils.TRANSACTION_ADVISOR_BEAN_NAME)</span></span><br><span class="line">	<span class="meta">@Role(BeanDefinition.ROLE_INFRASTRUCTURE)</span></span><br><span class="line">	<span class="keyword">public</span> BeanFactoryTransactionAttributeSourceAdvisor <span class="title function_">transactionAdvisor</span><span class="params">()</span> &#123;</span><br><span class="line">		<span class="type">BeanFactoryTransactionAttributeSourceAdvisor</span> <span class="variable">advisor</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">BeanFactoryTransactionAttributeSourceAdvisor</span>();</span><br><span class="line">		advisor.setTransactionAttributeSource(transactionAttributeSource());</span><br><span class="line">		advisor.setAdvice(transactionInterceptor());</span><br><span class="line">		advisor.setOrder(<span class="built_in">this</span>.enableTx.&lt;Integer&gt;getNumber(<span class="string">&quot;order&quot;</span>));</span><br><span class="line">		<span class="keyword">return</span> advisor;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="meta">@Bean</span></span><br><span class="line">	<span class="meta">@Role(BeanDefinition.ROLE_INFRASTRUCTURE)</span></span><br><span class="line">	<span class="keyword">public</span> TransactionAttributeSource <span class="title function_">transactionAttributeSource</span><span class="params">()</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">AnnotationTransactionAttributeSource</span>();</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="meta">@Bean</span></span><br><span class="line">	<span class="meta">@Role(BeanDefinition.ROLE_INFRASTRUCTURE)</span></span><br><span class="line">	<span class="keyword">public</span> TransactionInterceptor <span class="title function_">transactionInterceptor</span><span class="params">()</span> &#123;</span><br><span class="line">		<span class="type">TransactionInterceptor</span> <span class="variable">interceptor</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">TransactionInterceptor</span>();</span><br><span class="line">		interceptor.setTransactionAttributeSource(transactionAttributeSource());</span><br><span class="line">		<span class="keyword">if</span> (<span class="built_in">this</span>.txManager != <span class="literal">null</span>) &#123;</span><br><span class="line">			interceptor.setTransactionManager(<span class="built_in">this</span>.txManager);</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> interceptor;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>BeanFactoryTransactionAttributeSourceAdvisor：实现了 PointcutAdvisor 接口，组合了TransactionAttributeSourcePointcut。</li>
+<li>AnnotationTransactionAttributeSource：解析事务类，得到事务配置相关信息；</li>
+<li>TransactionInterceptor：事务拦截器，实现了 Advice、MethodInterceptor 接口。TransactionInterceptor是个环绕增强，在目标方法执行前开启事务，执行完目标方法后，进行事务提交或者回滚；</li>
+</ul>
+<p><strong>事务代理类的创建</strong></p>
+<p>了解Spring AOP应该会熟悉这段代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="type">boolean</span> <span class="title function_">canApply</span><span class="params">(Advisor advisor, Class&lt;?&gt; targetClass, <span class="type">boolean</span> hasIntroductions)</span> &#123;</span><br><span class="line">	<span class="keyword">if</span> (advisor <span class="keyword">instanceof</span> IntroductionAdvisor) &#123;</span><br><span class="line">		<span class="keyword">return</span> ((IntroductionAdvisor) advisor).getClassFilter().matches(targetClass);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span> <span class="keyword">if</span> (advisor <span class="keyword">instanceof</span> PointcutAdvisor) &#123;</span><br><span class="line">		<span class="type">PointcutAdvisor</span> <span class="variable">pca</span> <span class="operator">=</span> (PointcutAdvisor) advisor;</span><br><span class="line">		<span class="keyword">return</span> canApply(pca.getPointcut(), targetClass, hasIntroductions);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span> &#123;</span><br><span class="line">		<span class="comment">// It doesn&#x27;t have a pointcut so we assume it applies.</span></span><br><span class="line">		<span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在前面 <code>BeanFactoryTransactionAttributeSourceAdvisor</code> 类，该类实现了 PointcutAdvisor 接口，其中的切面 pointcut 便是通过 TransactionAttributeSourcePointcut 来实现的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">BeanFactoryTransactionAttributeSourceAdvisor</span> <span class="keyword">extends</span> <span class="title class_">AbstractBeanFactoryPointcutAdvisor</span> &#123;</span><br><span class="line">	<span class="keyword">private</span> TransactionAttributeSource transactionAttributeSource;</span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">final</span> <span class="type">TransactionAttributeSourcePointcut</span> <span class="variable">pointcut</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">TransactionAttributeSourcePointcut</span>() &#123;</span><br><span class="line">		<span class="meta">@Override</span></span><br><span class="line">		<span class="keyword">protected</span> TransactionAttributeSource <span class="title function_">getTransactionAttributeSource</span><span class="params">()</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> transactionAttributeSource;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>调用路径会到<code>TransactionAttributeSourcePointcut</code>的matches方法，该方法根据能否可以从目标 bean 中得到 TransactionAttribute 来判断是否匹配的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">matches</span><span class="params">(Method method, <span class="meta">@Nullable</span> Class&lt;?&gt; targetClass)</span> &#123;</span><br><span class="line">	<span class="keyword">if</span> (targetClass != <span class="literal">null</span> &amp;&amp; TransactionalProxy.class.isAssignableFrom(targetClass)) &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="type">TransactionAttributeSource</span> <span class="variable">tas</span> <span class="operator">=</span> getTransactionAttributeSource();</span><br><span class="line">	<span class="keyword">return</span> (tas == <span class="literal">null</span> || tas.getTransactionAttribute(method, targetClass) != <span class="literal">null</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>上面的tas即AnnotationTransactionAttributeSource。AnnotationTransactionAttributeSource父类AbstractFallbackTransactionAttributeSource实现了getTransactionAttribute方法：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> TransactionAttribute <span class="title function_">getTransactionAttribute</span><span class="params">(Method method, <span class="meta">@Nullable</span> Class&lt;?&gt; targetClass)</span> &#123;</span><br><span class="line">	<span class="keyword">if</span> (method.getDeclaringClass() == Object.class) &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// First, see if we have a cached value.</span></span><br><span class="line">	<span class="type">Object</span> <span class="variable">cacheKey</span> <span class="operator">=</span> getCacheKey(method, targetClass);</span><br><span class="line">	<span class="type">Object</span> <span class="variable">cached</span> <span class="operator">=</span> <span class="built_in">this</span>.attributeCache.get(cacheKey);</span><br><span class="line">	<span class="keyword">if</span> (cached != <span class="literal">null</span>) &#123;</span><br><span class="line">		<span class="comment">// Value will either be canonical value indicating there is no transaction attribute,</span></span><br><span class="line">		<span class="comment">// or an actual transaction attribute.</span></span><br><span class="line">		<span class="keyword">if</span> (cached == NULL_TRANSACTION_ATTRIBUTE) &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">else</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> (TransactionAttribute) cached;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span> &#123;</span><br><span class="line">		<span class="comment">// We need to work it out.</span></span><br><span class="line">		<span class="comment">//重点，获取事务属性</span></span><br><span class="line">		<span class="type">TransactionAttribute</span> <span class="variable">txAttr</span> <span class="operator">=</span> computeTransactionAttribute(method, targetClass);</span><br><span class="line">		<span class="comment">// Put it in the cache.</span></span><br><span class="line">		<span class="keyword">if</span> (txAttr == <span class="literal">null</span>) &#123;</span><br><span class="line">			<span class="built_in">this</span>.attributeCache.put(cacheKey, NULL_TRANSACTION_ATTRIBUTE);</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">else</span> &#123;</span><br><span class="line">			<span class="type">String</span> <span class="variable">methodIdentification</span> <span class="operator">=</span> ClassUtils.getQualifiedMethodName(method, targetClass);</span><br><span class="line">			<span class="keyword">if</span> (txAttr <span class="keyword">instanceof</span> DefaultTransactionAttribute) &#123;</span><br><span class="line">				((DefaultTransactionAttribute) txAttr).setDescriptor(methodIdentification);</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">if</span> (logger.isDebugEnabled()) &#123;</span><br><span class="line">				logger.debug(<span class="string">&quot;Adding transactional method &#x27;&quot;</span> + methodIdentification + <span class="string">&quot;&#x27; with attribute: &quot;</span> + txAttr);</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="built_in">this</span>.attributeCache.put(cacheKey, txAttr);</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> txAttr;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>再看看computeTransactionAttribute方法：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> TransactionAttribute <span class="title function_">computeTransactionAttribute</span><span class="params">(Method method, <span class="meta">@Nullable</span> Class&lt;?&gt; targetClass)</span> &#123;</span><br><span class="line">	<span class="comment">// Don&#x27;t allow no-public methods as required.</span></span><br><span class="line">	<span class="keyword">if</span> (allowPublicMethodsOnly() &amp;&amp; !Modifier.isPublic(method.getModifiers())) &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// The method may be on an interface, but we need attributes from the target class.</span></span><br><span class="line">	<span class="comment">// If the target class is null, the method will be unchanged.</span></span><br><span class="line">	<span class="type">Method</span> <span class="variable">specificMethod</span> <span class="operator">=</span> AopUtils.getMostSpecificMethod(method, targetClass);</span><br><span class="line"></span><br><span class="line">	<span class="comment">// First try is the method in the target class.</span></span><br><span class="line">	<span class="comment">//先查找目标方式是否有事务属性</span></span><br><span class="line">	<span class="type">TransactionAttribute</span> <span class="variable">txAttr</span> <span class="operator">=</span> findTransactionAttribute(specificMethod);</span><br><span class="line">	<span class="keyword">if</span> (txAttr != <span class="literal">null</span>) &#123;</span><br><span class="line">		<span class="keyword">return</span> txAttr;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Second try is the transaction attribute on the target class.</span></span><br><span class="line">	<span class="comment">//再查找目标类是否有事务属性</span></span><br><span class="line">	txAttr = findTransactionAttribute(specificMethod.getDeclaringClass());</span><br><span class="line">	<span class="keyword">if</span> (txAttr != <span class="literal">null</span> &amp;&amp; ClassUtils.isUserLevelMethod(method)) &#123;</span><br><span class="line">		<span class="keyword">return</span> txAttr;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (specificMethod != method) &#123;</span><br><span class="line">		<span class="comment">// Fallback is to look at the original method.</span></span><br><span class="line">		txAttr = findTransactionAttribute(method);</span><br><span class="line">		<span class="keyword">if</span> (txAttr != <span class="literal">null</span>) &#123;</span><br><span class="line">			<span class="keyword">return</span> txAttr;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// Last fallback is the class of the original method.</span></span><br><span class="line">		txAttr = findTransactionAttribute(method.getDeclaringClass());</span><br><span class="line">		<span class="keyword">if</span> (txAttr != <span class="literal">null</span> &amp;&amp; ClassUtils.isUserLevelMethod(method)) &#123;</span><br><span class="line">			<span class="keyword">return</span> txAttr;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>从上面可知，方法级别上的注解会覆盖类级别上的注解，两个findTransactionAttribute方法都在AnnotationTransactionAttributeSource实现，</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> TransactionAttribute <span class="title function_">findTransactionAttribute</span><span class="params">(Method method)</span> &#123;</span><br><span class="line">	<span class="keyword">return</span> determineTransactionAttribute(method);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">protected</span> TransactionAttribute <span class="title function_">findTransactionAttribute</span><span class="params">(Class&lt;?&gt; clazz)</span> &#123;</span><br><span class="line">	<span class="keyword">return</span> determineTransactionAttribute(clazz);</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>再看看determineTransactionAttribute方法：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> TransactionAttribute <span class="title function_">determineTransactionAttribute</span><span class="params">(AnnotatedElement ae)</span> &#123;</span><br><span class="line">	<span class="keyword">for</span> (TransactionAnnotationParser annotationParser : <span class="built_in">this</span>.annotationParsers) &#123;</span><br><span class="line">		<span class="type">TransactionAttribute</span> <span class="variable">attr</span> <span class="operator">=</span> annotationParser.parseTransactionAnnotation(ae);</span><br><span class="line">		<span class="keyword">if</span> (attr != <span class="literal">null</span>) &#123;</span><br><span class="line">			<span class="keyword">return</span> attr;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>annotationParsers集合包含了3个类，分别是SpringTransactionAnnotationParser、JtaTransactionAnnotationParser、Ejb3TransactionAnnotationParser。分别解析不同包的注解，这里的解析类是SpringTransactionAnnotationParser，其parseTransactionAnnotation方法：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> TransactionAttribute <span class="title function_">parseTransactionAnnotation</span><span class="params">(AnnotatedElement ae)</span> &#123;</span><br><span class="line">	<span class="type">AnnotationAttributes</span> <span class="variable">attributes</span> <span class="operator">=</span> AnnotatedElementUtils.findMergedAnnotationAttributes(</span><br><span class="line">			ae, Transactional.class, <span class="literal">false</span>, <span class="literal">false</span>);</span><br><span class="line">	<span class="keyword">if</span> (attributes != <span class="literal">null</span>) &#123;</span><br><span class="line">		<span class="keyword">return</span> parseTransactionAnnotation(attributes);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>以上代码讲解析目标元素上@Transactional注解的相关信息，然后封装成AnnotationAttributes类，其继承LinkedHashMap。</p>
+<p>看看parseTransactionAnnotation方法：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> TransactionAttribute <span class="title function_">parseTransactionAnnotation</span><span class="params">(AnnotationAttributes attributes)</span> &#123;</span><br><span class="line">	<span class="type">RuleBasedTransactionAttribute</span> <span class="variable">rbta</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">RuleBasedTransactionAttribute</span>();</span><br><span class="line">	<span class="type">Propagation</span> <span class="variable">propagation</span> <span class="operator">=</span> attributes.getEnum(<span class="string">&quot;propagation&quot;</span>);</span><br><span class="line">	rbta.setPropagationBehavior(propagation.value());</span><br><span class="line">	<span class="type">Isolation</span> <span class="variable">isolation</span> <span class="operator">=</span> attributes.getEnum(<span class="string">&quot;isolation&quot;</span>);</span><br><span class="line">	rbta.setIsolationLevel(isolation.value());</span><br><span class="line">	rbta.setTimeout(attributes.getNumber(<span class="string">&quot;timeout&quot;</span>).intValue());</span><br><span class="line">	rbta.setReadOnly(attributes.getBoolean(<span class="string">&quot;readOnly&quot;</span>));</span><br><span class="line">	rbta.setQualifier(attributes.getString(<span class="string">&quot;value&quot;</span>));</span><br><span class="line">	ArrayList&lt;RollbackRuleAttribute&gt; rollBackRules = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;RollbackRuleAttribute&gt;();</span><br><span class="line">	Class&lt;?&gt;[] rbf = attributes.getClassArray(<span class="string">&quot;rollbackFor&quot;</span>);</span><br><span class="line">	<span class="keyword">for</span> (Class&lt;?&gt; rbRule : rbf) &#123;</span><br><span class="line">		<span class="type">RollbackRuleAttribute</span> <span class="variable">rule</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">RollbackRuleAttribute</span>(rbRule);</span><br><span class="line">		rollBackRules.add(rule);</span><br><span class="line">	&#125;</span><br><span class="line">	String[] rbfc = attributes.getStringArray(<span class="string">&quot;rollbackForClassName&quot;</span>);</span><br><span class="line">	<span class="keyword">for</span> (String rbRule : rbfc) &#123;</span><br><span class="line">		<span class="type">RollbackRuleAttribute</span> <span class="variable">rule</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">RollbackRuleAttribute</span>(rbRule);</span><br><span class="line">		rollBackRules.add(rule);</span><br><span class="line">	&#125;</span><br><span class="line">	Class&lt;?&gt;[] nrbf = attributes.getClassArray(<span class="string">&quot;noRollbackFor&quot;</span>);</span><br><span class="line">	<span class="keyword">for</span> (Class&lt;?&gt; rbRule : nrbf) &#123;</span><br><span class="line">		<span class="type">NoRollbackRuleAttribute</span> <span class="variable">rule</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">NoRollbackRuleAttribute</span>(rbRule);</span><br><span class="line">		rollBackRules.add(rule);</span><br><span class="line">	&#125;</span><br><span class="line">	String[] nrbfc = attributes.getStringArray(<span class="string">&quot;noRollbackForClassName&quot;</span>);</span><br><span class="line">	<span class="keyword">for</span> (String rbRule : nrbfc) &#123;</span><br><span class="line">		<span class="type">NoRollbackRuleAttribute</span> <span class="variable">rule</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">NoRollbackRuleAttribute</span>(rbRule);</span><br><span class="line">		rollBackRules.add(rule);</span><br><span class="line">	&#125;</span><br><span class="line">	rbta.getRollbackRules().addAll(rollBackRules);</span><br><span class="line">	<span class="keyword">return</span> rbta;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>切面实现</strong></p>
+<p>TransactionInterceptor 实现了方法拦截器 MethodInterceptor 接口，用于对业务类进行事务增强。TransactionInterceptor 的 invoke 方法主要是调用了父类 TransactionAspectSupport 的 invokeWithinTransaction 方法。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="keyword">public</span> Object <span class="title function_">invoke</span><span class="params">(<span class="keyword">final</span> MethodInvocation invocation)</span> <span class="keyword">throws</span> Throwable &#123;</span><br><span class="line">	Class&lt;?&gt; targetClass = (invocation.getThis() != <span class="literal">null</span> ? AopUtils.getTargetClass(invocation.getThis()) : <span class="literal">null</span>);</span><br><span class="line">	<span class="keyword">return</span> invokeWithinTransaction(invocation.getMethod(), targetClass, <span class="keyword">new</span> <span class="title class_">InvocationCallback</span>() &#123;</span><br><span class="line">		<span class="meta">@Override</span></span><br><span class="line">		<span class="keyword">public</span> Object <span class="title function_">proceedWithInvocation</span><span class="params">()</span> <span class="keyword">throws</span> Throwable &#123;</span><br><span class="line">			<span class="keyword">return</span> invocation.proceed();</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">protected</span> Object <span class="title function_">invokeWithinTransaction</span><span class="params">(Method method, Class&lt;?&gt; targetClass, <span class="keyword">final</span> InvocationCallback invocation)</span> <span class="keyword">throws</span> Throwable &#123;</span><br><span class="line">	<span class="comment">// 获取事务配置信息</span></span><br><span class="line">	<span class="keyword">final</span> <span class="type">TransactionAttribute</span> <span class="variable">txAttr</span> <span class="operator">=</span> getTransactionAttributeSource().getTransactionAttribute(method, targetClass);</span><br><span class="line">	<span class="comment">// 获取事务管理器</span></span><br><span class="line">	<span class="keyword">final</span> <span class="type">PlatformTransactionManager</span> <span class="variable">tm</span> <span class="operator">=</span> determineTransactionManager(txAttr);</span><br><span class="line">	<span class="keyword">final</span> <span class="type">String</span> <span class="variable">joinpointIdentification</span> <span class="operator">=</span> methodIdentification(method, targetClass, txAttr);</span><br><span class="line">	<span class="comment">// 同步操作</span></span><br><span class="line">	<span class="keyword">if</span> (txAttr == <span class="literal">null</span> || !(tm <span class="keyword">instanceof</span> CallbackPreferringPlatformTransactionManager)) &#123;</span><br><span class="line">		<span class="comment">// 创建事务类</span></span><br><span class="line">		<span class="type">TransactionInfo</span> <span class="variable">txInfo</span> <span class="operator">=</span> createTransactionIfNecessary(tm, txAttr, joinpointIdentification);</span><br><span class="line">		<span class="type">Object</span> <span class="variable">retVal</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">		<span class="keyword">try</span> &#123;</span><br><span class="line">			<span class="comment">// 环绕增强：触发链条上的下一个拦截器，最终会调用目标类</span></span><br><span class="line">			retVal = invocation.proceedWithInvocation();</span><br><span class="line">		&#125; <span class="keyword">catch</span> (Throwable ex) &#123;</span><br><span class="line">			<span class="comment">// 出现异常则回滚</span></span><br><span class="line">			completeTransactionAfterThrowing(txInfo, ex);</span><br><span class="line">			<span class="keyword">throw</span> ex;</span><br><span class="line">		&#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">			cleanupTransactionInfo(txInfo);</span><br><span class="line">		&#125;</span><br><span class="line">		commitTransactionAfterReturning(txInfo);</span><br><span class="line">		<span class="keyword">return</span> retVal;</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		<span class="comment">// 省略异步操作，原理类似</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>invoke 方法里主要做以下几件事：</p>
+<ol>
+<li>获取事务属性；</li>
+<li>获取事务管理器；</li>
+<li>创建事务；</li>
+<li>执行目标方法；</li>
+<li>遇到异常则回滚，正常结束则提交。</li>
+</ol>
+<p>创建事务的是<code>TransactionAspectSupport#createTransactionIfNecessary()</code>方法，该方法的调用代码比较多，主要摘取比较重要的看一下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">---+TransactionAspectSupport:createTransactionIfNecessary();</span><br><span class="line">   `---+AbstractPlatformTransactionManager:getTransaction();</span><br><span class="line">       +---AbstractPlatformTransactionManager:doGetTransaction();</span><br><span class="line">       `---+AbstractPlatformTransactionManager:doBegin();</span><br><span class="line">           +---DataSource:getConnection();</span><br><span class="line">           `---TransactionSynchronizationManager.bindResource();</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<hr>
+<p>参考：<br><a target="_blank" rel="noopener" href="https://blog.csdn.net/wang704987562/article/details/88913808">https://blog.csdn.net/wang704987562/article/details/88913808</a><br><a target="_blank" rel="noopener" href="https://blog.csdn.net/ai_xiangjuan/article/details/79687560">https://blog.csdn.net/ai_xiangjuan/article/details/79687560</a><br><a target="_blank" rel="noopener" href="https://blog.csdn.net/u012562943/article/details/78333153">https://blog.csdn.net/u012562943/article/details/78333153</a><br><a target="_blank" rel="noopener" href="https://www.coder4.com/archives/5917">https://www.coder4.com/archives/5917</a><br><a target="_blank" rel="noopener" href="https://blog.csdn.net/dslztx/article/details/46636079">https://blog.csdn.net/dslztx/article/details/46636079</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/03/20/Spring/%E4%BA%8B%E5%8A%A1/%E4%B8%89%E9%97%AESpring%E4%BA%8B%E5%8A%A1%EF%BC%9A%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%EF%BC%9F%E5%AD%98%E5%9C%A8%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F/" rel="prev" title="三问Spring事务：解决什么问题？如何解决？存在什么问题？">
+      <i class="fa fa-chevron-left"></i> 三问Spring事务：解决什么问题？如何解决？存在什么问题？
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/03/20/Spring/%E4%BA%8B%E5%8A%A1/Spring%E5%A3%B0%E6%98%8E%E5%BC%8F%E4%BA%8B%E5%8A%A1%E6%B3%A8%E6%84%8F%E4%BA%8B%E9%A1%B9/" rel="next" title="Spring声明式事务注意事项">
+      Spring声明式事务注意事项 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

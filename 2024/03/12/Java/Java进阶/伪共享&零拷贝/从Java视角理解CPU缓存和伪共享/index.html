@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="​	CPU是计算机的大脑，它负责执行程序的指令；内存负责存数据，包括程序自身数据。内存比CPU慢很多，现在获取内存中的一条数据大概需要200多个CPU周期(CPU cycles)，而CPU寄存器一般情况下1个CPU周期就够了。 ​	网页浏览器为了加快速度，会在本机存缓存以前浏览过的数据；传统数据库或NoSQL数据库为了加速查询,常在内存设置一个缓存，减少对磁盘(慢)的IO。同样内存与CPU的速度相">
+<meta property="og:type" content="article">
+<meta property="og:title" content="从Java视角理解CPU缓存和伪共享">
+<meta property="og:url" content="http://example.com/2024/03/12/Java/Java%E8%BF%9B%E9%98%B6/%E4%BC%AA%E5%85%B1%E4%BA%AB&%E9%9B%B6%E6%8B%B7%E8%B4%9D/%E4%BB%8EJava%E8%A7%86%E8%A7%92%E7%90%86%E8%A7%A3CPU%E7%BC%93%E5%AD%98%E5%92%8C%E4%BC%AA%E5%85%B1%E4%BA%AB/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="​	CPU是计算机的大脑，它负责执行程序的指令；内存负责存数据，包括程序自身数据。内存比CPU慢很多，现在获取内存中的一条数据大概需要200多个CPU周期(CPU cycles)，而CPU寄存器一般情况下1个CPU周期就够了。 ​	网页浏览器为了加快速度，会在本机存缓存以前浏览过的数据；传统数据库或NoSQL数据库为了加速查询,常在内存设置一个缓存，减少对磁盘(慢)的IO。同样内存与CPU的速度相">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291540498.png">
+<meta property="article:published_time" content="2024-03-11T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.441Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291540498.png">
+
+<link rel="canonical" href="http://example.com/2024/03/12/Java/Java%E8%BF%9B%E9%98%B6/%E4%BC%AA%E5%85%B1%E4%BA%AB&%E9%9B%B6%E6%8B%B7%E8%B4%9D/%E4%BB%8EJava%E8%A7%86%E8%A7%92%E7%90%86%E8%A7%A3CPU%E7%BC%93%E5%AD%98%E5%92%8C%E4%BC%AA%E5%85%B1%E4%BA%AB/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>从Java视角理解CPU缓存和伪共享 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/12/Java/Java%E8%BF%9B%E9%98%B6/%E4%BC%AA%E5%85%B1%E4%BA%AB&%E9%9B%B6%E6%8B%B7%E8%B4%9D/%E4%BB%8EJava%E8%A7%86%E8%A7%92%E7%90%86%E8%A7%A3CPU%E7%BC%93%E5%AD%98%E5%92%8C%E4%BC%AA%E5%85%B1%E4%BA%AB/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          从Java视角理解CPU缓存和伪共享
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-03-12 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-12T00:00:00+08:00">2024-03-12</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/" itemprop="url" rel="index"><span itemprop="name">Java进阶</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/%E4%BC%AA%E5%85%B1%E4%BA%AB-%E9%9B%B6%E6%8B%B7%E8%B4%9D/" itemprop="url" rel="index"><span itemprop="name">伪共享&零拷贝</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>​	CPU是计算机的大脑，它负责执行程序的指令；内存负责存数据，包括程序自身数据。内存比CPU慢很多，现在获取内存中的一条数据大概需要200多个CPU周期(CPU cycles)，而CPU寄存器一般情况下1个CPU周期就够了。</p>
+<p>​	网页浏览器为了加快速度，会在本机存缓存以前浏览过的数据；传统数据库或NoSQL数据库为了加速查询,常在内存设置一个缓存，减少对磁盘(慢)的IO。同样内存与CPU的速度相差太远，于是CPU设计者们就给CPU加上了缓存(CPU Cache)。如果需要对同一批数据操作很多次，那么把数据放至离CPU更近的缓存，会给程序带来很大的速度提升。例如，做一个循环计数，把计数变量放到缓存里，就不用每次循环都往内存存取数据了。下面是CPU Cache的简单示意图：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291540498.png" alt="image-20240228163008629"></p>
+<span id="more"></span>
+
+<p>​	随着多核的发展，CPU Cache分成了三个级别：L1、 L2、L3。级别越小越接近CPU，所以速度也更快，同时也代表着容量越小。L1是最接近CPU的，它容量最小，例如32K，速度最快，每个核上都有一个L1 Cache(准确地说每个核上有两个L1 Cache，一个存数据 L1d Cache，一个存指令 L1i Cache)。L2 Cache 更大一些，例如256K，速度要慢一些，一般情况下每个核上都有一个独立的L2 Cache；L3 Cache是三级缓存中最大的一级，例如12MB，同时也是最慢的一级，在同一个CPU插槽之间的核共享一个L3 Cache。</p>
+<p>​	就像数据库cache一样，获取数据时首先会在最快的cache中找数据，如果没有命中(Cache miss)则往下一级找，直到三层Cache都找不到，那只有向内存要数据了。一次次地未命中，代表取数据消耗的时间越长。</p>
+<p>​	为了高效地存取缓存，不是简单随意地将单条数据写入缓存的。缓存是由缓存行组成的，典型的一行是64字节。CPU存取缓存都是按行为最小单位操作的。一个Java long型占8字节，所以从一条缓存行上可以获取到8个long型变量。所以如果访问一个long型数组，当有一个long被加载到cache中，将会无消耗地加载了另外7个，所以可以非常快地遍历数组。</p>
+<p>​	既然典型的CPU微架构有3级缓存，每个核都有自己私有的L1、 L2缓存，那么多线程编程时，另外一个核的线程想要访问当前核内L1、L2缓存行的数据时，该怎么办呢？</p>
+<p>​	有一种办法可以通过第2个核直接访问第1个核的缓存行。这是可行的，但这种方法不够快。跨核访问需要通过Memory Controller，典型的情况是第2个核经常访问第1个核的这条数据，那么每次都有跨核的消耗。更糟的情况是，有可能第2个核与第1个核不在一个插槽内，况且Memory Controller的总线带宽是有限的，扛不住这么多数据传输。所以CPU设计者们更偏向于另一种办法：如果第2个核需要这份数据，由第1个核直接把数据内容发过去，数据只需要传一次。</p>
+<p>​	那么什么时候会发生缓存行的传输呢？答案很简单：当一个核需要读取另外一个核的脏缓存行时发生。但是前者怎么判断后者的缓存行已经被弄脏(写)了呢？</p>
+<p>​	下面将详细地解答以上问题. 首先需要谈到一个协议—MESI协议。现在主流的处理器都是用它来保证缓存的相干性和内存的相干性。M、E、S和I代表使用MESI协议时缓存行所处的四个状态:</p>
+<ul>
+<li><p>**M(修改，Modified): **本地处理器已经修改缓存行, 即是脏行, 它的内容与内存中的内容不一样. 并且此cache只有本地一个拷贝(专有).</p>
+</li>
+<li><p><strong>E(专有，Exclusive)：</strong>缓存行内容和内存中的一样, 而且其它处理器都没有这行数据.</p>
+</li>
+<li><p><strong>S(共享，Shared)：</strong>缓存行内容和内存中的一样, 有可能其它处理器也存在此缓存行的拷贝.</p>
+</li>
+<li><p><strong>I(无效，Invalid)：</strong>缓存行失效, 不能使用.</p>
+</li>
+</ul>
+<p>​    下面简单地说明下缓存行的四种状态怎么转换的：</p>
+<ul>
+<li><p><em>初始：</em>一开始时，缓存行没有加载任何数据，所以它处于I状态。</p>
+</li>
+<li><p><em>本地写</em>*(Local Write)*<em>：</em>如果本地处理器写数据至处于I状态的缓存行，则缓存行的状态变成M。</p>
+</li>
+<li><p><em>本地读</em>*(Local Read)*<em>：</em>如果本地处理器读取处于I状态的缓存行, 很明显此缓存没有数据给它。此时分两种情况：(1)其它处理器的缓存里也没有此行数据，则从内存加载数据到此缓存行后，再将它设成E状态，表示只有我一家有这条数据，其它处理器都没有；(2)其它处理器的缓存有此行数据，则将此缓存行的状态设为S状态。P.S.如果处于M状态的缓存行，再由本地处理器写入&#x2F;读出，状态是不会改变的。</p>
+</li>
+<li><p><em>远程读</em>*(Remote Read)*<em>：</em>假设有两个处理器c1和c2。如果c2需要读另外一个处理器c1的缓存行内容，c1需要把它缓存行的内容通过内存控制器(Memory Controller)发送给c2，c2接到后将相应的缓存行状态设为S。在设置之前，内存也得从总线上得到这份数据并保存。</p>
+</li>
+<li><p><em>远程写</em>*(Remote Write)*<em>：</em>其实确切地说不是远程写，而是c2得到c1的数据后，不是为了读，而是为了写，也算是本地写，只是c1也拥有这份数据的拷贝，这该怎么办呢？c2将发出一个RFO(Request For Owner)请求，它需要拥有这行数据的权限，其它处理器的相应缓存行设为I，除了它自已，谁不能动这行数据。这保证了数据的安全，同时处理RFO请求以及设置I的过程将给写操作带来很大的性能消耗。</p>
+</li>
+</ul>
+<p>上述内容知道，写操作的代价很高，特别当需要发送RFO消息时。那编写程序时，什么时候会发生RFO请求呢？有以下两种：</p>
+<ol>
+<li>线程的工作从一个处理器移到另一个处理器，它操作的所有缓存行都需要移到新的处理器上。此后如果再写缓存行，则此缓存行在不同核上有多个拷贝，需要发送RFO请求了。</li>
+<li>两个不同的处理器确实都需要操作相同的缓存行。</li>
+</ol>
+<p>在Java程序中，数组的成员在缓存中也是连续的。其实从Java对象的相邻成员变量也会加载到同一缓存行中。如果多个线程操作不同的成员变量，但是相同的缓存行，伪共享(False Sharing)问题就发生了。</p>
+<p>​    举个例子：一个运行在处理器core 1上的线程想要更新变量X的值，同时另外一个运行在处理器core 2上的线程想要更新变量Y的值。但是，这两个频繁改动的变量都处于同一条缓存行。两个线程就会轮番发送RFO消息，占得此缓存行的拥有权。当core 1取得了拥有权开始更新X，则core 2对应的缓存行需要设为I状态。当core 2取得了拥有权开始更新Y，则core 1对应的缓存行需要设为I状态(失效态)。轮番夺取拥有权不但带来大量的RFO消息，而且如果某个线程需要读此行数据时，L1和L2缓存上都是失效数据，只有L3缓存上是同步好的数据。读L3的数据非常影响性能，更坏的情况是跨槽读取，L3都要miss，只能从内存上加载。</p>
+<p>表面上X和Y都是被独立线程操作的，而且两操作之间也没有任何关系。只不过它们共享了一个缓存行，但所有竞争冲突都是来源于共享。</p>
+<p>那么怎么避免伪共享呢？一条缓存行有64字节，而Java程序的对象头固定占8字节(32位系统)或12字节(64位系统默认开启压缩, 不开压缩为16字节)。只需要填6个无用的长整型补上6*8&#x3D;48字节，让不同的变量处于不同的缓存行，就可以避免伪共享了(64位系统超过缓存行的64字节也无所谓,只要保证不同线程不要操作同一缓存行就可以)，这个办法叫做补齐(Padding)。例如：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">static</span> <span class="keyword">class</span> <span class="title class_">VolatileLong</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">volatile</span> <span class="type">long</span> <span class="variable">value</span> <span class="operator">=</span> <span class="number">0L</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="type">long</span> p1, p2, p3, p4, p5, p6; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>伪共享在多核编程中很容易发生，而且比较隐蔽。例如在JDK的LinkedBlockingQueue中，存在指向队列头的引用head和指向队列尾的引用last。而这种队列经常在异步编程中使有，这两个引用的值经常的被不同的线程修改，但它们却很可能在同一个缓存行，于是就产生了伪共享。线程越多，核越多，对性能产生的负面效果就越大。</p>
+<p>某些Java编译器会将没有使用到的补齐数据，即使示例代码中的6个长整型在编译时优化掉，可以在程序中加入一些代码防止被编译优化。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="type">long</span> <span class="title function_">preventFromOptimization</span><span class="params">(VolatileLong v)</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> v.p1 + v.p2 + v.p3 + v.p4 + v.p5 + v.p6;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>另外，由于Java的GC问题。数据在内存和对应的CPU缓存行的位置有可能发生变化，所以在使用pad的时候应该注意GC的影响。</p>
+<hr>
+<p>转载自：<br><a target="_blank" rel="noopener" href="http://ifeve.com/from-javaeye-cpu-cache/">http://ifeve.com/from-javaeye-cpu-cache/</a><br><a target="_blank" rel="noopener" href="http://ifeve.com/from-javaeye-false-sharing/">http://ifeve.com/from-javaeye-false-sharing/</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/03/12/Java/Java%E8%BF%9B%E9%98%B6/%E4%BC%AA%E5%85%B1%E4%BA%AB&%E9%9B%B6%E6%8B%B7%E8%B4%9D/Zero%20Copy%EF%BC%88%E9%9B%B6%E6%8B%B7%E8%B4%9D%EF%BC%89/" rel="prev" title="Zero Copy（零拷贝）">
+      <i class="fa fa-chevron-left"></i> Zero Copy（零拷贝）
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/03/12/Java/Java%E8%BF%9B%E9%98%B6/%E4%BC%AA%E5%85%B1%E4%BA%AB&%E9%9B%B6%E6%8B%B7%E8%B4%9D/sun.misc.Contended%E9%81%BF%E5%85%8D%E4%BC%AA%E5%85%B1%E4%BA%AB(false%20sharing)/" rel="next" title="sun.misc.Contended避免伪共享(false sharing)">
+      sun.misc.Contended避免伪共享(false sharing) <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

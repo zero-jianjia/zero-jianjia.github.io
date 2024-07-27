@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="[toc] 如何处理跨代引用​        在垃圾回收的时候都是从Root开始搜索，这会先经过年轻代再到老年代，对于年轻代引用老年代的这种跨代不需要单独处理。但是老年代引用年轻代的会影响young gc，这种跨代需要处理。​        为了避免在回收年轻代的时候扫描整个老年代，需要记录老年代对年轻代的引用，young gc的时候只要扫描这个记录。 ​        CMS和G1都用到了Car">
+<meta property="og:type" content="article">
+<meta property="og:title" content="G1对比CMS">
+<meta property="og:url" content="http://example.com/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/G1%E5%AF%B9%E6%AF%94CMS/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="[toc] 如何处理跨代引用​        在垃圾回收的时候都是从Root开始搜索，这会先经过年轻代再到老年代，对于年轻代引用老年代的这种跨代不需要单独处理。但是老年代引用年轻代的会影响young gc，这种跨代需要处理。​        为了避免在回收年轻代的时候扫描整个老年代，需要记录老年代对年轻代的引用，young gc的时候只要扫描这个记录。 ​        CMS和G1都用到了Car">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291347046.png">
+<meta property="article:published_time" content="2024-03-31T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.314Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291347046.png">
+
+<link rel="canonical" href="http://example.com/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/G1%E5%AF%B9%E6%AF%94CMS/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>G1对比CMS | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/G1%E5%AF%B9%E6%AF%94CMS/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          G1对比CMS
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/JVM/" itemprop="url" rel="index"><span itemprop="name">JVM</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/JVM/GC%E7%9B%B8%E5%85%B3/" itemprop="url" rel="index"><span itemprop="name">GC相关</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>[toc]</p>
+<h2 id="如何处理跨代引用"><a href="#如何处理跨代引用" class="headerlink" title="如何处理跨代引用"></a>如何处理跨代引用</h2><p>​        在垃圾回收的时候都是从Root开始搜索，这会先经过年轻代再到老年代，对于年轻代引用老年代的这种跨代不需要单独处理。但是老年代引用年轻代的会影响young gc，这种跨代需要处理。<br>​        为了避免在回收年轻代的时候扫描整个老年代，需要记录老年代对年轻代的引用，young gc的时候只要扫描这个记录。</p>
+<p>​        CMS和G1都用到了<strong>Card Table</strong>，但是用法不太一样。JVM将内存分成一个个固定大小的card，然后有一个专门的数据结构(即这里的Card Table)维护每个Card的状态，一个字节对应一个Card，有点像内存page的概念，只是page是硬件上的，Card Table是软件上的。当一个Card上的对象的引用发生变化的时候，就将这个Card对应的Card Table上的状态置为dirty，young gc的时候扫描状态是dirty的Card即可。这是基本的用法，CMS基本上就是这么使用。<br>​        G1在Card Table的基础上引入的Remembered Set(下面简称RSet)。每个region都会维护一个RSet，记录着引用到本region中的对象的其他region的Card。比如A对象在regionA，B对象在regionB，且B.f &#x3D; A，则在regionA的RSet中需要记录B所在的Card的地址。这样的好处是可以对region进行单独回收，这要求RSet不只是维护老年代到年轻代的引用，也要维护这老年代到老年代的引用，对于跨代引用的每次只要扫描这个region的RSet上的Card即可。<br>​       上面说过年轻代到老年代的引用不需要单独处理，这带来了很大的性能上的提升，因为年轻代的对象引用变化很大，如果都需要记录下来成本会很高。同时也说明只需要在老年代维护Card Table。</p>
+<span id="more"></span>
+
+<h2 id="如何处理并发过程的对象变化"><a href="#如何处理并发过程的对象变化" class="headerlink" title="如何处理并发过程的对象变化"></a>如何处理并发过程的对象变化</h2><p>​        CMS和G1都有并发处理过程，这个过程应用程序跟着gc线程一起运行，会产生新对象，也会有旧的对象死去，对象之间的引用关系也会发生变化。这部分数据可以暂时不处理，留到下一次再处理吗？如果可以这样的话问题就会变得很简单，但是答案是不行。</p>
+<p>​        考虑下图的场景(图中每一行表示一个内存状态，每一列表示一个Card，这里有4个)：</p>
+<blockquote>
+<p>第一步a是并发标记中途的一个状态，标记了a b c e四个对象，0 1两个Card已经标记好；</p>
+<p>第二步b并发标记的同时引用发生变化，g不再指向d，而b不再指向c，变成指向d，这个时候处理Card 2，会标记到g，然后就标记结束了，导致d对象丢失。</p>
+</blockquote>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291347046.png" alt="img"></p>
+<p>​        CMS初始标记的时候会标记所有从root直接可达的对象，并发标记的时候再从这些对象进一步搜索其他可达对象，最终构成一个存活的对象图。并发标记过程中引用发生变化的也是通过Card Table来记录。但是young gc的时候如果一个dirty card没有包含到年轻代的引用，这个card会重新标记为clean，这有可能将并发标记过程产生的dirty card错误清除，因此CMS引入了另一个数据结构mod union table，这里一个bit对应一个Card，young gc在将Card Table设置为clean的时候会将对应的mod union table置为dirty。最终标记的时候会将Card Table或者mod union table是dirty的Card也作为root去扫描，从而解决并发标记过程产生的引用变化。CMS还需要处理并发过程从年轻代晋升到老年代的对象，处理方式是将这部分对象也作为root去扫描。<br>​        G1使用一个称为snapshot at the beginning(下面简称SATB)的算法，在初始标记的时候得到一个从root直接可达的snapshot，之后从这个snapshot不可达的对象都是可以回收的垃圾，并发过程产生的对象都默认是活的对象，留到下一次再处理。对于引用关系发生变化的，将这个对象对应的Card放到一个SATB队列里，在最终标记的时候进行处理(如果超过一定的阈值并发标记的时候也会处理一部分)，处理的过程就是以队列中的Card作为root进行扫描。</p>
+<h2 id="Write-Barrier"><a href="#Write-Barrier" class="headerlink" title="Write Barrier"></a>Write Barrier</h2><p>Write Barrier可以理解为在写的时候插入一条特定的操作。<br>在CMS中老年代引用年轻代的时候就是通过触发一个Write Barrier来更新Card Table的标志位。这是一个同步操作，在更新引用的时候顺带执行，只需要两个指令，引入的消耗不大。</p>
+<p>G1比较复杂，在两个地方用到了Write Barrier，分别是更新RSet的rememberd set Write Barrier和记录引用变化的Concurrent Marking Write Barrier，前者发生在引用更新之后，称为Post Write Barrier，后者发生在引用变化之前，称为Pre Write Barrier。G1为了提高性能，这两个Write Barrier都是先放到队列中，再异步进行处理。</p>
+<h2 id="Full-GC"><a href="#Full-GC" class="headerlink" title="Full GC"></a>Full GC</h2><p>导致CMS Full GC的可能原因主要有两个：Promotion Failure和Concurrent Mode Failure，前者是在年轻代晋升的时候老年代没有足够的连续空间容纳，很有可能是内存碎片导致的；后者是在并发过程中jvm觉得在并发过程结束前堆就会满了，需要提前触发Full GC。</p>
+<p>CMS的Full GC是一个多线程STW的Mark-Compact过程，，需要尽量避免或者降低频率。</p>
+<p>G1的初衷就是要避免Full GC的出现，Full GC会会对所有region做Evacuation-Compact，而且是单线程的STW，非常耗时间。导致G1 Full GC的原因可能有两个：1. Evacuation的时候没有足够的to-space来存放晋升的对象；2. 并发处理过程完成之前空间耗尽。这两个原因跟CMS类似。</p>
+<hr>
+<p><strong>卡表(Card Table)</strong><br>       有个场景，老年代的对象可能引用新生代的对象，那标记存活对象的时候，需要扫描老年代中的所有对象。因为该对象拥有对新生代对象的引用，那么这个引用也会被称为GC Roots。那不是得又做全堆扫描？成本太高了吧。<br>        HotSpot给出的解决方案是一项叫做卡表(Card Table)的技术。该技术将整个堆划分为一个个大小为512字节的卡，并且维护一个卡表，用来存储每张卡的一个标识位。这个标识位代表对应的卡是否可能存有指向新生代对象的引用。如果可能存在，那么我们就认为这张卡是脏的。<br>        在进行Minor GC的时候，我们便可以不用扫描整个老年代，而是在卡表中寻找脏卡，并将脏卡中的对象加入到Minor GC的GC Roots里。当完成所有脏卡的扫描之后，Java虚拟机便会将所有脏卡的标识位清零。<br>        想要保证每个可能有指向新生代对象引用的卡都被标记为脏卡，那么]v虚拟机需要截获每个引用型实例变量的写操作，并作出对应的写标识位操作。卡表能用于减少老年代的全堆空间扫描，这能很大的提升GC效率。</p>
+<hr>
+<p>转载自：<br><a target="_blank" rel="noopener" href="https://blog.csdn.net/kuaipao19950507/article/details/105809365">https://blog.csdn.net/kuaipao19950507/article/details/105809365</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/04/01/Spring/spring%20boot/@Configuration%E5%92%8C@Component%E5%8C%BA%E5%88%AB/" rel="prev" title="注解@Configuration和@Component区别">
+      <i class="fa fa-chevron-left"></i> 注解@Configuration和@Component区别
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/GC%E4%BC%98%E5%8C%96%E6%A1%88%E4%BE%8B/" rel="next" title="GC优化案例">
+      GC优化案例 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A6%82%E4%BD%95%E5%A4%84%E7%90%86%E8%B7%A8%E4%BB%A3%E5%BC%95%E7%94%A8"><span class="nav-number">1.</span> <span class="nav-text">如何处理跨代引用</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A6%82%E4%BD%95%E5%A4%84%E7%90%86%E5%B9%B6%E5%8F%91%E8%BF%87%E7%A8%8B%E7%9A%84%E5%AF%B9%E8%B1%A1%E5%8F%98%E5%8C%96"><span class="nav-number">2.</span> <span class="nav-text">如何处理并发过程的对象变化</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Write-Barrier"><span class="nav-number">3.</span> <span class="nav-text">Write Barrier</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Full-GC"><span class="nav-number">4.</span> <span class="nav-text">Full GC</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

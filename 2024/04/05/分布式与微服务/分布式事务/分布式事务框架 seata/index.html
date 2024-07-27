@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="[toc] 1. 什么是seataSeata 是一款开源的分布式事务解决方案，致力于提供高性能和简单易用的分布式事务服务。Seata 将为用户提供了 AT、TCC、SAGA 和 XA 事务模式，为用户打造一站式的分布式解决方案。 2. seata发展历程阿里巴巴作为国内最早一批进行应用分布式（微服务化）改造的企业，很早就遇到微服务架构下的分布式事务问题。阿里巴巴对于分布式事务问题先后发布了以下解决">
+<meta property="og:type" content="article">
+<meta property="og:title" content="分布式事务框架seata">
+<meta property="og:url" content="http://example.com/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1%E6%A1%86%E6%9E%B6%20seata/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="[toc] 1. 什么是seataSeata 是一款开源的分布式事务解决方案，致力于提供高性能和简单易用的分布式事务服务。Seata 将为用户提供了 AT、TCC、SAGA 和 XA 事务模式，为用户打造一站式的分布式解决方案。 2. seata发展历程阿里巴巴作为国内最早一批进行应用分布式（微服务化）改造的企业，很早就遇到微服务架构下的分布式事务问题。阿里巴巴对于分布式事务问题先后发布了以下解决">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291812703.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291812622.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291812766.jpeg">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291812641.jpeg">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291812151.jpeg">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291812938.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291813128.png">
+<meta property="article:published_time" content="2024-04-04T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.700Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291812703.png">
+
+<link rel="canonical" href="http://example.com/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1%E6%A1%86%E6%9E%B6%20seata/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>分布式事务框架seata | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1%E6%A1%86%E6%9E%B6%20seata/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          分布式事务框架seata
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-05T00:00:00+08:00">2024-04-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/" itemprop="url" rel="index"><span itemprop="name">分布式与微服务</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/" itemprop="url" rel="index"><span itemprop="name">分布式事务</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>[toc]</p>
+<h1 id="1-什么是seata"><a href="#1-什么是seata" class="headerlink" title="1. 什么是seata"></a>1. 什么是seata</h1><p>Seata 是一款开源的分布式事务解决方案，致力于提供高性能和简单易用的分布式事务服务。Seata 将为用户提供了 AT、TCC、SAGA 和 XA 事务模式，为用户打造一站式的分布式解决方案。</p>
+<h1 id="2-seata发展历程"><a href="#2-seata发展历程" class="headerlink" title="2. seata发展历程"></a>2. seata发展历程</h1><p>阿里巴巴作为国内最早一批进行应用分布式（微服务化）改造的企业，很早就遇到微服务架构下的分布式事务问题。阿里巴巴对于分布式事务问题先后发布了以下解决方案：</p>
+<ul>
+<li>2014 年，阿里中间件团队发布 TXC（Taobao Transaction Constructor），为集团内应用提供分布式事务服务。</li>
+<li>2016 年，TXC 在经过产品化改造后，以 GTS（Global Transaction Service） 的身份登陆阿里云，成为当时业界唯一一款云上分布式事务产品。在阿云里的公有云、专有云解决方案中，开始服务于众多外部客户。</li>
+<li>2019 年起，基于 TXC 和 GTS 的技术积累，阿里中间件团队发起了开源项目 Fescar（Fast &amp; EaSy Commit And Rollback, FESCAR），和社区一起建设这个分布式事务解决方案。</li>
+<li>2019 年 fescar 被重命名为了seata（simple extensiable autonomous transaction architecture）。</li>
+<li>TXC、GTS、Fescar 以及 seata 一脉相承，为解决微服务架构下的分布式事务问题交出了一份与众不同的答卷。</li>
+</ul>
+<span id="more"></span>
+
+<h1 id="3-seata中相关事务概念"><a href="#3-seata中相关事务概念" class="headerlink" title="3. seata中相关事务概念"></a>3. seata中相关事务概念</h1><ul>
+<li><p>全局事务：全局事务指的是一次性操作多个资源管理器完成的事务，由一组分支事务（本地事务）组成。</p>
+</li>
+<li><p>分支事务（本地事务）：本地事务由本地资源管理器（通常指数据库管理系统 DBMS，例如 MySQL、Oracle 等）管理，严格地支持 ACID 特性，高效可靠。本地事务不具备分布式事务的处理能力，隔离的最小单位受限于资源管理器，即本地事务只能对自己数据库的操作进行控制，对于其他数据库的操作则无能为力。</p>
+</li>
+</ul>
+<h1 id="4-seata的工作流程相关概念"><a href="#4-seata的工作流程相关概念" class="headerlink" title="4. seata的工作流程相关概念"></a>4. seata的工作流程相关概念</h1><p>Seata 对分布式事务的协调和控制，主要是通过 XID 和 3 个核心组件实现的。</p>
+<p><strong>XID</strong></p>
+<p>XID 是全局事务的唯一标识，它可以在服务的调用链路中传递，绑定到服务的事务上下文中。</p>
+<p><strong>核心组件</strong></p>
+<p>Seata的核心组件可分为Seata服务端和Seata客户端两类</p>
+<p>Seata 定义了 3 个核心组件：</p>
+<ul>
+<li><p>TC（Transaction Coordinator）：事务协调器，直接调度事务参与者RM。负责将RM的反馈结果响应给TM，并听从TM的最终决议，将具体决议（提交或回滚）发送给RM执行。相当于中间人，主要负责维护全局事务和分支事务的状态。</p>
+</li>
+<li><p>TM（Transaction Manager）：事务管理器，它是事务的发起者（具体的微服务）。根据RM第一阶段的执行结果，进行决议。并将决议反馈给TC。相当于发号施令的</p>
+</li>
+<li><p>RM（Resource Manager）：资源管理器，其实就是事务的参与者。获取TC的执行命令具去执行分支事务的第一阶段以及第二阶段，并将执行结果反馈给TC，相当于具体做事的</p>
+</li>
+</ul>
+<p>以上三个组件相互协作，TC 以 Seata 服务器（Server）形式独立部署，TM 和 RM 则是以 Seata Client 的形式集成在微服务中运行。</p>
+<h1 id="5-seata的工作流程"><a href="#5-seata的工作流程" class="headerlink" title="5. seata的工作流程"></a>5. seata的工作流程</h1><p>TC 以 Seata 服务器（Server）形式独立部署，TM 和 RM 则是以 Seata Client 的形式集成在微服务中运行，</p>
+<p>整体工作流程如图：<img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291812703.png" alt="图片"></p>
+<p>Seata 的整体工作流程如下：</p>
+<ol>
+<li>TM 向 TC 申请开启一个全局事务，全局事务创建成功后，TC 会针对这个全局事务生成一个全局唯一的 XID（此时，由TM发起的全局事务已经开启）</li>
+<li>XID 通过服务的调用链传递到其他服务</li>
+<li>RM 向 TC 注册一个分支事务，并将其纳入 XID 对应全局事务的管辖（事务参与者执行本地事务，此时分支事务已经执行完成，并反馈给TC执行结果。可以理解为AT模式下的第一个阶段）</li>
+<li>TM 根据 TC 收集的各个分支事务的执行结果，向 TC 发起全局事务提交或回滚决议（事务协调者根据事务管理者的决议，发送提交或回滚的调度命令，可以理解为AT模式下的第二阶段）</li>
+<li>TC 调度 XID 下管辖的所有分支事务完成提交或回滚操作</li>
+</ol>
+<h1 id="seata四种模式"><a href="#seata四种模式" class="headerlink" title="seata四种模式"></a>seata四种模式</h1><p>1、AT 模式<br>基于 支持本地 ACID 事务 的 关系型数据库：</p>
+<p>一阶段 prepare 行为：在本地事务中，一并提交业务数据更新和相应回滚日志记录。</p>
+<p>二阶段 commit 行为：马上成功结束，自动 异步批量清理回滚日志。</p>
+<p>二阶段 rollback 行为：通过回滚日志，自动 生成补偿操作，完成数据回滚。</p>
+<p>2、TCC 模式<br>不依赖于底层数据资源的事务支持：</p>
+<p>一阶段 prepare 行为：调用 自定义 的 prepare 逻辑。</p>
+<p>二阶段 commit 行为：调用 自定义 的 commit 逻辑。</p>
+<p>二阶段 rollback 行为：调用 自定义 的 rollback 逻辑。</p>
+<p>所谓 TCC 模式，是指支持把 自定义 的分支事务纳入到全局事务的管理中。</p>
+<p>3、Saga 模式<br>Saga模式是SEATA提供的长事务解决方案，在Saga模式中，业务流程中每个参与者都提交本地事务，当出现某一个参与者失败则补偿前面已经成功的参与者，一阶段正向服务和二阶段补偿服务都由业务开发实现。</p>
+<p>4、Seata XA 模式<br>支持XA协议 事务的数据库。Java 应用，通过 JDBC 访问数据库。</p>
+<p>执行阶段（E xecute）：XA start&#x2F;XA end&#x2F;XA prepare + SQL + 注册分支</p>
+<p>完成阶段（F inish）：XA commit&#x2F;XA rollback</p>
+<h1 id="6-seata的AT模式"><a href="#6-seata的AT模式" class="headerlink" title="6. seata的AT模式"></a>6. seata的AT模式</h1><p>seata中提供了了XA、TCC、SAGA、TC四种模式。其中TC模式应用最为广泛，可应对大多数业务场景。也是seata的主要模式</p>
+<p>前提</p>
+<ul>
+<li>基于支持本地 ACID 事务的关系型数据库。例如mysql，oracle</li>
+<li>Java 应用，通过 JDBC 访问数据库。（mybaits、mybatisplus、springdatajpa）</li>
+</ul>
+<p>整体机制</p>
+<p>官网描述：</p>
+<p>两阶段提交协议的演变：</p>
+<ul>
+<li>一阶段：业务数据和回滚日志记录在同一个本地事务中提交（提交前需要获取到全局锁），释放本地锁和连接资源。</li>
+<li>二阶段：提交异步化，非常快速地完成   或  回滚通过一阶段的回滚日志进行反向补偿。</li>
+</ul>
+<p>其实AT模式可以理解为XA二阶段提交的一个变种，将二阶段提交的部分在一定阶段就已完成，而二阶段的回滚操作是通过回滚日志完成，并是不依赖于数据库的事务机制。也就是说一阶段数据实际上已经提交了，与此同时原子性提交的还有对应的回滚日志</p>
+<p>AT模式，是seata的默认&#x2F;独有模式，也是实际项目中比较常用的一种模式，它采用的也是两阶段提交，不过弥补了XA模式中资源锁定周期过长的缺点，相对于XA来说，性能更好一些，但缺点就是数据不是强一致，因为它的数据会真实的提交到数据库的，而如果后面做分支事务有问题的话，回滚靠的是日志来实现最终一致。</p>
+<p><strong>写隔离</strong></p>
+<ul>
+<li>一阶段本地事务提交前，需要确保先拿到 全局锁 。</li>
+<li>拿不到 全局锁 ，不能提交本地事务。</li>
+<li>拿 全局锁 的尝试被限制在一定范围内，超出范围将放弃，并回滚本地事务，释放本地锁。此时一阶段等于失败</li>
+</ul>
+<p><strong>读隔离</strong> </p>
+<p>在数据库本地事务隔离级别 读已提交（Read Committed） 或以上的基础上，Seata（AT 模式）的默认全局隔离级别是 读未提交（Read Uncommitted） 。</p>
+<p>如果应用在特定场景下，必需要求全局的 读已提交 ，目前 Seata 的方式是通过 SELECT FOR UPDATE 语句的代理。</p>
+<h1 id="7-seata的AT模式具体执行流程"><a href="#7-seata的AT模式具体执行流程" class="headerlink" title="7. seata的AT模式具体执行流程"></a>7. seata的AT模式具体执行流程</h1><p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291812622.png" alt="img"></p>
+<p>假设前置条件</p>
+<p> 假设当前存在一个业务表：product</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Key</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>id</td>
+<td>bigint(20)</td>
+<td>PRI</td>
+</tr>
+<tr>
+<td>name</td>
+<td>varchar(100)</td>
+<td></td>
+</tr>
+<tr>
+<td>since</td>
+<td>varchar(100)</td>
+<td></td>
+</tr>
+</tbody></table>
+<p>分支事务的业务逻辑：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">update product set name = &#x27;GTS&#x27; where name = &#x27;TXC&#x27;;</span><br></pre></td></tr></table></figure>
+
+<p><strong>一阶段</strong></p>
+<ul>
+<li>解析 SQL：得到 SQL 的类型（UPDATE），表（product），条件（where name &#x3D; ‘TXC’）等相关的信息。</li>
+<li>查询前镜像：根据解析得到的条件信息，生成查询语句，定位数据。这一步的目的为了后续回滚</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">select id, name, since from product where name = &#x27;TXC&#x27;;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>执行业务 SQL：更新这条记录的 name 为 ‘GTS’。</li>
+<li>查询后镜像：根据主键ID进行查询。这一步的目的是为了防止存在其他线程修改数据，后续比对使用</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">select id, name, since from product where id = 1;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>插入回滚日志：把前后镜像数据以及业务 SQL 相关的信息组成一条回滚日志记录，插入到 UNDO_LOG 表中</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">     &quot;branchId&quot;: 641789253,</span><br><span class="line">      &quot;undoItems&quot;: [&#123;</span><br><span class="line">           &quot;afterImage&quot;: &#123;</span><br><span class="line">                &quot;rows&quot;: [&#123;</span><br><span class="line">                     &quot;fields&quot;: [&#123;</span><br><span class="line">                          &quot;name&quot;: &quot;id&quot;,</span><br><span class="line">                           &quot;type&quot;: 4,</span><br><span class="line">                           &quot;value&quot;: 1</span><br><span class="line">                      &#125;, &#123;</span><br><span class="line">                           &quot;name&quot;: &quot;name&quot;,</span><br><span class="line">                           &quot;type&quot;: 12,</span><br><span class="line">                           &quot;value&quot;: &quot;GTS&quot;</span><br><span class="line">                     &#125;, &#123;</span><br><span class="line">                           &quot;name&quot;: &quot;since&quot;,</span><br><span class="line">                           &quot;type&quot;: 12,</span><br><span class="line">                          &quot;value&quot;: &quot;2014&quot;</span><br><span class="line">                    &#125;]</span><br><span class="line">               &#125;],</span><br><span class="line">              &quot;tableName&quot;: &quot;product&quot;</span><br><span class="line">         &#125;,</span><br><span class="line">        &quot;beforeImage&quot;: &#123;</span><br><span class="line">                  &quot;rows&quot;: [&#123;</span><br><span class="line">                           &quot;fields&quot;: [&#123;</span><br><span class="line">                           &quot;name&quot;: &quot;id&quot;,</span><br><span class="line">                           &quot;type&quot;: 4,</span><br><span class="line">                           &quot;value&quot;: 1</span><br><span class="line">                    &#125;, &#123;</span><br><span class="line">                           &quot;name&quot;: &quot;name&quot;,</span><br><span class="line">                           &quot;type&quot;: 12,</span><br><span class="line">                           &quot;value&quot;: &quot;TXC&quot;</span><br><span class="line">                    &#125;, &#123;</span><br><span class="line">                            &quot;name&quot;: &quot;since&quot;,</span><br><span class="line">                            &quot;type&quot;: 12,</span><br><span class="line">                             &quot;value&quot;: &quot;2014&quot;</span><br><span class="line">                    &#125;]</span><br><span class="line">              &#125;],</span><br><span class="line">             &quot;tableName&quot;: &quot;product&quot;</span><br><span class="line">         &#125;,</span><br><span class="line">          &quot;sqlType&quot;: &quot;UPDATE&quot;</span><br><span class="line">     &#125;],</span><br><span class="line">     &quot;xid&quot;: &quot;xid:xxx&quot;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p>提交前，向 TC 注册分支：申请 product 表中，主键值等于 1 的记录的 全局锁 。</p>
+</li>
+<li><p>本地事务提交：业务数据的更新和前面步骤中生成的 UNDO LOG 一并提交。</p>
+</li>
+<li><p>将本地事务提交的结果上报给 TC。</p>
+</li>
+</ul>
+<p><strong>二阶段-提交</strong> </p>
+<p>相关业务在一阶段已经提交了，二阶段只需要删除已经没有用处的回滚日志即可。同时还是异步删除，效率更高</p>
+<ul>
+<li>收到 TC 的提交指令，把请求放入一个异步任务的队列中，马上返回提交成功的结果给 TC。</li>
+<li>异步任务阶段将异步和批量地删除相应 UNDO LOG 记录。</li>
+</ul>
+<p><strong>二阶段-回滚</strong> </p>
+<p>相关业务在一阶段已经提交了，所以二阶段的回滚相当于又开启了一个事务。一阶段保存的后镜像来用于对比是否有其他动作修改了这条数据，一阶段保存的前镜像用于回滚语句的生成</p>
+<ul>
+<li><p>收到 TC 的回滚指令，开启一个本地事务，执行如下操作。</p>
+</li>
+<li><p>通过 XID 和 Branch ID 查找到相应的 UNDO LOG 记录。</p>
+</li>
+<li><p>数据校验：拿 UNDO LOG 中的后镜像与当前数据进行比较，如果有不同，说明数据被当前全局事务之外的动作做了修改。这种情况，需要根据配置策略来做处理</p>
+</li>
+<li><p>根据 UNDO LOG 中的前镜像和业务 SQL 的相关信息生成并执行回滚的语句，同时删除已经无用的回滚日志</p>
+</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">update product set name = &#x27;TXC&#x27; where id = 1;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p>提交本地事务。并把本地事务的执行结果（即分支事务补偿的结果）上报给 TC。</p>
+</li>
+<li></li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">souce：//www.yuque.com/u27809381/ca4o9w/avy27g</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h3 id="AT模式脏读问题解决方案"><a href="#AT模式脏读问题解决方案" class="headerlink" title="AT模式脏读问题解决方案"></a>AT模式脏读问题解决方案</h3><p>存在这样的一个场景，在并发请求中，当线程A刚完成扣减余额1000-200&#x3D;800，但库存还没扣减，这时候线程B来了，线程B读到的余额为800，它也进行了扣减800-200&#x3D;600，而这时候线程A扣库存出现了异常，线程A回滚了，那这里线程B是不是就脏读了？</p>
+<p><strong>我们看看官网开发者指南里AT模式的读隔离描述：</strong></p>
+<p>在数据库本地事务隔离级别 <strong>读已提交（Read Committed）</strong> 或以上的基础上，Seata（AT 模式）的默认全局隔离级别是 <strong>读未提交（Read Uncommitted）</strong> 。</p>
+<p>如果应用在特定场景下，必需要求全局的 <strong>读已提交</strong> ，目前 Seata 的方式是通过 SELECT FOR UPDATE 语句的代理。</p>
+<p><strong>SELECT FOR UPDATE 语句的执行会申请 全局锁</strong> ，如果 <strong>全局锁</strong> 被其他事务持有，则释放本地锁（回滚 SELECT FOR UPDATE 语句的本地执行）并重试。这个过程中，查询是被 block 住的，直到 <strong>全局锁</strong> 拿到，即读取的相关数据是 <strong>已提交</strong> 的，才返回。</p>
+<p>出于总体性能上的考虑，Seata 目前的方案并没有对所有 SELECT 语句都进行代理，仅针对 FOR UPDATE 的 SELECT 语句。</p>
+<p>以上是官网的描述。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291812766.jpeg" alt="img"></p>
+<p>其实官网的描述已经说的很清楚了，如果你还是不太清楚，我给你解析一下官网提供的这个图，你应该就明白了。</p>
+<p>首先它有两个线程tx1和tx2，初始的的业务有一条数据为id&#x3D;1、m&#x3D;1000。</p>
+<p>1.tx1线程开始执行，获取本地锁，更新id&#x3D;1的m数据为m-100&#x3D;900。</p>
+<p>2.tx1线程获取全局锁，提交本地事务并释放本地锁。</p>
+<p>3.这时候线程tx2来了，它去查询m并在查询的时候加上了 for update 也就是尝试申请一个全局锁，但这时候tx1还没有执行完，所以tx2拿不到全局锁。</p>
+<p>4.tx2释放本地锁并再次重试执行查询，重请期间tx2一直会处于阻塞状态，直到获取到tx1释放的全局锁并查询到tx1已回滚或已提交的数据m。也就是读已提交。</p>
+<p><strong>在分布式事务中实现读已提交的代价是很高的，效率比起读未提交差别很大，所以</strong> <strong>Seata 默认并没有开启，当只有你业务上确实需要数据强一致时才有开启的必要。</strong></p>
+<h3 id="2-5-AT模式脏写问题"><a href="#2-5-AT模式脏写问题" class="headerlink" title="2.5.AT模式脏写问题"></a>2.5.AT模式脏写问题</h3><p>seata 有没有脏写的问题? 这个问题我们可以直接明确的回答没有，那 seata 是怎么解决AT模式脏写问题的呢? 这个在官网上也有解答，他使用的是全局锁，我们一起来看一下。</p>
+<p><strong>官网开发者指南里AT模式的写隔离描述：</strong></p>
+<ul>
+<li>一阶段本地事务提交前，需要确保先拿到 <strong>全局锁</strong> 。</li>
+<li>拿不到 <strong>全局锁</strong> ，不能提交本地事务。</li>
+<li>拿 <strong>全局锁</strong> 的尝试被限制在一定范围内，超出范围将放弃，并回滚本地事务，释放本地锁。</li>
+</ul>
+<p>以一个示例来说明：</p>
+<p>两个全局事务 tx1 和 tx2，分别对 a 表的 m 字段进行更新操作，m 的初始值 1000。</p>
+<p>tx1 先开始，开启本地事务，拿到本地锁，更新操作 m &#x3D; 1000 - 100 &#x3D; 900。本地事务提交前，先拿到该记录的 <strong>全局锁</strong> ，本地提交释放本地锁。 tx2 后开始，开启本地事务，拿到本地锁，更新操作 m &#x3D; 900 - 100 &#x3D; 800。本地事务提交前，尝试拿该记录的 <strong>全局锁</strong> ，tx1 全局提交前，该记录的全局锁被 tx1 持有，tx2 需要重试等待 <strong>全局锁</strong> 。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291812641.jpeg" alt="img"></p>
+<p>tx1 二阶段全局提交，释放 <strong>全局锁</strong> 。tx2 拿到 <strong>全局锁</strong> 提交本地事务。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291812151.jpeg" alt="img"></p>
+<p>如果 tx1 的二阶段全局回滚，则 tx1 需要重新获取该数据的本地锁，进行反向补偿的更新操作，实现分支的回滚。</p>
+<p>此时，如果 tx2 仍在等待该数据的 <strong>全局锁</strong>，同时持有本地锁，则 tx1 的分支回滚会失败。分支的回滚会一直重试，直到 tx2 获取 <strong>全局锁</strong> 等待超时，放弃 <strong>全局锁</strong> 并回滚本地事务释放本地锁，tx1 的分支回滚最终成功。</p>
+<p>因为整个过程 <strong>全局锁</strong> 在 tx1 结束前一直是被 tx1 持有的，所以不会发生 <strong>脏写</strong> 的问题。</p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_43444652/article/details/124683906">https://blog.csdn.net/weixin_43444652/article/details/124683906</a></p>
+<h1 id="seata-saga模式"><a href="#seata-saga模式" class="headerlink" title="seata-saga模式"></a>seata-saga模式</h1><p>概述<br>Saga模式是SEATA提供的长事务解决方案，在Saga模式中，业务流程中每个参与者都提交本地事务，当出现某一个参与者失败则补偿前面已经成功的参与者，一阶段正向服务和二阶段补偿服务都由业务开发实现。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291812938.png" alt="在这里插入图片描述"></p>
+<p>适用场景：</p>
+<blockquote>
+<p>业务流程长、业务流程多<br>参与者包含其它公司或遗留系统服务，无法提供 TCC 模式要求的三个接口</p>
+<p>优势：<br>一阶段提交本地事务，无锁，高性能<br>事件驱动架构，参与者可异步执行，高吞吐<br>补偿服务易于实现</p>
+<p>缺点：<br>不保证隔离性（应对方案见后面文档）</p>
+</blockquote>
+<p>Saga的实现：<br><strong>基于状态机引擎的 Saga 实现：</strong><br>目前SEATA提供的Saga模式是基于状态机引擎来实现的，机制是：</p>
+<blockquote>
+<p>1.通过状态图来定义服务调用的流程并生成 json 状态语言定义文件<br>2.状态图中一个节点可以是调用一个服务，节点可以配置它的补偿节点<br>3.状态图 json 由状态机引擎驱动执行，当出现异常时状态引擎反向执行已成功节点对应的补偿节点将事务回滚<br>注意: 异常发生时是否进行补偿也可由用户自定义决定<br>可以实现服务编排需求，支持单项选择、并发、子流程、参数转换、参数映射、服务执行状态判断、异常捕获等功能</p>
+</blockquote>
+<p>示例状态图:</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291813128.png" alt="在这里插入图片描述"></p>
+<p>最佳实践<br>Saga 服务设计的实践经验</p>
+<ul>
+<li>允许空补偿</li>
+</ul>
+<p>空补偿：原服务未执行，补偿服务执行了<br>出现原因：</p>
+<blockquote>
+<p>原服务 超时（丢包）<br>Saga 事务触发 回滚<br>未收到 原服务请求，先收到 补偿请求<br>所以服务设计时需要允许空补偿, 即没有找到要补偿的业务主键时返回补偿成功并将原业务主键记录下来</p>
+</blockquote>
+<ul>
+<li><p>防悬挂控制<br>悬挂：补偿服务 比 原服务 先执行<br>出现原因：</p>
+<blockquote>
+<p>原服务 超时（拥堵）<br>Saga 事务回滚，触发 回滚<br>拥堵的 原服务 到达<br>所以要检查当前业务主键是否已经在空补偿记录下来的业务主键中存在，如果存在则要拒绝服务的执行</p>
+</blockquote>
+</li>
+<li><p>幂等控制<br>原服务与补偿服务都需要保证幂等性, 由于网络可能超时, 可以设置重试策略，重试发生时要通过幂等控制避免业务数据重复更新</p>
+</li>
+<li><p>缺乏隔离性的应对<br>由于 Saga 事务不保证隔离性, 在极端情况下可能由于脏写无法完成回滚操作, 比如举一个极端的例子, 分布式事务内先给用户A充值, 然后给用户B扣减余额, 如果在给A用户充值成功, 在事务提交以前, A用户把余额消费掉了, 如果事务发生回滚, 这时则没有办法进行补偿了。这就是缺乏隔离性造成的典型的问题, 实践中一般的应对方法是：<br>1.业务流程设计时遵循“宁可长款, 不可短款”的原则, 长款意思是客户少了钱机构多了钱, 以机构信誉可以给客户退款, 反之则是短款, 少的钱可能追不回来了。所以在业务流程设计上一定是先扣款。<br>2.有些业务场景可以允许让业务最终成功, 在回滚不了的情况下可以继续重试完成后面的流程, 所以状态机引擎除了提供“回滚”能力还需要提供“向前”恢复上下文继续执行的能力, 让业务最终执行成功, 达到最终一致性的目的。</p>
+</li>
+<li><p>性能优化<br>配置客户端参数client.rm.report.success.enable&#x3D;false，可以在当分支事务执行成功时不上报分支状态到server，从而提升性能。<br>当上一个分支事务的状态还没有上报的时候，下一个分支事务已注册，可以认为上一个实际已成功<br>————————————————</p>
+</li>
+</ul>
+<hr>
+<p>转载自：<br><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s?__biz=MzA4MTk3MjI0Mw==&mid=2247497223&idx=1&sn=913c9afb7e26895162153899f93dca6f&chksm=9f8e6b7ba8f9e26d9b091eed0ee6cc9ff5a259ab55f197afa5b9654234a0894e85464e24648c&scene=27">https://mp.weixin.qq.com/s?__biz=MzA4MTk3MjI0Mw==&amp;mid=2247497223&amp;idx=1&amp;sn=913c9afb7e26895162153899f93dca6f&amp;chksm=9f8e6b7ba8f9e26d9b091eed0ee6cc9ff5a259ab55f197afa5b9654234a0894e85464e24648c&amp;scene=27</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/" rel="prev" title="分布式事务">
+      <i class="fa fa-chevron-left"></i> 分布式事务
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/TCC%E6%9C%8D%E5%8A%A1%E8%AE%BE%E8%AE%A1%E5%92%8C%E5%AE%9E%E7%8E%B0%E6%B3%A8%E6%84%8F%E4%BA%8B%E9%A1%B9/" rel="next" title="TCC服务设计和实现注意事项">
+      TCC服务设计和实现注意事项 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#1-%E4%BB%80%E4%B9%88%E6%98%AFseata"><span class="nav-number">1.</span> <span class="nav-text">1. 什么是seata</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-seata%E5%8F%91%E5%B1%95%E5%8E%86%E7%A8%8B"><span class="nav-number">2.</span> <span class="nav-text">2. seata发展历程</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-seata%E4%B8%AD%E7%9B%B8%E5%85%B3%E4%BA%8B%E5%8A%A1%E6%A6%82%E5%BF%B5"><span class="nav-number">3.</span> <span class="nav-text">3. seata中相关事务概念</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4-seata%E7%9A%84%E5%B7%A5%E4%BD%9C%E6%B5%81%E7%A8%8B%E7%9B%B8%E5%85%B3%E6%A6%82%E5%BF%B5"><span class="nav-number">4.</span> <span class="nav-text">4. seata的工作流程相关概念</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-seata%E7%9A%84%E5%B7%A5%E4%BD%9C%E6%B5%81%E7%A8%8B"><span class="nav-number">5.</span> <span class="nav-text">5. seata的工作流程</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#seata%E5%9B%9B%E7%A7%8D%E6%A8%A1%E5%BC%8F"><span class="nav-number">6.</span> <span class="nav-text">seata四种模式</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#6-seata%E7%9A%84AT%E6%A8%A1%E5%BC%8F"><span class="nav-number">7.</span> <span class="nav-text">6. seata的AT模式</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#7-seata%E7%9A%84AT%E6%A8%A1%E5%BC%8F%E5%85%B7%E4%BD%93%E6%89%A7%E8%A1%8C%E6%B5%81%E7%A8%8B"><span class="nav-number">8.</span> <span class="nav-text">7. seata的AT模式具体执行流程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#AT%E6%A8%A1%E5%BC%8F%E8%84%8F%E8%AF%BB%E9%97%AE%E9%A2%98%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88"><span class="nav-number">8.0.1.</span> <span class="nav-text">AT模式脏读问题解决方案</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-5-AT%E6%A8%A1%E5%BC%8F%E8%84%8F%E5%86%99%E9%97%AE%E9%A2%98"><span class="nav-number">8.0.2.</span> <span class="nav-text">2.5.AT模式脏写问题</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#seata-saga%E6%A8%A1%E5%BC%8F"><span class="nav-number">9.</span> <span class="nav-text">seata-saga模式</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

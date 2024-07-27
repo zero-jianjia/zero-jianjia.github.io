@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="[toc] 一、云原生是什么要理解云原生，可以把云原生拆分为云和原生两部分。云云原生的“云”代表“云计算”，因此在了解云原生之前，需要先了解云计算。 云计算的字面意义是通过互联网提供计算资源，其中最为基础的计算资源就是服务器、存储、网络资源等，这些资源是互联网世界的基础设施，因此提供这些资源的租用的服务就叫做 IaaS（Infrastructure as a Service）。显而易见，这些基础设">
+<meta property="og:type" content="article">
+<meta property="og:title" content="什么是元原生">
+<meta property="og:url" content="http://example.com/2024/06/01/k8s&docker/%E4%BB%80%E4%B9%88%E6%98%AF%E5%85%83%E5%8E%9F%E7%94%9F/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="[toc] 一、云原生是什么要理解云原生，可以把云原生拆分为云和原生两部分。云云原生的“云”代表“云计算”，因此在了解云原生之前，需要先了解云计算。 云计算的字面意义是通过互联网提供计算资源，其中最为基础的计算资源就是服务器、存储、网络资源等，这些资源是互联网世界的基础设施，因此提供这些资源的租用的服务就叫做 IaaS（Infrastructure as a Service）。显而易见，这些基础设">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240616092545.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240616091632.png">
+<meta property="article:published_time" content="2024-05-31T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.583Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240616092545.png">
+
+<link rel="canonical" href="http://example.com/2024/06/01/k8s&docker/%E4%BB%80%E4%B9%88%E6%98%AF%E5%85%83%E5%8E%9F%E7%94%9F/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>什么是元原生 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/06/01/k8s&docker/%E4%BB%80%E4%B9%88%E6%98%AF%E5%85%83%E5%8E%9F%E7%94%9F/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          什么是元原生
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-06-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-06-01T00:00:00+08:00">2024-06-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/k8s-docker/" itemprop="url" rel="index"><span itemprop="name">k8s&docker</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>[toc]</p>
+<h1 id="一、云原生是什么"><a href="#一、云原生是什么" class="headerlink" title="一、云原生是什么"></a>一、云原生是什么</h1><p>要理解云原生，可以把云原生拆分为云和原生两部分。<br><strong>云</strong><br>云原生的“云”代表“云计算”，因此在了解云原生之前，需要先了解云计算。</p>
+<p>云计算的字面意义是通过互联网提供计算资源，其中最为基础的计算资源就是服务器、存储、网络资源等，这些资源是互联网世界的基础设施，因此提供这些资源的租用的服务就叫做 IaaS（Infrastructure as a Service）。显而易见，这些基础设施服务供应商都是业界大佬：AWS（亚马逊云）、Azure（微软云）、阿里云、谷歌云、IBM 云、腾讯云、华为云等。</p>
+<p>供应商将大量的基础设施进行统一管理，通过虚拟化等技术手段，形成巨大的可动态分配资源池，大大促进了物理资源的利用率，因此也使得租用成本降低。企业只需要按照使用量进行付费，再不用付出昂贵的设施购买、维护成本。除此之外，云服务还有可随时按需伸缩容量、备份恢复简单、快速部署易于集成等优点。</p>
+<p>云资源不仅包含基础设施，在云上搭建的开发平台、应用等都可以作为一种服务提供给用户，这就是Paas（Platform as a Service）和 SaaS（Software as a Service）。根据云服务的开放范围，又可以分为公有云、私有云、混合云。</p>
+<span id="more"></span>
+
+<p><strong>原生</strong><br>什么是原生呢？原生就是指土生土长。我们程序在开发设计的时候，在本地自建服务器运行和在云服务器运行，项目的架构设计等方面，都是完全不一样的。<br>而原生，就是指，应用程序从设计之初即考虑到云的环境，原生为云而设计，在云上以最佳姿势运行，要充分利用云上资源的优点，从而使我们的的应用更强大，更迅速、更稳定。</p>
+<p><strong>云+原生</strong><br>云原生应用即专门为在云平台部署和运行而设计的应用。</p>
+<p>云原生的英文是Cloud Native，Cloud Native Application 就是指应用从设计开始就是为部署在云环境上的。</p>
+<p>云原生计算基金会（CNCF，CLOUD NATIVE COMPUTING FOUNDATION）提供的官方定义如下：</p>
+<blockquote>
+<p>云原生技术有利于各组织在公有云、私有云和混合云等新型动态环境中，构建和运行可弹性扩展的应用。云原生的代表技术包括容器、服务网格、微服务、不可变基础设施和声明式API。<br>这些技术能够构建容错性好、易于管理和便于观察的松耦合系统。结合可靠的自动化手段，云原生技术使工程师能够轻松地对系统作出频繁和可预测的重大变更。</p>
+</blockquote>
+<h1 id="二、云原生四要素"><a href="#二、云原生四要素" class="headerlink" title="二、云原生四要素"></a>二、云原生四要素</h1><p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240616092545.png" alt="image-20240616092543653"></p>
+<p><strong>微服务</strong><br>几乎每个云原生的定义都包含微服务。</p>
+<p><strong>DevOps</strong><br>这是个组合词，Dev+Ops。实际上DevOps其实是一种软件研发管理的思想，方法论，它追求的是一种没有隔阂的理想的研发协作的状态，可能涉及到的角色有开发、测试、产品、项目管理、运维等等，目标是自动执行软件交付和基础架构更改流程，可支撑快速、频繁、可靠地构建、测试和发布软件，缩短开发周期，增加部署频率，更可靠地发布。</p>
+<p><strong>持续交付</strong><br>持续交付是不误时开发，不停机更新，小步快跑，反传统瀑布式开发模型，这要求开发版本和稳定版本并存，其实需要很多流程和工具支撑。</p>
+<p><strong>容器化</strong><br>Docker是应用最为广泛的容器引擎，在思科谷歌等公司的基础设施中大量使用，是基于LXC技术搞的，容器化为微服务提供实施保障，起到应用隔离作用，K8S是容器编排系统，用于容器管理，容器间的负载均衡。</p>
+<h1 id="三、云原生技术"><a href="#三、云原生技术" class="headerlink" title="三、云原生技术"></a>三、云原生技术</h1><p>云原生技术有很多，大体可以分为以下5种：容器、服务网格、声明式API、不可变基础设施、微服务。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240616091632.png" alt="image-20240616091629484"></p>
+<h2 id="容器-Containers"><a href="#容器-Containers" class="headerlink" title="容器(Containers)"></a>容器(Containers)</h2><p>容器是是一种轻量级、可移植、自包含的软件打包技术，以容器为基础，应用程序封装在容器之中，在容器里运行，实现资源的相对隔离与容器镜像的重复使用，能够使应用程序在几乎任何地方以相同的方式运行。</p>
+<p>开发人员只要编写一次应用程序，无须任何修改就能够在生产系统的虚拟机、物理服务器或公有云主机上等任意位置运行。这大大简化了开发的工作量，同时对于运维人员也极为友好，不需要再为环境问题而苦恼。使用到的技术包括Docker和k8s。</p>
+<h2 id="服务网格-Service-Meshes"><a href="#服务网格-Service-Meshes" class="headerlink" title="服务网格(Service Meshes)"></a>服务网格(Service Meshes)</h2><p>服务网格(Service Mesh)是一个专门处理服务与服务之间通讯的基础设施层。它的职责是在由云原生应用组成服务的复杂拓扑结构下进行可靠的请求传送。在实践中，它是一组和应用服务部署在一起的轻量级的网络代理，并且对应用服务透明。</p>
+<h2 id="微服务-Microservices"><a href="#微服务-Microservices" class="headerlink" title="微服务(Microservices)"></a>微服务(Microservices)</h2><p>微服务区别于单体应用而生。传统的单体应用由于耦合度高、扩展性差、迭代缓慢等缺点，已无法适应移动互联时代用户体量以及访问量几何式倍增、用户需求快速变化的现状。微服务便应运而生，其本质上是对传统的单体应用根据业务领域和模块进行划分、解耦，拆分成一个一个相对独立，相互解耦、单独部署、运行的微小应用。</p>
+<h2 id="不可变基础设施-Immutable-Infrastructure"><a href="#不可变基础设施-Immutable-Infrastructure" class="headerlink" title="不可变基础设施(Immutable Infrastructure)"></a>不可变基础设施(Immutable Infrastructure)</h2><p>不可变基础设施里的“不可变”非常类似于程序设计中的“不可变”概念。程序设计中不可变变量(ImmutableVariable)就是在完成赋值后就不能发生更改，只能创建新的来整体替换旧的。由于具有这样的特性这种变量可以在并发环境下安全的使用。</p>
+<p>对于基础设施的不可变性，最基本的就是指运行服务的服务器在完成部署后，就不在进行更改。如果需要以任何方式更新，修复或修改某些内容，则会根据具有相应更改的公共镜像构建新服务器以替换旧服务器。</p>
+<p>不可变基础架构的好处包括基础架构中更高的一致性和可靠性，以及更简单，更可预测的部署过程，它可以缓解或完全防止可变基础架构中常见的问题，例如配置漂移和雪花服务器。</p>
+<h2 id="声明式API-Deciarative-API"><a href="#声明式API-Deciarative-API" class="headerlink" title="声明式API(Deciarative API)"></a>声明式API(Deciarative API)</h2><p>声明式API是一种能够一次处理多个写操作、具备Merge能力的API。区别于命令式API直接发出的让服务器执行的命令，声明式API声明的是期望的状态，系统将不断地调整实际状态，直到与期望状态保持一致。</p>
+<p>声明式API是Kubernetes的技术点，它的核心原理，就是当用户向Kubernetes提交了一个API对象的描述之后，Kubernetes会负责为你保证整个集群里各项资源的状态，都与你的API对象描述的需求相一致。更重要的是，这个保证是一项”无条件的”、”没有期限”的承诺：对于每个保存在etcd里的API对象，Kubernetes都通过启动一种叫做”控制器模式”(Controller Pattern)的无限循环，不断检查，然后调节，最后确保整个集群的状态与这个AP!对象的描述一致。</p>
+<h1 id="四、云原生的好处"><a href="#四、云原生的好处" class="headerlink" title="四、云原生的好处"></a>四、云原生的好处</h1><ul>
+<li>快速云原生架构使用敏捷开发和单位，不但可以让企业快速的进行开发，自动化的不做产品，同时还能持续地更新产品，让产品跟得上需求，甚至是引导需求，让企业立于不败之地。</li>
+<li>弹性扩展云原生架构天生具有云计算的特点，资源可以按需进行伸缩，这样不单提高资源的利用率，也大大降低了企业成本。</li>
+<li>强壮云原生架构依托于容器编排工去k8s与微服务的组合应用，就拥有了自动恢复能力，容错能力，故障隔离能力，让应用更强。</li>
+<li>屏蔽底层差异，因为使用的容器化技术应用运行于容器之中，就不需要考虑底层硬件的差异，这大大简化了开发的工作量，同时对于运维人员也极为友好，不需要再为环境问题而苦恼。</li>
+</ul>
+<hr>
+<p>转载自：<br><a target="_blank" rel="noopener" href="https://www.yunsucheng.com/archives/6183">https://www.yunsucheng.com/archives/6183</a><br><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/566804725">https://zhuanlan.zhihu.com/p/566804725</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%B9%B3%E6%BB%91%E6%89%A9%E5%AE%B9%E6%96%B9%E6%A1%88/" rel="prev" title="数据库平滑扩容方案">
+      <i class="fa fa-chevron-left"></i> 数据库平滑扩容方案
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/06/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%8F%AF%E8%A7%82%E6%B5%8B/%E7%AE%80%E8%BF%B0OpenTracing%E4%B8%8EOpenTelemetry%E7%9A%84%E5%88%86%E5%88%AB/" rel="next" title="简述OpenTracing与OpenTelemetry的分别">
+      简述OpenTracing与OpenTelemetry的分别 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E4%BA%91%E5%8E%9F%E7%94%9F%E6%98%AF%E4%BB%80%E4%B9%88"><span class="nav-number">1.</span> <span class="nav-text">一、云原生是什么</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E4%BA%91%E5%8E%9F%E7%94%9F%E5%9B%9B%E8%A6%81%E7%B4%A0"><span class="nav-number">2.</span> <span class="nav-text">二、云原生四要素</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E4%BA%91%E5%8E%9F%E7%94%9F%E6%8A%80%E6%9C%AF"><span class="nav-number">3.</span> <span class="nav-text">三、云原生技术</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%B9%E5%99%A8-Containers"><span class="nav-number">3.1.</span> <span class="nav-text">容器(Containers)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9C%8D%E5%8A%A1%E7%BD%91%E6%A0%BC-Service-Meshes"><span class="nav-number">3.2.</span> <span class="nav-text">服务网格(Service Meshes)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BE%AE%E6%9C%8D%E5%8A%A1-Microservices"><span class="nav-number">3.3.</span> <span class="nav-text">微服务(Microservices)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%8D%E5%8F%AF%E5%8F%98%E5%9F%BA%E7%A1%80%E8%AE%BE%E6%96%BD-Immutable-Infrastructure"><span class="nav-number">3.4.</span> <span class="nav-text">不可变基础设施(Immutable Infrastructure)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A3%B0%E6%98%8E%E5%BC%8FAPI-Deciarative-API"><span class="nav-number">3.5.</span> <span class="nav-text">声明式API(Deciarative API)</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E4%BA%91%E5%8E%9F%E7%94%9F%E7%9A%84%E5%A5%BD%E5%A4%84"><span class="nav-number">4.</span> <span class="nav-text">四、云原生的好处</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

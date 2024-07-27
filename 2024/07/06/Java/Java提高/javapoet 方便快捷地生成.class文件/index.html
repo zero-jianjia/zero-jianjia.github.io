@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="[toc]javapoet可以更加快捷地生成字节码，实现原理其实也就是对JavaAPT的封装，然而Javapoet有一个局限性，就是只能生成新的.class文件，却无法修改原有的类，这也是它的一大局限性所在。接下来就让我们看看它的使用方法把。 01 简单使用使用之前要先引入这个库 1compile &#x27;com.squareup:javapoet:1.7.0&#x27; javapoet是用">
+<meta property="og:type" content="article">
+<meta property="og:title" content="javapoet:方便快捷地生成.class文件">
+<meta property="og:url" content="http://example.com/2024/07/06/Java/Java%E6%8F%90%E9%AB%98/javapoet%20%E6%96%B9%E4%BE%BF%E5%BF%AB%E6%8D%B7%E5%9C%B0%E7%94%9F%E6%88%90.class%E6%96%87%E4%BB%B6/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="[toc]javapoet可以更加快捷地生成字节码，实现原理其实也就是对JavaAPT的封装，然而Javapoet有一个局限性，就是只能生成新的.class文件，却无法修改原有的类，这也是它的一大局限性所在。接下来就让我们看看它的使用方法把。 01 简单使用使用之前要先引入这个库 1compile &#x27;com.squareup:javapoet:1.7.0&#x27; javapoet是用">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407141046397.png">
+<meta property="article:published_time" content="2024-07-05T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.371Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407141046397.png">
+
+<link rel="canonical" href="http://example.com/2024/07/06/Java/Java%E6%8F%90%E9%AB%98/javapoet%20%E6%96%B9%E4%BE%BF%E5%BF%AB%E6%8D%B7%E5%9C%B0%E7%94%9F%E6%88%90.class%E6%96%87%E4%BB%B6/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>javapoet:方便快捷地生成.class文件 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/07/06/Java/Java%E6%8F%90%E9%AB%98/javapoet%20%E6%96%B9%E4%BE%BF%E5%BF%AB%E6%8D%B7%E5%9C%B0%E7%94%9F%E6%88%90.class%E6%96%87%E4%BB%B6/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          javapoet:方便快捷地生成.class文件
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-07-06 00:00:00" itemprop="dateCreated datePublished" datetime="2024-07-06T00:00:00+08:00">2024-07-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E6%8F%90%E9%AB%98/" itemprop="url" rel="index"><span itemprop="name">Java提高</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>[toc]<br>javapoet可以更加快捷地生成字节码，实现原理其实也就是对JavaAPT的封装，然而Javapoet有一个局限性，就是只能生成新的.class文件，却无法修改原有的类，这也是它的一大局限性所在。接下来就让我们看看它的使用方法把。</p>
+<h2 id="01-简单使用"><a href="#01-简单使用" class="headerlink" title="01 简单使用"></a>01 简单使用</h2><p>使用之前要先引入这个库</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">compile &#x27;com.squareup:javapoet:1.7.0&#x27;</span><br></pre></td></tr></table></figure>
+<p>javapoet是用来生成代码的，需要借助如下几个常用类</p>
+<table>
+<thead>
+<tr>
+<th align="left">类名</th>
+<th align="left">作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">MethodSpec</td>
+<td align="left">代表一个构造函数或方法声明</td>
+</tr>
+<tr>
+<td align="left">TypeSpec</td>
+<td align="left">代表一个类，接口，或者枚举声明</td>
+</tr>
+<tr>
+<td align="left">FieldSpec</td>
+<td align="left">代表一个成员变量，一个字段声明</td>
+</tr>
+<tr>
+<td align="left">JavaFile</td>
+<td align="left">包含一个顶级类的Java文件</td>
+</tr>
+<tr>
+<td align="left">ParameterSpec</td>
+<td align="left">用来创建参数</td>
+</tr>
+<tr>
+<td align="left">AnnotationSpec</td>
+<td align="left">用来创建注解</td>
+</tr>
+<tr>
+<td align="left">ClassName</td>
+<td align="left">用来包装一个类</td>
+</tr>
+<tr>
+<td align="left">TypeName</td>
+<td align="left">类型，如在添加返回值类型是使用 TypeName.VOID</td>
+</tr>
+</tbody></table>
+<p>除此之外 JavaPoet提供了一套自定义的字符串格式化规则，常用的有</p>
+<table>
+<thead>
+<tr>
+<th align="left">格式化规则</th>
+<th align="left">表示含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">$L</td>
+<td align="left">字面量</td>
+</tr>
+<tr>
+<td align="left">$S</td>
+<td align="left">字符串</td>
+</tr>
+<tr>
+<td align="left">$T</td>
+<td align="left">类、接口</td>
+</tr>
+<tr>
+<td align="left">$N</td>
+<td align="left">变量</td>
+</tr>
+</tbody></table>
+<span id="more"></span>
+
+<h2 id="02-使用进阶"><a href="#02-使用进阶" class="headerlink" title="02 使用进阶"></a>02 使用进阶</h2><p><strong>方法&amp;控制流</strong></p>
+<ul>
+<li>添加方法 <code>addcode</code> 和 <code>addstatement</code> 对与无需类引入的极简代码可以直接使用<code>addCode</code></li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">MethodSpec</span> <span class="variable">main</span> <span class="operator">=</span> MethodSpec.methodBuilder(<span class="string">&quot;main&quot;</span>)</span><br><span class="line">    .addCode(<span class="string">&quot;&quot;</span></span><br><span class="line">        + <span class="string">&quot;int total = 0;\n&quot;</span></span><br><span class="line">        + <span class="string">&quot;for (int i = 0; i &lt; 10; i++) &#123;\n&quot;</span></span><br><span class="line">        + <span class="string">&quot;  total += i;\n&quot;</span></span><br><span class="line">        + <span class="string">&quot;&#125;\n&quot;</span>)</span><br><span class="line">    .build();</span><br></pre></td></tr></table></figure>
+
+<p>生成的是:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">void</span> <span class="title function_">main</span><span class="params">()</span> &#123;</span><br><span class="line">  <span class="type">int</span> <span class="variable">total</span> <span class="operator">=</span> <span class="number">0</span>;</span><br><span class="line">  <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; <span class="number">10</span>; i++) &#123;</span><br><span class="line">    total += i;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>要是需要import的方法，如上面的<code>.addStatement(&quot;$T.out.println($S)&quot;, System.class, &quot;Hello, JavaPoet!&quot;)</code> 就需要使用<code>.addStatement</code>来声明</p>
+<ul>
+<li>更优雅的流控制</li>
+</ul>
+<p><code>beginControlFlow</code> 流开启 <code>addStatement</code> 处理语句 <code>endControlFlow()</code>流结束。如上面的用流改写就是</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">MethodSpec</span> <span class="variable">main</span> <span class="operator">=</span> MethodSpec.methodBuilder(<span class="string">&quot;main&quot;</span>)</span><br><span class="line">    .addStatement(<span class="string">&quot;int total = 0&quot;</span>)</span><br><span class="line">    .beginControlFlow(<span class="string">&quot;for (int i = 0; i &lt; 10; i++)&quot;</span>)</span><br><span class="line">    .addStatement(<span class="string">&quot;total += i&quot;</span>)</span><br><span class="line">    .endControlFlow()</span><br><span class="line">    .build();</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>占位符</strong></p>
+<p>javapoet里面提供了占位符来帮助我们更好地生成代码 <code>$L 字面常量（Literals）</code></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> MethodSpec <span class="title function_">computeRange</span><span class="params">(String name, <span class="type">int</span> from, <span class="type">int</span> to, String op)</span> &#123;</span><br><span class="line">  <span class="keyword">return</span> MethodSpec.methodBuilder(name)</span><br><span class="line">      .returns(<span class="type">int</span>.class)</span><br><span class="line">      .addStatement(<span class="string">&quot;int result = 0&quot;</span>)</span><br><span class="line">      .beginControlFlow(<span class="string">&quot;for (int i = $L; i &lt; $L; i++)&quot;</span>, from, to)</span><br><span class="line">      .addStatement(<span class="string">&quot;result = result $L i&quot;</span>, op)</span><br><span class="line">      .endControlFlow()</span><br><span class="line">      .addStatement(<span class="string">&quot;return result&quot;</span>)</span><br><span class="line">      .build();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个就是一个for循环，op负责加减乘除等符号</p>
+<p><code>$S 字符串常量（String）</code></p>
+<p><code>$T 类型(Types)</code></p>
+<p>最大的特点是自动导入包</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">MethodSpec</span> <span class="variable">today</span> <span class="operator">=</span> MethodSpec.methodBuilder(<span class="string">&quot;today&quot;</span>)</span><br><span class="line">    .returns(Date.class)</span><br><span class="line">    .addStatement(<span class="string">&quot;return new $T()&quot;</span>, Date.class)</span><br><span class="line">    .build();</span><br><span class="line"></span><br><span class="line"><span class="type">TypeSpec</span> <span class="variable">helloWorld</span> <span class="operator">=</span> TypeSpec.classBuilder(<span class="string">&quot;HelloWorld&quot;</span>)</span><br><span class="line">    .addModifiers(Modifier.PUBLIC, Modifier.FINAL)</span><br><span class="line">    .addMethod(today)</span><br><span class="line">    .build();</span><br><span class="line"></span><br><span class="line"><span class="type">JavaFile</span> <span class="variable">javaFile</span> <span class="operator">=</span> JavaFile.builder(<span class="string">&quot;com.example.helloworld&quot;</span>, helloWorld)</span><br><span class="line">    .build();</span><br><span class="line"></span><br><span class="line">javaFile.writeTo(System.out);</span><br></pre></td></tr></table></figure>
+
+<p>生成的代码如下，而且会自动导包:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.example.helloworld;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.util.Date;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">class</span> <span class="title class_">HelloWorld</span> &#123;</span><br><span class="line">  Date <span class="title function_">today</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">Date</span>();</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>$N 命名(Names)</code> 通常指我们自己生成的方法名或者变量名等等，比如这样的代码块:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> String <span class="title function_">byteToHex</span><span class="params">(<span class="type">int</span> b)</span> &#123;</span><br><span class="line">  <span class="type">char</span>[] result = <span class="keyword">new</span> <span class="title class_">char</span>[<span class="number">2</span>];</span><br><span class="line">  result[<span class="number">0</span>] = hexDigit((b &gt;&gt;&gt; <span class="number">4</span>) &amp; <span class="number">0xf</span>);</span><br><span class="line">  result[<span class="number">1</span>] = hexDigit(b &amp; <span class="number">0xf</span>);</span><br><span class="line">  <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">String</span>(result);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="type">char</span> <span class="title function_">hexDigit</span><span class="params">(<span class="type">int</span> i)</span> &#123;</span><br><span class="line">  <span class="keyword">return</span> (<span class="type">char</span>) (i &lt; <span class="number">10</span> ? i + <span class="string">&#x27;0&#x27;</span> : i - <span class="number">10</span> + <span class="string">&#x27;a&#x27;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们可以传递<code>hexDigit()</code>来代替。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">MethodSpec</span> <span class="variable">hexDigit</span> <span class="operator">=</span> MethodSpec.methodBuilder(<span class="string">&quot;hexDigit&quot;</span>)</span><br><span class="line">    .addParameter(<span class="type">int</span>.class, <span class="string">&quot;i&quot;</span>)</span><br><span class="line">    .returns(<span class="type">char</span>.class)</span><br><span class="line">    .addStatement(<span class="string">&quot;return (char) (i &lt; 10 ? i + &#x27;0&#x27; : i - 10 + &#x27;a&#x27;)&quot;</span>)</span><br><span class="line">    .build();</span><br><span class="line"></span><br><span class="line"><span class="type">MethodSpec</span> <span class="variable">byteToHex</span> <span class="operator">=</span> MethodSpec.methodBuilder(<span class="string">&quot;byteToHex&quot;</span>)</span><br><span class="line">    .addParameter(<span class="type">int</span>.class, <span class="string">&quot;b&quot;</span>)</span><br><span class="line">    .returns(String.class)</span><br><span class="line">    .addStatement(<span class="string">&quot;char[] result = new char[2]&quot;</span>)</span><br><span class="line">    .addStatement(<span class="string">&quot;result[0] = $N((b &gt;&gt;&gt; 4) &amp; 0xf)&quot;</span>, hexDigit)</span><br><span class="line">    .addStatement(<span class="string">&quot;result[1] = $N(b &amp; 0xf)&quot;</span>, hexDigit)</span><br><span class="line">    .addStatement(<span class="string">&quot;return new String(result)&quot;</span>)</span><br><span class="line">    .build();</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>获取对应类</strong></p>
+<p>有两种方式:</p>
+<ul>
+<li>ClassName.bestGuess(“类全名称”) 返回ClassName对象，这里的类全名称表示的类必须要存在，会自动导入相应的包</li>
+<li>ClassName.get(“包名”，”类名”) 返回ClassName对象，不检查该类是否存在</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">ClassName</span> <span class="variable">hoverboard</span> <span class="operator">=</span> ClassName.get(<span class="string">&quot;com.mattel&quot;</span>, <span class="string">&quot;Hoverboard&quot;</span>);</span><br><span class="line"><span class="type">ClassName</span> <span class="variable">list</span> <span class="operator">=</span> ClassName.get(<span class="string">&quot;java.util&quot;</span>, <span class="string">&quot;List&quot;</span>);</span><br><span class="line"><span class="type">ClassName</span> <span class="variable">arrayList</span> <span class="operator">=</span> ClassName.get(<span class="string">&quot;java.util&quot;</span>, <span class="string">&quot;ArrayList&quot;</span>);</span><br><span class="line"><span class="type">TypeName</span> <span class="variable">listOfHoverboards</span> <span class="operator">=</span> ParameterizedTypeName.get(list, hoverboard);</span><br><span class="line"></span><br><span class="line"><span class="type">MethodSpec</span> <span class="variable">beyond</span> <span class="operator">=</span> MethodSpec.methodBuilder(<span class="string">&quot;beyond&quot;</span>)</span><br><span class="line">    .returns(listOfHoverboards)</span><br><span class="line">    .addStatement(<span class="string">&quot;$T result = new $T&lt;&gt;()&quot;</span>, listOfHoverboards, arrayList)</span><br><span class="line">    .addStatement(<span class="string">&quot;result.add(new $T())&quot;</span>, hoverboard)</span><br><span class="line">    .addStatement(<span class="string">&quot;result.add(new $T())&quot;</span>, hoverboard)</span><br><span class="line">    .addStatement(<span class="string">&quot;result.add(new $T())&quot;</span>, hoverboard)</span><br><span class="line">    .addStatement(<span class="string">&quot;return result&quot;</span>)</span><br><span class="line">    .build();</span><br></pre></td></tr></table></figure>
+
+<p>然后生成:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.example.helloworld;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> com.mattel.Hoverboard;</span><br><span class="line"><span class="keyword">import</span> java.util.ArrayList;</span><br><span class="line"><span class="keyword">import</span> java.util.List;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">class</span> <span class="title class_">HelloWorld</span> &#123;</span><br><span class="line">  List&lt;Hoverboard&gt; <span class="title function_">beyond</span><span class="params">()</span> &#123;</span><br><span class="line">    List&lt;Hoverboard&gt; result = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;&gt;();</span><br><span class="line">    result.add(<span class="keyword">new</span> <span class="title class_">Hoverboard</span>());</span><br><span class="line">    result.add(<span class="keyword">new</span> <span class="title class_">Hoverboard</span>());</span><br><span class="line">    result.add(<span class="keyword">new</span> <span class="title class_">Hoverboard</span>());</span><br><span class="line">    <span class="keyword">return</span> result;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>构建类的元素</strong></p>
+<ul>
+<li>方法</li>
+</ul>
+<p>方法的修饰，如<code>Modifiers.ABSTRACT</code></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">MethodSpec</span> <span class="variable">flux</span> <span class="operator">=</span> MethodSpec.methodBuilder(<span class="string">&quot;flux&quot;</span>)</span><br><span class="line">    .addModifiers(Modifier.ABSTRACT, Modifier.PROTECTED)</span><br><span class="line">    .build();</span><br><span class="line"></span><br><span class="line"><span class="type">TypeSpec</span> <span class="variable">helloWorld</span> <span class="operator">=</span> TypeSpec.classBuilder(<span class="string">&quot;HelloWorld&quot;</span>)</span><br><span class="line">    .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)</span><br><span class="line">    .addMethod(flux)</span><br><span class="line">    .build();</span><br></pre></td></tr></table></figure>
+
+<p>这将会生成如下代码</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">class</span> <span class="title class_">HelloWorld</span> &#123;</span><br><span class="line">  <span class="keyword">protected</span> <span class="keyword">abstract</span> <span class="keyword">void</span> <span class="title function_">flux</span><span class="params">()</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>当然Methods需要和<code>MethodSpec.Builder</code>配置来增加方法参数、异常、javadoc、注解等。</p>
+<ul>
+<li>构造器</li>
+</ul>
+<p>这个其实也是个函数方法而已，因此可以使用MethodSpec来生成构造器方法。比如：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">MethodSpec</span> <span class="variable">flux</span> <span class="operator">=</span> MethodSpec.constructorBuilder()</span><br><span class="line">    .addModifiers(Modifier.PUBLIC)</span><br><span class="line">    .addParameter(String.class, <span class="string">&quot;greeting&quot;</span>)</span><br><span class="line">    .addStatement(<span class="string">&quot;this.$N = $N&quot;</span>, <span class="string">&quot;greeting&quot;</span>, <span class="string">&quot;greeting&quot;</span>)</span><br><span class="line">    .build();</span><br><span class="line"></span><br><span class="line"><span class="type">TypeSpec</span> <span class="variable">helloWorld</span> <span class="operator">=</span> TypeSpec.classBuilder(<span class="string">&quot;HelloWorld&quot;</span>)</span><br><span class="line">    .addModifiers(Modifier.PUBLIC)</span><br><span class="line">    .addField(String.class, <span class="string">&quot;greeting&quot;</span>, Modifier.PRIVATE, Modifier.FINAL)</span><br><span class="line">    .addMethod(flux)</span><br><span class="line">    .build();</span><br></pre></td></tr></table></figure>
+
+<p>将会生成</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">HelloWorld</span> &#123;</span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">final</span> String greeting;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">public</span> <span class="title function_">HelloWorld</span><span class="params">(String greeting)</span> &#123;</span><br><span class="line">    <span class="built_in">this</span>.greeting = greeting;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<ul>
+<li>参数(重要)</li>
+</ul>
+<p>之前我们是通过<code>addstatement</code>直接设置参数，其实参数也有自己的一个专用类<code>ParameterSpec</code>，我们可以使用<code>ParameterSpec.builder()</code>来生成参数，然后MethodSpec的addParameter去使用，这样更加优雅。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">ParameterSpec</span> <span class="variable">android</span> <span class="operator">=</span> ParameterSpec.builder(String.class, <span class="string">&quot;android&quot;</span>)</span><br><span class="line">    .addModifiers(Modifier.FINAL)</span><br><span class="line">    .build();</span><br><span class="line"></span><br><span class="line"><span class="type">MethodSpec</span> <span class="variable">welcomeOverlords</span> <span class="operator">=</span> MethodSpec.methodBuilder(<span class="string">&quot;welcomeOverlords&quot;</span>)</span><br><span class="line">    .addParameter(android)</span><br><span class="line">    .addParameter(String.class, <span class="string">&quot;robot&quot;</span>, Modifier.FINAL)</span><br><span class="line">    .build();</span><br></pre></td></tr></table></figure>
+
+<p>生成的代码</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">void</span> <span class="title function_">welcomeOverlords</span><span class="params">(<span class="keyword">final</span> String android, <span class="keyword">final</span> String robot)</span> &#123;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>稍微复杂点的类型 比如泛型 、Map之类的，需要了解下JavaPoet定义的几种专门描述类型的类</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407141046397.png" alt="img"></p>
+<p>常见的有</p>
+<table>
+<thead>
+<tr>
+<th align="left">分类</th>
+<th align="left">生成的类型</th>
+<th align="left">JavaPoet 写法</th>
+<th align="left">也可以这么写 （等效的 Java 写法）</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">内置类型</td>
+<td align="left">int</td>
+<td align="left">TypeName.INT</td>
+<td align="left">int.class</td>
+</tr>
+<tr>
+<td align="left">数组类型</td>
+<td align="left">int[]</td>
+<td align="left">ArrayTypeName.of(int.class)</td>
+<td align="left">int[].class</td>
+</tr>
+<tr>
+<td align="left">需要引入包名的类型</td>
+<td align="left">java.io.File</td>
+<td align="left">ClassName.get(“java.io”, “File”)</td>
+<td align="left">java.io.File.class</td>
+</tr>
+<tr>
+<td align="left">参数化类型 （ParameterizedType</td>
+<td align="left">List</td>
+<td align="left">ParameterizedTypeName.get(List.class, String.class)</td>
+<td align="left">-</td>
+</tr>
+<tr>
+<td align="left">类型变量 （WildcardType） 用于声明泛型</td>
+<td align="left">T</td>
+<td align="left">TypeVariableName.get(“T”)</td>
+<td align="left">-</td>
+</tr>
+<tr>
+<td align="left">通配符类型</td>
+<td align="left">? extends String</td>
+<td align="left">WildcardTypeName.subtypeOf(String.class)</td>
+<td align="left">-</td>
+</tr>
+</tbody></table>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> *Build input type, format as :</span></span><br><span class="line"><span class="comment"> *Map&lt;String, Class&lt;? extends IRouteGroup&gt;&gt;</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">    <span class="type">ParameterizedTypeName</span> <span class="variable">inputMapTypeOfRoot</span> <span class="operator">=</span> ParameterizedTypeName.get(</span><br><span class="line">            ClassName.get(Map.class),</span><br><span class="line">            ClassName.get(String.class),</span><br><span class="line">            ParameterizedTypeName.get(</span><br><span class="line">                    ClassName.get(Class.class),</span><br><span class="line">                    WildcardTypeName.subtypeOf(ClassName.get(type_IRouteGroup))</span><br><span class="line">            )</span><br><span class="line">    );</span><br><span class="line"></span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">     *Map&lt;String, RouteMeta&gt;</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="type">ParameterizedTypeName</span> <span class="variable">inputMapTypeOfGroup</span> <span class="operator">=</span> ParameterizedTypeName.get(</span><br><span class="line">            ClassName.get(Map.class),</span><br><span class="line">            ClassName.get(String.class),</span><br><span class="line">            ClassName.get(RouteMeta.class)</span><br><span class="line">    );        </span><br><span class="line"></span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">     *Build input param name.</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="type">ParameterSpec</span> <span class="variable">rootParamSpec</span> <span class="operator">=</span> ParameterSpec.builder(inputMapTypeOfRoot, <span class="string">&quot;routes&quot;</span>).build();</span><br><span class="line">    <span class="type">ParameterSpec</span> <span class="variable">groupParamSpec</span> <span class="operator">=</span> ParameterSpec.builder(inputMapTypeOfGroup, <span class="string">&quot;atlas&quot;</span>).build();</span><br><span class="line">复制代码</span><br></pre></td></tr></table></figure>
+
+<p>生成参数类型</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ARouter$Root$app</span> <span class="keyword">implements</span> <span class="title class_">IRouteRoot</span> &#123;</span><br><span class="line">  <span class="meta">@Override</span></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">loadInto</span><span class="params">(Map&lt;String, Class&lt;? extends IRouteGroup&gt;&gt; routes)</span> &#123;</span><br><span class="line">    routes.put(<span class="string">&quot;service&quot;</span>, ARouter$Group$service.class);</span><br><span class="line">    routes.put(<span class="string">&quot;test&quot;</span>, ARouter$Group$test.class);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ARouter$Group$service</span> <span class="keyword">implements</span> <span class="title class_">IRouteGroup</span> &#123;</span><br><span class="line">  <span class="meta">@Override</span></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">loadInto</span><span class="params">(Map&lt;String, RouteMeta&gt; atlas)</span> &#123;</span><br><span class="line">    atlas.put(<span class="string">&quot;/service/hello&quot;</span>, RouteMeta.build(RouteType.PROVIDER, HelloServiceImpl.class, <span class="string">&quot;/service/hello&quot;</span>, <span class="string">&quot;service&quot;</span>, <span class="literal">null</span>, -<span class="number">1</span>, -<span class="number">2147483648</span>));</span><br><span class="line">    atlas.put(<span class="string">&quot;/service/json&quot;</span>, RouteMeta.build(RouteType.PROVIDER, JsonServiceImpl.class, <span class="string">&quot;/service/json&quot;</span>, <span class="string">&quot;service&quot;</span>, <span class="literal">null</span>, -<span class="number">1</span>, -<span class="number">2147483648</span>));</span><br><span class="line">    atlas.put(<span class="string">&quot;/service/single&quot;</span>, RouteMeta.build(RouteType.PROVIDER, SingleService.class, <span class="string">&quot;/service/single&quot;</span>, <span class="string">&quot;service&quot;</span>, <span class="literal">null</span>, -<span class="number">1</span>, -<span class="number">2147483648</span>));</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>字段</li>
+</ul>
+<p>可以使用FieldSpec去声明字段，然后加到Method中处理</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">FieldSpec</span> <span class="variable">android</span> <span class="operator">=</span> FieldSpec.builder(String.class, <span class="string">&quot;android&quot;</span>)</span><br><span class="line">    .addModifiers(Modifier.PRIVATE, Modifier.FINAL)</span><br><span class="line">    .build();</span><br><span class="line"></span><br><span class="line"><span class="type">TypeSpec</span> <span class="variable">helloWorld</span> <span class="operator">=</span> TypeSpec.classBuilder(<span class="string">&quot;HelloWorld&quot;</span>)</span><br><span class="line">    .addModifiers(Modifier.PUBLIC)</span><br><span class="line">    .addField(android)</span><br><span class="line">    .addField(String.class, <span class="string">&quot;robot&quot;</span>, Modifier.PRIVATE, Modifier.FINAL)</span><br><span class="line">    .build();</span><br></pre></td></tr></table></figure>
+
+<p>然后生成代码</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">HelloWorld</span> &#123;</span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">final</span> String android;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">final</span> String robot;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>通常Builder可以更加详细的创建字段的内容，比如javadoc、annotations或者初始化字段参数等，如：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">FieldSpec</span> <span class="variable">android</span> <span class="operator">=</span> FieldSpec.builder(String.class, <span class="string">&quot;android&quot;</span>)</span><br><span class="line">    .addModifiers(Modifier.PRIVATE, Modifier.FINAL)</span><br><span class="line">    .initializer(<span class="string">&quot;$S + $L&quot;</span>, <span class="string">&quot;Lollipop v.&quot;</span>, <span class="number">5.0d</span>)</span><br><span class="line">    .build();</span><br></pre></td></tr></table></figure>
+
+<p>对应生成的代码</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">android</span> <span class="operator">=</span> <span class="string">&quot;Lollipop v.&quot;</span> + <span class="number">5.0</span>;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>接口</li>
+</ul>
+<p>接口方法必须是PUBLIC ABSTRACT并且接口字段必须是PUBLIC STATIC FINAL ，使用<code>TypeSpec.interfaceBuilder</code></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">TypeSpec</span> <span class="variable">helloWorld</span> <span class="operator">=</span> TypeSpec.interfaceBuilder(<span class="string">&quot;HelloWorld&quot;</span>)</span><br><span class="line">    .addModifiers(Modifier.PUBLIC)</span><br><span class="line">    .addField(FieldSpec.builder(String.class, <span class="string">&quot;ONLY_THING_THAT_IS_CONSTANT&quot;</span>)</span><br><span class="line">        .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)</span><br><span class="line">        .initializer(<span class="string">&quot;$S&quot;</span>, <span class="string">&quot;change&quot;</span>)</span><br><span class="line">        .build())</span><br><span class="line">    .addMethod(MethodSpec.methodBuilder(<span class="string">&quot;beep&quot;</span>)</span><br><span class="line">        .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)</span><br><span class="line">        .build())</span><br><span class="line">    .build()</span><br></pre></td></tr></table></figure>
+
+<p>生成的代码如下</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">HelloWorld</span> &#123;</span><br><span class="line">  <span class="type">String</span> <span class="variable">ONLY_THING_THAT_IS_CONSTANT</span> <span class="operator">=</span> <span class="string">&quot;change&quot;</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">void</span> <span class="title function_">beep</span><span class="params">()</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>继承父类 实现接口</li>
+</ul>
+<p>接口代码</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.test.javapoet;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">TestInterface</span>&lt;T&gt; &#123;</span><br><span class="line">    <span class="keyword">void</span> <span class="title function_">test</span><span class="params">(T testPara)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>父类代码</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">TestExtendesClass</span> &#123;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用javapoet实现接口并且继承父类</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> <span class="type">ClassName</span>  <span class="variable">InterfaceName</span> <span class="operator">=</span> ClassName.get(<span class="string">&quot;com.test.javapoet&quot;</span>,<span class="string">&quot;TestInterface&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="type">ClassName</span> <span class="variable">superinterface</span> <span class="operator">=</span> ClassName.bestGuess(<span class="string">&quot;com.test.javapoet.TestClass&quot;</span>);</span><br><span class="line">    <span class="comment">//ClassName superinterface = ClassName.get(&quot;com.test.javapoet&quot;,&quot;aa&quot;);</span></span><br><span class="line"></span><br><span class="line">    TypeSpec.<span class="type">Builder</span> <span class="variable">spec</span> <span class="operator">=</span> TypeSpec.classBuilder(<span class="string">&quot;TestImpl&quot;</span>)</span><br><span class="line">            .addModifiers(Modifier.PUBLIC)</span><br><span class="line">            <span class="comment">// 添加接口，ParameterizedTypeName的参数1是接口，参数2是接口的泛型</span></span><br><span class="line">            .addSuperinterface(ParameterizedTypeName.get(InterfaceName, superinterface)) </span><br><span class="line">            <span class="comment">//使用ClassName.bestGuess会自动导入包</span></span><br><span class="line">            .superclass(ClassName.bestGuess(<span class="string">&quot;com.zs.javapoet.test.TestExtendesClass&quot;</span>));</span><br><span class="line"></span><br><span class="line">    MethodSpec.<span class="type">Builder</span> <span class="variable">methodSpec</span> <span class="operator">=</span> MethodSpec.methodBuilder(<span class="string">&quot;test&quot;</span>)</span><br><span class="line">            .addAnnotation(Override.class)</span><br><span class="line">            .returns(TypeName.VOID)</span><br><span class="line">            .addParameter(superinterface, <span class="string">&quot;testPara&quot;</span>)</span><br><span class="line">            .addStatement(<span class="string">&quot;System.out.println(hello)&quot;</span> );</span><br><span class="line"></span><br><span class="line">        <span class="type">TypeSpec</span> <span class="variable">typeSpec</span> <span class="operator">=</span> spec.addMethod(methodSpec.build()).build();</span><br><span class="line"></span><br><span class="line">    <span class="type">JavaFile</span> <span class="variable">file</span> <span class="operator">=</span> JavaFile.builder(<span class="string">&quot;com.zs.javapoet&quot;</span>, typeSpec).build();</span><br><span class="line">    file.writeTo(System.out);</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>生成代码</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.test.javapoet;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">import</span> com.zs.javapoet.test.TestExtendesClass;</span><br><span class="line">    <span class="keyword">import</span> java.lang.Override;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">TestImpl</span> <span class="keyword">extends</span> <span class="title class_">TestExtendesClass</span> <span class="keyword">implements</span> <span class="title class_">TestInterface</span>&lt;TestClass&gt; &#123;</span><br><span class="line">      <span class="meta">@Override</span></span><br><span class="line">      <span class="keyword">void</span> <span class="title function_">test</span><span class="params">(TestClass testPara)</span> &#123;</span><br><span class="line">        System.out.println(hello);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>枚举类型</li>
+</ul>
+<p>使用<code>TypeSpec.enumBuilder</code>来创建，使用<code>addEnumConstant</code>来添加</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">TypeSpec</span> <span class="variable">helloWorld</span> <span class="operator">=</span> TypeSpec.enumBuilder(<span class="string">&quot;Roshambo&quot;</span>)</span><br><span class="line">    .addModifiers(Modifier.PUBLIC)</span><br><span class="line">    .addEnumConstant(<span class="string">&quot;ROCK&quot;</span>)</span><br><span class="line">    .addEnumConstant(<span class="string">&quot;SCISSORS&quot;</span>)</span><br><span class="line">    .addEnumConstant(<span class="string">&quot;PAPER&quot;</span>)</span><br><span class="line">    .build();</span><br></pre></td></tr></table></figure>
+
+<p>生成的代码</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">enum</span> <span class="title class_">Roshambo</span> &#123;</span><br><span class="line">  ROCK,</span><br><span class="line"></span><br><span class="line">  SCISSORS,</span><br><span class="line"></span><br><span class="line">  PAPER</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>更复杂的类型也可以支持，如重写、注解等</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">TypeSpec</span> <span class="variable">helloWorld</span> <span class="operator">=</span> TypeSpec.enumBuilder(<span class="string">&quot;Roshambo&quot;</span>)</span><br><span class="line">    .addModifiers(Modifier.PUBLIC)</span><br><span class="line">    .addEnumConstant(<span class="string">&quot;ROCK&quot;</span>, TypeSpec.anonymousClassBuilder(<span class="string">&quot;$S&quot;</span>, <span class="string">&quot;fist&quot;</span>)</span><br><span class="line">        .addMethod(MethodSpec.methodBuilder(<span class="string">&quot;toString&quot;</span>)</span><br><span class="line">            .addAnnotation(Override.class)</span><br><span class="line">            .addModifiers(Modifier.PUBLIC)</span><br><span class="line">            .addStatement(<span class="string">&quot;return $S&quot;</span>, <span class="string">&quot;avalanche!&quot;</span>)</span><br><span class="line">            .build())</span><br><span class="line">        .build())</span><br><span class="line">    .addEnumConstant(<span class="string">&quot;SCISSORS&quot;</span>, TypeSpec.anonymousClassBuilder(<span class="string">&quot;$S&quot;</span>, <span class="string">&quot;peace&quot;</span>)</span><br><span class="line">        .build())</span><br><span class="line">    .addEnumConstant(<span class="string">&quot;PAPER&quot;</span>, TypeSpec.anonymousClassBuilder(<span class="string">&quot;$S&quot;</span>, <span class="string">&quot;flat&quot;</span>)</span><br><span class="line">        .build())</span><br><span class="line">    .addField(String.class, <span class="string">&quot;handsign&quot;</span>, Modifier.PRIVATE, Modifier.FINAL)</span><br><span class="line">    .addMethod(MethodSpec.constructorBuilder()</span><br><span class="line">        .addParameter(String.class, <span class="string">&quot;handsign&quot;</span>)</span><br><span class="line">        .addStatement(<span class="string">&quot;this.$N = $N&quot;</span>, <span class="string">&quot;handsign&quot;</span>, <span class="string">&quot;handsign&quot;</span>)</span><br><span class="line">        .build())</span><br><span class="line">    .build();</span><br></pre></td></tr></table></figure>
+
+<p>生成代码</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">enum</span> <span class="title class_">Roshambo</span> &#123;</span><br><span class="line">  ROCK(<span class="string">&quot;fist&quot;</span>) &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">toString</span><span class="params">()</span> &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="string">&quot;avalanche!&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;,</span><br><span class="line"></span><br><span class="line">  SCISSORS(<span class="string">&quot;peace&quot;</span>),</span><br><span class="line"></span><br><span class="line">  PAPER(<span class="string">&quot;flat&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">final</span> String handsign;</span><br><span class="line"></span><br><span class="line">  Roshambo(String handsign) &#123;</span><br><span class="line">    <span class="built_in">this</span>.handsign = handsign;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>匿名内部类</li>
+</ul>
+<p>需要使用<code>Type.anonymousInnerClass(&quot;&quot;)</code>,通常可以使用$L占位符来指代</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">TypeSpec</span> <span class="variable">comparator</span> <span class="operator">=</span> TypeSpec.anonymousClassBuilder(<span class="string">&quot;&quot;</span>)</span><br><span class="line">    .addSuperinterface(ParameterizedTypeName.get(Comparator.class, String.class))</span><br><span class="line">    .addMethod(MethodSpec.methodBuilder(<span class="string">&quot;compare&quot;</span>)</span><br><span class="line">        .addAnnotation(Override.class)</span><br><span class="line">        .addModifiers(Modifier.PUBLIC)</span><br><span class="line">        .addParameter(String.class, <span class="string">&quot;a&quot;</span>)</span><br><span class="line">        .addParameter(String.class, <span class="string">&quot;b&quot;</span>)</span><br><span class="line">        .returns(<span class="type">int</span>.class)</span><br><span class="line">        .addStatement(<span class="string">&quot;return $N.length() - $N.length()&quot;</span>, <span class="string">&quot;a&quot;</span>, <span class="string">&quot;b&quot;</span>)</span><br><span class="line">        .build())</span><br><span class="line">    .build();</span><br><span class="line"></span><br><span class="line"><span class="type">TypeSpec</span> <span class="variable">helloWorld</span> <span class="operator">=</span> TypeSpec.classBuilder(<span class="string">&quot;HelloWorld&quot;</span>)</span><br><span class="line">    .addMethod(MethodSpec.methodBuilder(<span class="string">&quot;sortByLength&quot;</span>)</span><br><span class="line">        .addParameter(ParameterizedTypeName.get(List.class, String.class), <span class="string">&quot;strings&quot;</span>)</span><br><span class="line">        .addStatement(<span class="string">&quot;$T.sort($N, $L)&quot;</span>, Collections.class, <span class="string">&quot;strings&quot;</span>, comparator)</span><br><span class="line">        .build())</span><br><span class="line">    .build();</span><br></pre></td></tr></table></figure>
+
+<p>生成代码</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">void</span> <span class="title function_">sortByLength</span><span class="params">(List&lt;String&gt; strings)</span> &#123;</span><br><span class="line">  Collections.sort(strings, <span class="keyword">new</span> <span class="title class_">Comparator</span>&lt;String&gt;() &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="type">int</span> <span class="title function_">compare</span><span class="params">(String a, String b)</span> &#123;</span><br><span class="line">      <span class="keyword">return</span> a.length() - b.length();</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>定义匿名内部类的一个特别棘手的问题是参数的构造。在上面的代码中我们传递了不带参数的空字符串。TypeSpec.anonymousClassBuilder(“”)。</p>
+<ul>
+<li>注解</li>
+</ul>
+<p>注解使用起来比较简单</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">MethodSpec</span> <span class="variable">toString</span> <span class="operator">=</span> MethodSpec.methodBuilder(<span class="string">&quot;toString&quot;</span>)</span><br><span class="line">    .addAnnotation(Override.class)</span><br><span class="line">    .returns(String.class)</span><br><span class="line">    .addModifiers(Modifier.PUBLIC)</span><br><span class="line">    .addStatement(<span class="string">&quot;return $S&quot;</span>, <span class="string">&quot;Hoverboard&quot;</span>)</span><br><span class="line">    .build();</span><br></pre></td></tr></table></figure>
+
+<p>生成代码</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">  <span class="meta">@Override</span></span><br><span class="line">  <span class="keyword">public</span> String <span class="title function_">toString</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&quot;Hoverboard&quot;</span>;</span><br><span class="line">  &#125;</span><br><span class="line">复制代码</span><br></pre></td></tr></table></figure>
+
+<p>通过<code>AnnotationSpec.builder()</code> 可以对注解设置属性：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">MethodSpec</span> <span class="variable">logRecord</span> <span class="operator">=</span> MethodSpec.methodBuilder(<span class="string">&quot;recordEvent&quot;</span>)</span><br><span class="line">    .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)</span><br><span class="line">    .addAnnotation(AnnotationSpec.builder(Headers.class)</span><br><span class="line">        .addMember(<span class="string">&quot;accept&quot;</span>, <span class="string">&quot;$S&quot;</span>, <span class="string">&quot;application/json; charset=utf-8&quot;</span>)</span><br><span class="line">        .addMember(<span class="string">&quot;userAgent&quot;</span>, <span class="string">&quot;$S&quot;</span>, <span class="string">&quot;Square Cash&quot;</span>)</span><br><span class="line">        .build())</span><br><span class="line">    .addParameter(LogRecord.class, <span class="string">&quot;logRecord&quot;</span>)</span><br><span class="line">    .returns(LogReceipt.class)</span><br><span class="line">    .build();</span><br></pre></td></tr></table></figure>
+
+<p>代码生成如下</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Headers(</span></span><br><span class="line"><span class="meta">    accept = &quot;application/json; charset=utf-8&quot;,</span></span><br><span class="line"><span class="meta">    userAgent = &quot;Square Cash&quot;</span></span><br><span class="line"><span class="meta">)</span></span><br><span class="line">LogReceipt <span class="title function_">recordEvent</span><span class="params">(LogRecord logRecord)</span>;</span><br></pre></td></tr></table></figure>
+
+<p>注解同样可以注解其他注解，通过$L引用如</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">MethodSpec</span> <span class="variable">logRecord</span> <span class="operator">=</span> MethodSpec.methodBuilder(<span class="string">&quot;recordEvent&quot;</span>)</span><br><span class="line">    .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)</span><br><span class="line">    .addAnnotation(AnnotationSpec.builder(HeaderList.class)</span><br><span class="line">        .addMember(<span class="string">&quot;value&quot;</span>, <span class="string">&quot;$L&quot;</span>, AnnotationSpec.builder(Header.class)</span><br><span class="line">            .addMember(<span class="string">&quot;name&quot;</span>, <span class="string">&quot;$S&quot;</span>, <span class="string">&quot;Accept&quot;</span>)</span><br><span class="line">            .addMember(<span class="string">&quot;value&quot;</span>, <span class="string">&quot;$S&quot;</span>, <span class="string">&quot;application/json; charset=utf-8&quot;</span>)</span><br><span class="line">            .build())</span><br><span class="line">        .addMember(<span class="string">&quot;value&quot;</span>, <span class="string">&quot;$L&quot;</span>, AnnotationSpec.builder(Header.class)</span><br><span class="line">            .addMember(<span class="string">&quot;name&quot;</span>, <span class="string">&quot;$S&quot;</span>, <span class="string">&quot;User-Agent&quot;</span>)</span><br><span class="line">            .addMember(<span class="string">&quot;value&quot;</span>, <span class="string">&quot;$S&quot;</span>, <span class="string">&quot;Square Cash&quot;</span>)</span><br><span class="line">            .build())</span><br><span class="line">        .build())</span><br><span class="line">    .addParameter(LogRecord.class, <span class="string">&quot;logRecord&quot;</span>)</span><br><span class="line">    .returns(LogReceipt.class)</span><br><span class="line">    .build();</span><br></pre></td></tr></table></figure>
+
+<p>生成代码</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@HeaderList(&#123;</span></span><br><span class="line"><span class="meta">    @Header(name = &quot;Accept&quot;, value = &quot;application/json; charset=utf-8&quot;),</span></span><br><span class="line"><span class="meta">    @Header(name = &quot;User-Agent&quot;, value = &quot;Square Cash&quot;)</span></span><br><span class="line"><span class="meta">&#125;)</span></span><br><span class="line">LogReceipt <span class="title function_">recordEvent</span><span class="params">(LogRecord logRecord)</span>;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<hr>
+<p>转载自：<br><a target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/article/1918448">https://cloud.tencent.com/developer/article/1918448</a></p>
+<p>更多阅读：<br><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/374640828">JDK编译时注解处理器结合Javapoet动态生成模板化Java源文件</a><br><a target="_blank" rel="noopener" href="https://segmentfault.com/a/1190000044557383">基于javaPoet的缓存key优化实践</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/07/06/Java/Java%E6%8F%90%E9%AB%98/%E5%85%B3%E4%BA%8EJava%20NIO%E7%9A%84Selector/" rel="prev" title="关于Java NIO的Selector">
+      <i class="fa fa-chevron-left"></i> 关于Java NIO的Selector
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/07/06/Java/Java%E6%8F%90%E9%AB%98/Java%20Parser%E4%BB%8B%E7%BB%8D/" rel="next" title="Java Parser介绍">
+      Java Parser介绍 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#01-%E7%AE%80%E5%8D%95%E4%BD%BF%E7%94%A8"><span class="nav-number">1.</span> <span class="nav-text">01 简单使用</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#02-%E4%BD%BF%E7%94%A8%E8%BF%9B%E9%98%B6"><span class="nav-number">2.</span> <span class="nav-text">02 使用进阶</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

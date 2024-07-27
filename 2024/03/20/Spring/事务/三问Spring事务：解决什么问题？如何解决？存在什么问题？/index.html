@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="[toc] 1. 解决什么问题让我们先从事务说起，“什么是事务？我们为什么需要事务？”。事务是一组无法被分割的操作，要么所有操作全部成功，要么全部失败。我们在开发中需要通过事务将一些操作组成一个单元，来保证程序逻辑上的正确性，例如全部插入成功，或者回滚，一条都不插入。作为程序员的我们，对于事务管理，所需要做的便是进行事务的界定，即通过类似begin transaction和end transact">
+<meta property="og:type" content="article">
+<meta property="og:title" content="三问Spring事务：解决什么问题？如何解决？存在什么问题？">
+<meta property="og:url" content="http://example.com/2024/03/20/Spring/%E4%BA%8B%E5%8A%A1/%E4%B8%89%E9%97%AESpring%E4%BA%8B%E5%8A%A1%EF%BC%9A%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%EF%BC%9F%E5%AD%98%E5%9C%A8%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="[toc] 1. 解决什么问题让我们先从事务说起，“什么是事务？我们为什么需要事务？”。事务是一组无法被分割的操作，要么所有操作全部成功，要么全部失败。我们在开发中需要通过事务将一些操作组成一个单元，来保证程序逻辑上的正确性，例如全部插入成功，或者回滚，一条都不插入。作为程序员的我们，对于事务管理，所需要做的便是进行事务的界定，即通过类似begin transaction和end transact">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/img_convert/e6b0c39b515fcbde9d4d4337a6346418.png">
+<meta property="article:published_time" content="2024-03-19T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.646Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://img-blog.csdnimg.cn/img_convert/e6b0c39b515fcbde9d4d4337a6346418.png">
+
+<link rel="canonical" href="http://example.com/2024/03/20/Spring/%E4%BA%8B%E5%8A%A1/%E4%B8%89%E9%97%AESpring%E4%BA%8B%E5%8A%A1%EF%BC%9A%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%EF%BC%9F%E5%AD%98%E5%9C%A8%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>三问Spring事务：解决什么问题？如何解决？存在什么问题？ | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/20/Spring/%E4%BA%8B%E5%8A%A1/%E4%B8%89%E9%97%AESpring%E4%BA%8B%E5%8A%A1%EF%BC%9A%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%EF%BC%9F%E5%AD%98%E5%9C%A8%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          三问Spring事务：解决什么问题？如何解决？存在什么问题？
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-03-20 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-20T00:00:00+08:00">2024-03-20</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/%E4%BA%8B%E5%8A%A1/" itemprop="url" rel="index"><span itemprop="name">事务</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>[toc]</p>
+<h1 id="1-解决什么问题"><a href="#1-解决什么问题" class="headerlink" title="1. 解决什么问题"></a>1. 解决什么问题</h1><p>让我们先从事务说起，“什么是事务？我们为什么需要事务？”。事务是一组无法被分割的操作，要么所有操作全部成功，要么全部失败。我们在开发中需要通过事务将一些操作组成一个单元，来保证程序逻辑上的正确性，例如全部插入成功，或者回滚，一条都不插入。作为程序员的我们，对于事务管理，所需要做的便是进行<strong>事务的界定</strong>，即通过类似begin transaction和end transaction的操作来界定事务的开始和结束。</p>
+<p>下面是一个基本的JDBC事务管理代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 开启数据库连接</span></span><br><span class="line"><span class="type">Connection</span> <span class="variable">con</span> <span class="operator">=</span> openConnection();</span><br><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">    <span class="comment">// 关闭自动提交</span></span><br><span class="line">    con.setAutoCommit(<span class="literal">false</span>);</span><br><span class="line">    <span class="comment">// 业务处理</span></span><br><span class="line">    <span class="comment">// ...  </span></span><br><span class="line">    <span class="comment">// 提交事务</span></span><br><span class="line">    con.commit();</span><br><span class="line">&#125; <span class="keyword">catch</span> (SQLException | MyException e) &#123;</span><br><span class="line">    <span class="comment">// 捕获异常，回滚事务</span></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        con.rollback();</span><br><span class="line">    &#125; <span class="keyword">catch</span> (SQLException ex) &#123;</span><br><span class="line">        ex.printStackTrace();</span><br><span class="line">    &#125;</span><br><span class="line">&#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">    <span class="comment">// 关闭连接</span></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        con.setAutoCommit(<span class="literal">true</span>);</span><br><span class="line">        con.close();</span><br><span class="line">    &#125; <span class="keyword">catch</span> (SQLException e) &#123;</span><br><span class="line">        e.printStackTrace();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>直接使用JDBC进行事务管理的代码直观上来看，存在两个问题：</p>
+<ol>
+<li>业务处理代码与事务管理代码混杂；</li>
+<li>大量的异常处理代码（在catch中还要try-catch）。而如果我们需要更换其他数据访问技术，例如Hibernate、MyBatis、JPA等，虽然事务管理的操作都类似，但API却不同，则需使用相应的API来改写。这也会引来第三个问题：</li>
+<li>繁杂的事务管理API。</li>
+</ol>
+<p>上文列出了三个待解决的问题，下面我们看Spring事务是如何解决。</p>
+<span id="more"></span>
+
+<h1 id="2-如何解决"><a href="#2-如何解决" class="headerlink" title="2. 如何解决"></a>2. 如何解决</h1><h2 id="2-1-繁杂的事务管理API"><a href="#2-1-繁杂的事务管理API" class="headerlink" title="2.1 繁杂的事务管理API"></a>2.1 繁杂的事务管理API</h2><p>针对该问题，我们很容易可以想到，在众多事务管理的API上抽象一层。通过<strong>定义接口</strong>屏蔽具体实现，再使用<strong>策略模式</strong>来决定具体的API。下面我们看下Spring事务中定义的抽象接口。</p>
+<p>在Spring事务中，核心接口是PlatformTransactionManager，也叫事务管理器，其定义如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">public interface PlatformTransactionManager extends TransactionManager &#123;</span><br><span class="line">    // 获取事务（新的事务或者已经存在的事务）</span><br><span class="line">    TransactionStatus getTransaction(@Nullable TransactionDefinition definition)</span><br><span class="line">			throws TransactionException;   </span><br><span class="line">    // 提交事务</span><br><span class="line">    void commit(TransactionStatus status) throws TransactionException;</span><br><span class="line">    // 回滚事务</span><br><span class="line">    void rollback(TransactionStatus status) throws TransactionException;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>getTransaction通过入参TransactionDefinition来获得TransactionStatus，即通过定义的事务元信息来创建相应的事务对象。TransactionStatus事务对象可被传入到commit方法或rollback方法中，完成事务的提交或回滚。</p>
+<p>下面我们通过一个具体实现来理解TransactionStatus的作用。以commit方法为例，如何通过TransactionStatus完成事务的提交。AbstractPlatformTransactionManager是PlatformTransactionManager接口的的实现，作为模板类，其commit实现如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">public final void commit(TransactionStatus status) throws TransactionException &#123;</span><br><span class="line">    // 1.检查事务是否已完成</span><br><span class="line">    if (status.isCompleted()) &#123;</span><br><span class="line">        throw new IllegalTransactionStateException(</span><br><span class="line">            &quot;Transaction is already completed - do not call commit or rollback more than once per transaction&quot;);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    // 2.检查事务是否需要回滚（局部事务回滚）</span><br><span class="line">    DefaultTransactionStatus defStatus = (DefaultTransactionStatus) status;</span><br><span class="line">    if (defStatus.isLocalRollbackOnly()) &#123;</span><br><span class="line">        if (defStatus.isDebug()) &#123;</span><br><span class="line">            logger.debug(&quot;Transactional code has requested rollback&quot;);</span><br><span class="line">        &#125;</span><br><span class="line">        processRollback(defStatus, false);</span><br><span class="line">        return;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    // 3.检查事务是否需要回滚（全局事务回滚）</span><br><span class="line">    if (!shouldCommitOnGlobalRollbackOnly() &amp;&amp; defStatus.isGlobalRollbackOnly()) &#123;</span><br><span class="line">        if (defStatus.isDebug()) &#123;</span><br><span class="line">            logger.debug(&quot;Global transaction is marked as rollback-only but transactional code requested commit&quot;);</span><br><span class="line">        &#125;</span><br><span class="line">        processRollback(defStatus, true);</span><br><span class="line">        return;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    // 4.提交事务</span><br><span class="line">    processCommit(defStatus);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在commit<strong>模板方法</strong>中定义了事务提交的基本逻辑，通过查看status的事务状态来决定抛出异常还是回滚，或是提交。其中的processRollback和processCommit方法也是模板方法，进一步定义了回滚、提交的逻辑。以processCommit方法为例，具体的提交操作将由抽象方法doCommit完成。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">protected abstract void doCommit(DefaultTransactionStatus status) throws TransactionException;</span><br></pre></td></tr></table></figure>
+
+<p>doCommit的实现取决于具体的数据访问技术。我们看下JDBC相应的具体实现类DataSourceTransactionManager中的doCommit实现。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">protected void doCommit(DefaultTransactionStatus status) &#123;</span><br><span class="line">    // 获取status中的事务对象    </span><br><span class="line">    DataSourceTransactionObject txObject = (DataSourceTransactionObject) status.getTransaction();</span><br><span class="line">    // 通过事务对象获得数据库连接对象</span><br><span class="line">    Connection con = txObject.getConnectionHolder().getConnection();</span><br><span class="line">    if (status.isDebug()) &#123;</span><br><span class="line">        logger.debug(&quot;Committing JDBC transaction on Connection [&quot; + con + &quot;]&quot;);</span><br><span class="line">    &#125;</span><br><span class="line">    try &#123;</span><br><span class="line">        // 执行commit</span><br><span class="line">        con.commit();</span><br><span class="line">    &#125;</span><br><span class="line">    catch (SQLException ex) &#123;</span><br><span class="line">        throw new TransactionSystemException(&quot;Could not commit JDBC transaction&quot;, ex);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在commit和processCommit方法中我们根据入参的TransactionStatus提供的<strong>事务状态</strong>来决定事务行为，而在doCommit中需要执行事务提交时将会通过TransactionStatus中的<strong>事务对象</strong>来获得数据库连接对象，再执行最后的commit操作。通过这个示例我们可以理解TransactionStatus所提供的事务状态和事务对象的作用。</p>
+<p>下面是用Spring事务API改写后的事务管理代码：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">// 获得事务管理器</span><br><span class="line">PlatformTransactionManager txManager = getPlatformTransactionManager();</span><br><span class="line">DefaultTransactionDefinition def = new DefaultTransactionDefinition();</span><br><span class="line">// 指定事务元信息</span><br><span class="line">def.setName(&quot;SomeTxName&quot;);</span><br><span class="line">def.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRED);</span><br><span class="line">// 获得事务</span><br><span class="line">TransactionStatus status = txManager.getTransaction(def);</span><br><span class="line">try &#123;</span><br><span class="line">    // 业务处理</span><br><span class="line">&#125;</span><br><span class="line">catch (MyException ex) &#123;</span><br><span class="line">    // 捕获异常，回滚事务</span><br><span class="line">    txManager.rollback(status);</span><br><span class="line">    throw ex;</span><br><span class="line">&#125;</span><br><span class="line">// 提交事务</span><br><span class="line">txManager.commit(status);</span><br></pre></td></tr></table></figure>
+
+<p>无论是使用JDBC、Hibernate还是MyBatis，我们只需要传给txManager相应的具体实现就可以在多种数据访问技术中切换。</p>
+<blockquote>
+<p>小结：Spring事务通过PlatformTransactionManager、TransactionDefinition和TransactionStatus接口统一事务管理API，并结合策略模式和模板方法决定具体实现。</p>
+</blockquote>
+<p>Spring事务API代码还有个特点有没有发现，SQLException不见了。下面来看Spring事务是如何解决大量的异常处理代码。</p>
+<h2 id="2-2-大量的异常处理代码"><a href="#2-2-大量的异常处理代码" class="headerlink" title="2.2 大量的异常处理代码"></a>2.2 大量的异常处理代码</h2><p>为什么使用JDBC的代码中会需要写这么多的异常处理代码。这是因为Connection的每个方法都会抛出SQLException，而SQLException又是<strong>检查异常</strong>，这就<strong>强制</strong>我们在使用其方法时必须进行异常处理。那Spring事务是如何解决该问题的。我们看下doCommit方法：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">protected void doCommit(DefaultTransactionStatus status) &#123;</span><br><span class="line">    DataSourceTransactionObject txObject = (DataSourceTransactionObject) status.getTransaction();</span><br><span class="line">    Connection con = txObject.getConnectionHolder().getConnection();</span><br><span class="line">    if (status.isDebug()) &#123;</span><br><span class="line">        logger.debug(&quot;Committing JDBC transaction on Connection [&quot; + con + &quot;]&quot;);</span><br><span class="line">    &#125;</span><br><span class="line">    try &#123;</span><br><span class="line">        con.commit();</span><br><span class="line">    &#125;</span><br><span class="line">    catch (SQLException ex) &#123;</span><br><span class="line">        // 异常转换</span><br><span class="line">        throw new TransactionSystemException(&quot;Could not commit JDBC transaction&quot;, ex);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>Connection的commit方法会抛出检查异常SQLException，在catch代码块中SQLException将被转换成TransactionSystemException抛出，而TransactionSystemException是一个非检查异常。通过将<strong>检查异常转换成非检查异常</strong>，让我们能够自行决定是否捕获异常，不强制进行异常处理。</p>
+<p>Spring事务中几乎为数据库的所有错误都定义了相应的异常，统一了JDBC、Hibernate、MyBatis等不同异常API。这有助于我们在处理异常时使用统一的异常API接口，无需关心具体的数据访问技术。</p>
+<blockquote>
+<p>小结：Spring事务通过异常转换避免强制异常处理。</p>
+</blockquote>
+<h2 id="2-3-业务处理代码与事务管理代码混杂"><a href="#2-3-业务处理代码与事务管理代码混杂" class="headerlink" title="2.3 业务处理代码与事务管理代码混杂"></a>2.3 业务处理代码与事务管理代码混杂</h2><p>在2.1节中给出了使用Spring事务API的写法，即编程式事务管理，但仍未解决“业务处理代码与事务管理代码混杂”的问题。这时候就可以利用Spring AOP将事务管理代码这一横切关注点从代码中剥离出来，即<strong>声明式事务管理</strong>。以注解方式为例，通过为方法标注@Transaction注解，将为该方法提供事务管理。其原理如下图所示：</p>
+<p><img src="https://img-blog.csdnimg.cn/img_convert/e6b0c39b515fcbde9d4d4337a6346418.png" alt="三问Spring事务：解决什么问题？如何解决？存在什么问题？"></p>
+<p>Spring事务会为@Transaction标注的方法的类生成AOP增强的动态代理类对象，并且在调用目标方法的拦截链中加入TransactionInterceptor进行环绕增加，实现事务管理。</p>
+<p>下面我们看下TransactionInterceptor中的具体实现，其invoke方法中将调用invokeWithinTransaction方法进行事务管理，如下所示：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line">protected Object invokeWithinTransaction(Method method, Class&lt;?&gt; targetClass, final InvocationCallback invocation)</span><br><span class="line">        throws Throwable &#123;</span><br><span class="line"></span><br><span class="line">    // 查询目标方法事务属性、确定事务管理器、构造连接点标识（用于确认事务名称）</span><br><span class="line">    final TransactionAttribute txAttr = getTransactionAttributeSource().getTransactionAttribute(method, targetClass);</span><br><span class="line">    final PlatformTransactionManager tm = determineTransactionManager(txAttr);</span><br><span class="line">    final String joinpointIdentification = methodIdentification(method, targetClass, txAttr);</span><br><span class="line"></span><br><span class="line">    if (txAttr == null || !(tm instanceof CallbackPreferringPlatformTransactionManager)) &#123;</span><br><span class="line">        // 创建事务</span><br><span class="line">        TransactionInfo txInfo = createTransactionIfNecessary(tm, txAttr, joinpointIdentification);</span><br><span class="line">        Object retVal = null;</span><br><span class="line">        try &#123;</span><br><span class="line">            // 通过回调执行目标方法</span><br><span class="line">            retVal = invocation.proceedWithInvocation();</span><br><span class="line">        &#125;</span><br><span class="line">        catch (Throwable ex) &#123;</span><br><span class="line">            // 目标方法执行抛出异常，根据异常类型执行事务提交或者回滚操作</span><br><span class="line">            completeTransactionAfterThrowing(txInfo, ex);</span><br><span class="line">            throw ex;</span><br><span class="line">        &#125;</span><br><span class="line">        finally &#123;</span><br><span class="line">            // 清理当前线程事务信息</span><br><span class="line">            cleanupTransactionInfo(txInfo);</span><br><span class="line">        &#125;</span><br><span class="line">        // 目标方法执行成功，提交事务</span><br><span class="line">        commitTransactionAfterReturning(txInfo);</span><br><span class="line">        return retVal;</span><br><span class="line">    &#125; else &#123;</span><br><span class="line">        // 带回调的事务执行处理，一般用于编程式事务</span><br><span class="line">        // ...</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在调用目标方法前后加入了创建事务、处理异常、提交事务等操作。这让我们不必编写事务管理代码，只需通过@Transaction的属性指定事务相关元信息。</p>
+<blockquote>
+<p>小结：Spring事务通过AOP提供声明式事务将业务处理代码和事务管理代码分离。</p>
+</blockquote>
+<h1 id="3-存在什么问题"><a href="#3-存在什么问题" class="headerlink" title="3. 存在什么问题"></a>3. 存在什么问题</h1><p>Spring事务为了我们解决了第一节中列出的三个问题，但同时也会带来些新的问题。</p>
+<h2 id="3-1-非public方法失效"><a href="#3-1-非public方法失效" class="headerlink" title="3.1 非public方法失效"></a>3.1 非public方法失效</h2><p>@Transactional只有标注在public级别的方法上才能生效，对于非public方法将不会生效。这是由于Spring AOP不支持对private、protect方法进行拦截。从原理上来说，动态代理是通过接口实现，所以自然不能支持private和protect方法的。而CGLIB是通过继承实现，其实是可以支持protect方法的拦截的，但Spring AOP中并不支持这样使用，笔者猜测做此限制是出于代理方法应是public的考虑，以及为了保持CGLIB和动态代理的一致。如果需要对protect或private方法拦截则建议使用AspectJ。</p>
+<h2 id="3-2-自调用失效"><a href="#3-2-自调用失效" class="headerlink" title="3.2 自调用失效"></a>3.2 自调用失效</h2><p>当通过在Bean的内部方法直接调用带有@Transactional的方法时，@Transactional将失效，例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">public void saveAB(A a, B b)</span><br><span class="line">&#123;</span><br><span class="line">    saveA(a);</span><br><span class="line">    saveB(b);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@Transactional</span><br><span class="line">public void saveA(A a)</span><br><span class="line">&#123;</span><br><span class="line">    dao.saveA(a);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@Transactional</span><br><span class="line">public void saveB(B b)</span><br><span class="line">&#123;</span><br><span class="line">    dao.saveB(b);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在saveAB中调用saveA和saveB方法，两者的@Transactional都将失效。这是因为Spring事务的实现基于代理类，当在内部直接调用方法时，将不会经过代理对象，而是直接调用目标对象的方法，无法被TransactionInterceptor拦截处理。解决办法：</p>
+<p><strong>（1）ApplicationContextAware</strong></p>
+<p>通过ApplicationContextAware注入的上下文获得代理对象。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">public void saveAB(A a, B b)</span><br><span class="line">&#123;</span><br><span class="line">    Test self = (Test) applicationContext.getBean(&quot;Test&quot;);</span><br><span class="line">    self.saveA(a);</span><br><span class="line">    self.saveB(b);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>（2）AopContext</strong></p>
+<p>通过AopContext获得代理对象。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">public void saveAB(A a, B b)</span><br><span class="line">&#123;</span><br><span class="line">    Test self = (Test)AopContext.currentProxy();</span><br><span class="line">    self.saveA(a);</span><br><span class="line">    self.saveB(b);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>（3）@Autowired</strong></p>
+<p>通过@Autowired注解注入代理对象。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">@Component</span><br><span class="line">public class Test &#123;</span><br><span class="line"></span><br><span class="line">    @Autowired</span><br><span class="line">    Test self;</span><br><span class="line"></span><br><span class="line">    public void saveAB(A a, B b)</span><br><span class="line">    &#123;</span><br><span class="line">        self.saveA(a);</span><br><span class="line">        self.saveB(b);</span><br><span class="line">    &#125;</span><br><span class="line">    // ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>（4）拆分</strong></p>
+<p>将saveA、saveB方法拆分到另一个类中。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">public void saveAB(A a, B b)</span><br><span class="line">&#123;</span><br><span class="line">    txOperate.saveA(a);</span><br><span class="line">    txOperate.saveB(b);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>上述两个问题都是由于Spring事务的实现方式的限制导致的问题。下面再看两个由于<strong>使用不当</strong>容易犯错的两个问题。</p>
+<h2 id="3-3-检查异常默认不回滚"><a href="#3-3-检查异常默认不回滚" class="headerlink" title="3.3 检查异常默认不回滚"></a>3.3 检查异常默认不回滚</h2><p>在默认情况下，抛出非检查异常会触发回滚，而检查异常不会。</p>
+<p>根据invokeWithinTransaction方法，我们可以知道异常处理逻辑在completeTransactionAfterThrowing方法中，其实现如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line">protected void completeTransactionAfterThrowing(@Nullable TransactionInfo txInfo, Throwable ex) &#123;</span><br><span class="line">    if (txInfo != null &amp;&amp; txInfo.getTransactionStatus() != null) &#123;</span><br><span class="line">        if (logger.isTraceEnabled()) &#123;</span><br><span class="line">            logger.trace(&quot;Completing transaction for [&quot; + txInfo.getJoinpointIdentification() +</span><br><span class="line">                         &quot;] after exception: &quot; + ex);</span><br><span class="line">        &#125;</span><br><span class="line">        if (txInfo.transactionAttribute != null &amp;&amp; txInfo.transactionAttribute.rollbackOn(ex)) &#123;</span><br><span class="line">            try &#123;</span><br><span class="line">                // 异常类型为回滚异常，执行事务回滚</span><br><span class="line">                txInfo.getTransactionManager().rollback(txInfo.getTransactionStatus());</span><br><span class="line">            &#125;</span><br><span class="line">            catch (TransactionSystemException ex2) &#123;</span><br><span class="line">                logger.error(&quot;Application exception overridden by rollback exception&quot;, ex);</span><br><span class="line">                ex2.initApplicationException(ex);</span><br><span class="line">                throw ex2;</span><br><span class="line">            &#125;</span><br><span class="line">            catch (RuntimeException | Error ex2) &#123;</span><br><span class="line">                logger.error(&quot;Application exception overridden by rollback exception&quot;, ex);</span><br><span class="line">                throw ex2;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        else &#123;</span><br><span class="line">            try &#123;</span><br><span class="line">                // 异常类型为非回滚异常，仍然执行事务提交</span><br><span class="line">                txInfo.getTransactionManager().commit(txInfo.getTransactionStatus());</span><br><span class="line">            &#125;</span><br><span class="line">            catch (TransactionSystemException ex2) &#123;</span><br><span class="line">                logger.error(&quot;Application exception overridden by commit exception&quot;, ex);</span><br><span class="line">                ex2.initApplicationException(ex);</span><br><span class="line">                throw ex2;</span><br><span class="line">            &#125;</span><br><span class="line">            catch (RuntimeException | Error ex2) &#123;</span><br><span class="line">                logger.error(&quot;Application exception overridden by commit exception&quot;, ex);</span><br><span class="line">                throw ex2;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>根据rollbackOn判断异常是否为回滚异常。只有RuntimeException和Error的实例，即非检查异常，或者在@Transaction中通过rollbackFor属性指定的回滚异常类型，才会回滚事务。否则将继续提交事务。所以如果需要对非检查异常进行回滚，需要记得指定rollbackFor属性，不然将回滚失效。</p>
+<h2 id="3-4-catch异常无法回滚"><a href="#3-4-catch异常无法回滚" class="headerlink" title="3.4 catch异常无法回滚"></a>3.4 catch异常无法回滚</h2><p>在3.3节中我们说到只有抛出非检查异常或是rollbackFor中指定的异常才能触发回滚。如果我们把异常catch住，而且没抛出，则会导致无法触发回滚，这也是开发中常犯的错误。例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">@Transactional</span><br><span class="line">public void insert(List&lt;User&gt; users) &#123;</span><br><span class="line">    try &#123;</span><br><span class="line">        JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);</span><br><span class="line">        for (User user : users) &#123;</span><br><span class="line">            String insertUserSql = &quot;insert into User (id, name) values (?,?)&quot;;</span><br><span class="line">            jdbcTemplate.update(insertUserSql, new Object[] &#123; user.getId(),</span><br><span class="line">                                                             user.getName() &#125;);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; catch (Exception e) &#123;</span><br><span class="line">        e.printStackTrace();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里由于catch住了所有Exception，并且没抛出。当插入发生异常时，将不会触发回滚。</p>
+<p>但同时我们也可以利用这种机制，用try-catch包裹不用参与事务的数据操作，例如对于写入一些不重要的日志，我们可将其用try-catch包裹，避免抛出异常，则能避免写日志失败而影响事务的提交。</p>
+<hr>
+<p>转载自：</p>
+<p><a target="_blank" rel="noopener" href="https://juejin.im/post/5ee4a740f265da76b828d3ce">https://juejin.im/post/5ee4a740f265da76b828d3ce</a></p>
+<p>方法用final修饰</p>
+<p>方法内部调用</p>
+<p>为被spring管理</p>
+<p>表不支持事务</p>
+<p>错误的传播特性</p>
+<p>自己吞了异常</p>
+<p>手动抛了其他异常</p>
+<p>自定义了回滚异常</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/03/13/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5&%E9%94%81&volatile/AbstractQueuedSynchronizer%EF%BC%88%E4%BA%8C%EF%BC%89/" rel="prev" title="AbstractQueuedSynchronizer（二）">
+      <i class="fa fa-chevron-left"></i> AbstractQueuedSynchronizer（二）
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/03/20/Spring/%E4%BA%8B%E5%8A%A1/Spring%E4%BA%8B%E5%8A%A1%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90/" rel="next" title="Spring事务源码解析">
+      Spring事务源码解析 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#1-%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98"><span class="nav-number">1.</span> <span class="nav-text">1. 解决什么问题</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3"><span class="nav-number">2.</span> <span class="nav-text">2. 如何解决</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#2-1-%E7%B9%81%E6%9D%82%E7%9A%84%E4%BA%8B%E5%8A%A1%E7%AE%A1%E7%90%86API"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 繁杂的事务管理API</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-2-%E5%A4%A7%E9%87%8F%E7%9A%84%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86%E4%BB%A3%E7%A0%81"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 大量的异常处理代码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-3-%E4%B8%9A%E5%8A%A1%E5%A4%84%E7%90%86%E4%BB%A3%E7%A0%81%E4%B8%8E%E4%BA%8B%E5%8A%A1%E7%AE%A1%E7%90%86%E4%BB%A3%E7%A0%81%E6%B7%B7%E6%9D%82"><span class="nav-number">2.3.</span> <span class="nav-text">2.3 业务处理代码与事务管理代码混杂</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-%E5%AD%98%E5%9C%A8%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98"><span class="nav-number">3.</span> <span class="nav-text">3. 存在什么问题</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#3-1-%E9%9D%9Epublic%E6%96%B9%E6%B3%95%E5%A4%B1%E6%95%88"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 非public方法失效</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-2-%E8%87%AA%E8%B0%83%E7%94%A8%E5%A4%B1%E6%95%88"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 自调用失效</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-3-%E6%A3%80%E6%9F%A5%E5%BC%82%E5%B8%B8%E9%BB%98%E8%AE%A4%E4%B8%8D%E5%9B%9E%E6%BB%9A"><span class="nav-number">3.3.</span> <span class="nav-text">3.3 检查异常默认不回滚</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-4-catch%E5%BC%82%E5%B8%B8%E6%97%A0%E6%B3%95%E5%9B%9E%E6%BB%9A"><span class="nav-number">3.4.</span> <span class="nav-text">3.4 catch异常无法回滚</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

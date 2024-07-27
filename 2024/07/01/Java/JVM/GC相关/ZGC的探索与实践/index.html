@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="[toc] 前言ZGC（The Z Garbage Collector）是JDK 11中推出的一款低延迟垃圾回收器，它的设计目标包括：  停顿时间不超过10ms；  停顿时间不会随着堆的大小，或者活跃对象的大小而增加；  支持8MB~4TB级别的堆（未来支持16TB）。   从设计目标来看，我们知道ZGC适用于大内存低延迟服务的内存管理和回收。本文主要介绍ZGC在低延时场景中的应用和卓越表现，文章">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ZGC的探索和实践">
+<meta property="og:url" content="http://example.com/2024/07/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/ZGC%E7%9A%84%E6%8E%A2%E7%B4%A2%E4%B8%8E%E5%AE%9E%E8%B7%B5/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="[toc] 前言ZGC（The Z Garbage Collector）是JDK 11中推出的一款低延迟垃圾回收器，它的设计目标包括：  停顿时间不超过10ms；  停顿时间不会随着堆的大小，或者活跃对象的大小而增加；  支持8MB~4TB级别的堆（未来支持16TB）。   从设计目标来看，我们知道ZGC适用于大内存低延迟服务的内存管理和回收。本文主要介绍ZGC在低延时场景中的应用和卓越表现，文章">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291337940.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291337478.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291338880.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291339457.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291339322.png">
+<meta property="og:image" content="https://imgconvert.csdnimg.cn/aHR0cHM6Ly9tbWJpei5xcGljLmNuL21tYml6X3BuZy9oRXgwM2NGZ1VzVUZUSENpYkN3S01YWmNIVkRpYk8xUXo0cnRmQ1FwVndkWlkzTWliSXYzTXRJWlg0SExYNXphUExRa3JnYVhjRXNvNHd4aWFGZUdpY2dFYXF3LzY0MA?x-oss-process=image/format,png">
+<meta property="article:published_time" content="2024-06-30T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.314Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291337940.png">
+
+<link rel="canonical" href="http://example.com/2024/07/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/ZGC%E7%9A%84%E6%8E%A2%E7%B4%A2%E4%B8%8E%E5%AE%9E%E8%B7%B5/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>ZGC的探索和实践 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/07/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/ZGC%E7%9A%84%E6%8E%A2%E7%B4%A2%E4%B8%8E%E5%AE%9E%E8%B7%B5/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          ZGC的探索和实践
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-07-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-07-01T00:00:00+08:00">2024-07-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/JVM/" itemprop="url" rel="index"><span itemprop="name">JVM</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/JVM/GC%E7%9B%B8%E5%85%B3/" itemprop="url" rel="index"><span itemprop="name">GC相关</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>[toc]</p>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>ZGC（The Z Garbage Collector）是JDK 11中推出的一款低延迟垃圾回收器，它的设计目标包括：</p>
+<ul>
+<li><p>停顿时间不超过10ms；</p>
+</li>
+<li><p>停顿时间不会随着堆的大小，或者活跃对象的大小而增加；</p>
+</li>
+<li><p>支持8MB~4TB级别的堆（未来支持16TB）。</p>
+</li>
+</ul>
+<p>从设计目标来看，我们知道ZGC适用于大内存低延迟服务的内存管理和回收。本文主要介绍ZGC在低延时场景中的应用和卓越表现，文章内容主要分为四部分：</p>
+<ul>
+<li><p>GC之痛：介绍实际业务中遇到的GC痛点，并分析CMS收集器和G1收集器停顿时间瓶颈；</p>
+</li>
+<li><p>ZGC原理：分析ZGC停顿时间比G1或CMS更短的本质原因，以及背后的技术原理；</p>
+</li>
+<li><p>ZGC调优实践：重点分享对ZGC调优的理解，并分析若干个实际调优案例；</p>
+</li>
+<li><p>升级ZGC效果：展示在生产环境应用ZGC取得的效果。</p>
+</li>
+</ul>
+<span id="more"></span>
+
+<h2 id="GC之痛"><a href="#GC之痛" class="headerlink" title="GC之痛"></a>GC之痛</h2><p>很多低延迟高可用Java服务的系统可用性经常受GC停顿的困扰。GC停顿指垃圾回收期间STW，当STW时，所有应用线程停止活动，等待GC停顿结束。GC停顿对响应时间的影响较大。为了降低GC停顿对系统可用性的影响，我们从降低单次GC时间和降低GC频率两个角度出发进行了调优，还测试过G1垃圾回收器，但这三项措施均未能降低GC对服务可用性的影响。</p>
+<h3 id="CMS与G1停顿时间瓶颈"><a href="#CMS与G1停顿时间瓶颈" class="headerlink" title="CMS与G1停顿时间瓶颈"></a>CMS与G1停顿时间瓶颈</h3><p>在介绍ZGC之前，首先回顾一下CMS和G1的GC过程以及停顿时间的瓶颈。CMS新生代的Young GC、G1和ZGC都基于标记-复制算法，但算法具体实现的不同就导致了巨大的性能差异。</p>
+<p>标记-复制算法应用在CMS新生代（ParNew是CMS默认的新生代垃圾回收器）和G1垃圾回收器中。标记-复制算法可以分为三个阶段：</p>
+<ul>
+<li><p>标记阶段，即从GC Roots集合开始，标记活跃对象；</p>
+</li>
+<li><p>转移阶段，即把活跃对象复制到新的内存地址上；</p>
+</li>
+<li><p>重定位阶段，因为转移导致对象的地址发生了变化，在重定位阶段，所有指向对象旧地址的指针都要调整到对象新的地址上。</p>
+</li>
+</ul>
+<p>下面以G1为例，通过G1中标记-复制算法过程（G1的Young GC和Mixed GC均采用该算法），分析G1停顿耗时的主要瓶颈。G1垃圾回收周期如下图所示：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291337940.png" alt="img"></p>
+<p>G1的混合回收过程可以分为标记阶段、清理阶段和复制阶段。</p>
+<p><strong>标记阶段停顿分析</strong></p>
+<ul>
+<li><p>初始标记阶段：初始标记阶段是指从GC Roots出发标记全部直接子节点的过程，该阶段是STW的。由于GC Roots数量不多，通常该阶段耗时非常短。</p>
+</li>
+<li><p>并发标记阶段：并发标记阶段是指从GC Roots开始对堆中对象进行可达性分析，找出存活对象。该阶段是并发的，即应用线程和GC线程可以同时活动。并发标记耗时相对长很多，但因为不是STW，所以我们不太关心该阶段耗时的长短。</p>
+</li>
+<li><p>再标记阶段：重新标记那些在并发标记阶段发生变化的对象。该阶段是STW的。</p>
+</li>
+</ul>
+<p><strong>清理阶段停顿分析</strong></p>
+<p>清理阶段清点出有存活对象的分区和没有存活对象的分区，该阶段不会清理垃圾对象，也不会执行存活对象的复制。该阶段是STW的。</p>
+<p><strong>复制阶段停顿分析</strong></p>
+<p>复制算法中的转移阶段需要分配新内存和复制对象的成员变量。转移阶段是STW的，其中内存分配通常耗时非常短，但对象成员变量的复制耗时有可能较长，这是因为复制耗时与存活对象数量与对象复杂度成正比。对象越复杂，复制耗时越长。</p>
+<p>四个STW过程中，初始标记因为只标记GC Roots，耗时较短。再标记因为对象数少，耗时也较短。清理阶段因为内存分区数量少，耗时也较短。<strong>转移阶段要处理所有存活的对象，耗时会较长</strong>。因此，G1停顿时间的瓶颈主要是标记-复制中的转移阶段STW。为什么转移阶段不能和标记阶段一样并发执行呢？主要是G1未能解决转移过程中准确定位对象地址的问题。</p>
+<p>G1的Young GC和CMS的Young GC，其标记-复制全过程STW，这里不再详细阐述。</p>
+<h2 id="ZGC原理"><a href="#ZGC原理" class="headerlink" title="ZGC原理"></a>ZGC原理</h2><h3 id="全并发的ZGC"><a href="#全并发的ZGC" class="headerlink" title="全并发的ZGC"></a>全并发的ZGC</h3><p>与CMS中的ParNew和G1类似，ZGC也采用标记-复制算法，不过ZGC对该算法做了重大改进：ZGC在标记、转移和重定位阶段几乎都是并发的，这是ZGC实现停顿时间小于10ms目标的最关键原因。</p>
+<p>首先看ZGC的堆内存布局，ZGC 也采用基于 Region 的堆内存布局，但与 G1 不同的是， ZGC 的 Region 具有动态性，也就是可以动态创建和动态销毁，容量大小也是动态的，有大、中、小三类容量：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291337478.webp" alt="img"></p>
+<ul>
+<li><p>小型 Region (Small Region)：容量固定为 2MB，用于放置小于 256KB 的小对象。</p>
+</li>
+<li><p>中型 Region (Medium Region)：容量固定为 32MB，用于放置大于等于 256KB 但小于 4MB 的对 象。</p>
+</li>
+<li><p>大型 Region (Large Region)：容量不固定，可以动态变化，但必须是N*2MB，用于放置 4MB 或以上的大对象。每个Large Region 中只会存放一个大对象，并且是不会被重新分配的。虽然名字叫作“大型 Region”，但它的实际容量完全有可能小于中型 Region，最小容量可低至 4MB。</p>
+</li>
+</ul>
+<p>ZGC垃圾回收周期如下图所示：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291338880.png" alt="img"></p>
+<p>ZGC只有三个STW阶段：<strong>初始标记</strong>，<strong>再标记</strong>，<strong>初始转移</strong>。其中，初始标记和初始转移分别都只需要扫描所有GC Roots，其处理时间和GC Roots的数量成正比，一般情况耗时非常短；再标记阶段STW时间很短，最多1ms，超过1ms则再次进入并发标记阶段。即，ZGC几乎所有暂停都只依赖于GC Roots集合大小，停顿时间不会随着堆的大小或者活跃对象的大小而增加。与ZGC对比，G1的转移阶段完全STW的，且停顿时间随存活对象的大小增加而增加。</p>
+<h3 id="ZGC关键技术"><a href="#ZGC关键技术" class="headerlink" title="ZGC关键技术"></a>ZGC关键技术</h3><p>ZGC通过着色指针和读屏障技术，解决了转移过程中准确访问对象的问题，实现了并发转移。大致原理描述如下：     </p>
+<blockquote>
+<p>并发转移中“并发”意味着GC线程在转移对象的过程中，应用线程也在不停地访问对象。<br>假设对象发生转移，但对象地址未及时更新，那么应用线程可能访问到旧地址，从而造成错误。而在ZGC中，应用线程访问对象将触发“读屏障”，如果发现对象被移动了，那么“读屏障”会把读出&gt; &gt; 来的指针更新到对象的新地址上，这样应用线程始终访问的都是对象的新地址。</p>
+</blockquote>
+<p>那么，JVM是如何判断对象被移动过呢？就是利用对象引用的地址，即着色指针。下面介绍着色指针和读屏障技术细节。</p>
+<h4 id="着色指针"><a href="#着色指针" class="headerlink" title="着色指针"></a>着色指针</h4><p>着色指针是一种将信息存储在指针中的技术。</p>
+<p>ZGC出现之前，GC信息保存在对象头的Mark Word中，比如64位JVM里，前62位保存GC信息，最后2位保存了锁标志。ZGC的一大创举是将GC信息保存在了着色指针上。ZGC将对象存活信息存储在42~45位中，这与传统的垃圾回收并将对象存活信息放在对象头中完全不同。</p>
+<p>在64位JVM中，对象指针是64位，如下图：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291339457.webp" alt="img"></p>
+<ul>
+<li>Marked0 &#x2F;Marked1：标记位，标记对象是否可用，</li>
+<li>Remapped：记录对象是否进入过重分配集（对象是否移动过）</li>
+<li>Finalizable：标记对象是否只能通过fnalize()访问</li>
+</ul>
+<p>当应用程序创建对象时，首先在堆空间申请一个虚拟地址，但该虚拟地址并不会映射到真正的物理地址。ZGC同时会为该对象在Marked0、Marked1和Remapped地址空间分别申请一个虚拟地址，且这三个虚拟地址对应同一个物理地址(mmap技术)，但这三个空间在同一时间有且只有一个空间有效。ZGC之所以设置三个虚拟地址空间，是因为它使用“空间换时间”思想，去降低GC停顿时间。“空间换时间”中的空间是虚拟空间，而不是真正的物理空间。</p>
+<h4 id="读屏障"><a href="#读屏障" class="headerlink" title="读屏障"></a>读屏障</h4><p>读屏障是JVM向应用代码插入一小段代码的技术。当应用线程从堆中读取对象引用时，就会执行这段代码。需要注意的是，仅“从堆中读取对象引用”才会触发这段代码。</p>
+<p>读屏障示例：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">Object</span> <span class="variable">o</span> <span class="operator">=</span> obj.FieldA   <span class="comment">// 从堆中读取引用，需要加入屏障</span></span><br><span class="line">&lt;Load barrier&gt;</span><br><span class="line"><span class="type">Object</span> <span class="variable">p</span> <span class="operator">=</span> o  <span class="comment">// 无需加入屏障，因为不是从堆中读取引用</span></span><br><span class="line">o.dosomething() <span class="comment">// 无需加入屏障，因为不是从堆中读取引用</span></span><br><span class="line"><span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span>  obj.FieldB  <span class="comment">//无需加入屏障，因为不是对象引用</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>ZGC中读屏障的代码作用</strong>：在对象标记和转移过程中，用于确定对象的引用地址是否满足条件，并作出相应动作。</p>
+<p>接下来详细介绍ZGC一次垃圾回收周期中地址视图的切换过程：</p>
+<ul>
+<li><p>初始化：ZGC初始化之后，整个内存空间的地址视图被设置为Remapped。程序正常运行，在内存中分配对象，满足一定条件后垃圾回收启动，此时进入标记阶段。</p>
+</li>
+<li><p>并发标记阶段：第一次进入标记阶段时视图为M0，如果对象被GC标记线程或者应用线程访问过，那么就将对象的地址视图从Remapped调整为M0。所以，在标记阶段结束之后，对象的地址要么是M0视图，要么是Remapped。如果对象的地址是M0视图，那么说明对象是活跃的；如果对象的地址是Remapped视图，说明对象是不活跃的。</p>
+</li>
+<li><p>并发转移阶段：标记结束后就进入转移阶段，此时地址视图再次被设置为Remapped。如果对象被GC转移线程或者应用线程访问过，那么就将对象的地址视图从M0调整为Remapped。</p>
+</li>
+</ul>
+<p>其实，在标记阶段存在两个地址视图M0和M1，上面的过程显示只用了一个地址视图。之所以设计成两个，是为了区别前一次标记和当前标记。即第二次进入并发标记阶段后，地址视图调整为M1，而非M0。</p>
+<p>着色指针和读屏障技术不仅应用在并发转移阶段，还应用在并发标记阶段：将对象设置为已标记，传统的垃圾回收器需要进行一次内存访问，并将对象存活信息放在对象头中；而在ZGC中，只需要设置指针地址的第42~45位即可，并且因为是寄存器访问，所以速度比访问内存更快。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291339322.png" alt="img"></p>
+<h2 id="ZGC调优实践"><a href="#ZGC调优实践" class="headerlink" title="ZGC调优实践"></a>ZGC调优实践</h2><p>ZGC不是“银弹”，需要根据服务的具体特点进行调优。本文的一个目的是列举一些使用ZGC时常见的问题，帮助大家使用ZGC提高服务可用性。</p>
+<p>调优基础知识</p>
+<h3 id="理解ZGC重要配置参数"><a href="#理解ZGC重要配置参数" class="headerlink" title="理解ZGC重要配置参数"></a>理解ZGC重要配置参数</h3><p>以我们服务在生产环境中ZGC参数配置为例，说明各个参数的作用：</p>
+<p>重要参数配置样例：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">-Xms10G -Xmx10G </span><br><span class="line">-XX:ReservedCodeCacheSize=256m -XX:InitialCodeCacheSize=256m </span><br><span class="line">-XX:+UnlockExperimentalVMOptions -XX:+UseZGC </span><br><span class="line">-XX:ConcGCThreads=2 -XX:ParallelGCThreads=6 </span><br><span class="line">-XX:ZCollectionInterval=120 -XX:ZAllocationSpikeTolerance=5 </span><br><span class="line">-XX:+UnlockDiagnosticVMOptions -XX:-ZProactive </span><br><span class="line">-Xlog:safepoint,classhisto*=trace,age*,gc*=info:file=/opt/logs/logs/gc-%t.log:time,tid,tags:filecount=5,filesize=50m </span><br></pre></td></tr></table></figure>
+
+<p><strong>-Xms -Xmx</strong>：堆的最大内存和最小内存，这里都设置为10G，程序的堆内存将保持10G不变。<br><strong>-XX:ReservedCodeCacheSize -XX:InitialCodeCacheSize</strong>: 设置CodeCache的大小， JIT编译的代码都放在CodeCache中，一般服务64m或128m就已经足够。我们的服务因为有一定特殊性，所以设置的较大，后面会详细介绍。<br><strong>-XX:+UnlockExperimentalVMOptions -XX:+UseZGC</strong>：启用ZGC的配置。<br><strong>-XX:ConcGCThreads</strong>：并发回收垃圾的线程。默认是总核数的12.5%，8核CPU默认是1。调大后GC变快，但会占用程序运行时的CPU资源，吞吐会受到影响。<br><strong>-XX:ParallelGCThreads</strong>：STW阶段使用线程数，默认是总核数的60%。<br><strong>-XX:ZCollectionInterval</strong>：ZGC发生的最小时间间隔，单位秒。<br><strong>-XX:ZAllocationSpikeTolerance</strong>：ZGC触发自适应算法的修正系数，默认2，数值越大，越早的触发ZGC。<br><strong>-XX:+UnlockDiagnosticVMOptions -XX:-ZProactive</strong>：是否启用主动回收，默认开启，这里的配置表示关闭。<br><strong>-Xlog</strong>：设置GC日志中的内容、格式、位置以及每个日志的大小。</p>
+<h3 id="理解ZGC触发时机"><a href="#理解ZGC触发时机" class="headerlink" title="理解ZGC触发时机"></a>理解ZGC触发时机</h3><p>相比于CMS和G1的GC触发机制，ZGC的GC触发机制有很大不同。ZGC的核心特点是并发，GC过程中一直有新的对象产生。如何保证在GC完成之前，新产生的对象不会将堆占满，是ZGC参数调优的第一大目标。因为在ZGC中，当垃圾来不及回收将堆占满时，会导致正在运行的线程停顿，持续时间可能长达秒级之久。</p>
+<p>ZGC有多种GC触发机制，总结如下：</p>
+<ul>
+<li><p>阻塞内存分配请求触发：当垃圾来不及回收，垃圾将堆占满时，会导致部分线程阻塞。我们应当避免出现这种触发方式。日志中关键字是“Allocation Stall”。</p>
+</li>
+<li><p>基于分配速率的自适应算法：最主要的GC触发方式，其算法原理可简单描述为”ZGC根据近期的对象分配速率以及GC时间，计算出当内存占用达到什么阈值时触发下一次GC”。自适应算法的详细理论可参考彭成寒《新一代垃圾回收器ZGC设计与实现》一书中的内容。通过ZAllocationSpikeTolerance参数控制阈值大小，该参数默认2，数值越大，越早的触发GC。我们通过调整此参数解决了一些问题。日志中关键字是“Allocation Rate”。</p>
+</li>
+<li><p>基于固定时间间隔：通过ZCollectionInterval控制，适合应对突增流量场景。流量平稳变化时，自适应算法可能在堆使用率达到95%以上才触发GC。流量突增时，自适应算法触发的时机可能会过晚，导致部分线程阻塞。我们通过调整此参数解决流量突增场景的问题，比如定时活动、秒杀等场景。日志中关键字是“Timer”。</p>
+</li>
+<li><p>主动触发规则：类似于固定间隔规则，但时间间隔不固定，是ZGC自行算出来的时机，我们的服务因为已经加了基于固定时间间隔的触发机制，所以通过-ZProactive参数将该功能关闭，以免GC频繁，影响服务可用性。日志中关键字是“Proactive”。</p>
+</li>
+<li><p>预热规则：服务刚启动时出现，一般不需要关注。日志中关键字是“Warmup”。</p>
+</li>
+<li><p>外部触发：代码中显式调用System.gc()触发。日志中关键字是“System.gc()”。</p>
+</li>
+<li><p>元数据分配触发：元数据区不足时导致，一般不需要关注。日志中关键字是“Metadata GC Threshold”。</p>
+</li>
+</ul>
+<h3 id="理解ZGC日志"><a href="#理解ZGC日志" class="headerlink" title="理解ZGC日志"></a>理解ZGC日志</h3><p>一次完整的GC过程，需要注意的点已在图中标出。</p>
+<p><img src="https://imgconvert.csdnimg.cn/aHR0cHM6Ly9tbWJpei5xcGljLmNuL21tYml6X3BuZy9oRXgwM2NGZ1VzVUZUSENpYkN3S01YWmNIVkRpYk8xUXo0cnRmQ1FwVndkWlkzTWliSXYzTXRJWlg0SExYNXphUExRa3JnYVhjRXNvNHd4aWFGZUdpY2dFYXF3LzY0MA?x-oss-process=image/format,png" alt="img"></p>
+<p>注意：该日志过滤了进入安全点的信息。正常情况，在一次GC过程中还穿插着进入安全点的操作。</p>
+<p>GC日志中每一行都注明了GC过程中的信息，关键信息如下：</p>
+<ul>
+<li><p>Start：开始GC，并标明的GC触发的原因。上图中触发原因是自适应算法。</p>
+</li>
+<li><p>Phase-Pause Mark Start：初始标记，会STW。</p>
+</li>
+<li><p>Phase-Pause Mark End：再次标记，会STW。</p>
+</li>
+<li><p>Phase-Pause Relocate Start：初始转移，会STW。</p>
+</li>
+<li><p>Heap信息：记录了GC过程中Mark、Relocate前后的堆大小变化状况。High和Low记录了其中的最大值和最小值，我们一般关注High中Used的值，如果达到100%，在GC过程中一定存在内存分配不足的情况，需要调整GC的触发时机，更早或者更快地进行GC。</p>
+</li>
+<li><p>GC信息统计：可以定时的打印垃圾收集信息，观察10秒内、10分钟内、10个小时内，从启动到现在的所有统计信息。利用这些统计信息，可以排查定位一些异常点。</p>
+</li>
+</ul>
+<p>日志中内容较多，关键点已用红线标出，含义较好理解，更详细的解释大家可以自行在网上查阅资料。</p>
+<h3 id="理解ZGC停顿原因"><a href="#理解ZGC停顿原因" class="headerlink" title="理解ZGC停顿原因"></a>理解ZGC停顿原因</h3><p>我们在实战过程中共发现了6种使程序停顿的场景，分别如下：</p>
+<ul>
+<li><p>GC时，初始标记：日志中Pause Mark Start。</p>
+</li>
+<li><p>GC时，再标记：日志中Pause Mark End。</p>
+</li>
+<li><p>GC时，初始转移：日志中Pause Relocate Start。</p>
+</li>
+<li><p>内存分配阻塞：当内存不足时线程会阻塞等待GC完成，关键字是”Allocation Stall”。</p>
+</li>
+<li><p>安全点：所有线程进入到安全点后才能进行GC，ZGC定期进入安全点判断是否需要GC。先进入安全点的线程需要等待后进入安全点的线程直到所有线程挂起。</p>
+</li>
+<li><p>dump线程、内存：比如jstack、jmap命令。</p>
+</li>
+</ul>
+<hr>
+<p>转载自：<br><a target="_blank" rel="noopener" href="https://blog.csdn.net/MeituanTech/article/details/107853015">https://blog.csdn.net/MeituanTech/article/details/107853015</a><br><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/ab457e102bdd">https://www.jianshu.com/p/ab457e102bdd</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/06/12/k8s&docker/%E8%AF%A6%E8%A7%A3Pod%E5%8F%8A%E5%AE%B9%E5%99%A8%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" rel="prev" title="详解 Pod 及容器设计模式">
+      <i class="fa fa-chevron-left"></i> 详解 Pod 及容器设计模式
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/07/02/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5&%E9%94%81&volatile/ObjectMonitor%E5%AF%B9%E8%B1%A1/" rel="next" title="ObjectMonitor对象">
+      ObjectMonitor对象 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%89%8D%E8%A8%80"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#GC%E4%B9%8B%E7%97%9B"><span class="nav-number">2.</span> <span class="nav-text">GC之痛</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#CMS%E4%B8%8EG1%E5%81%9C%E9%A1%BF%E6%97%B6%E9%97%B4%E7%93%B6%E9%A2%88"><span class="nav-number">2.1.</span> <span class="nav-text">CMS与G1停顿时间瓶颈</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ZGC%E5%8E%9F%E7%90%86"><span class="nav-number">3.</span> <span class="nav-text">ZGC原理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%A8%E5%B9%B6%E5%8F%91%E7%9A%84ZGC"><span class="nav-number">3.1.</span> <span class="nav-text">全并发的ZGC</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ZGC%E5%85%B3%E9%94%AE%E6%8A%80%E6%9C%AF"><span class="nav-number">3.2.</span> <span class="nav-text">ZGC关键技术</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%9D%80%E8%89%B2%E6%8C%87%E9%92%88"><span class="nav-number">3.2.1.</span> <span class="nav-text">着色指针</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%AF%BB%E5%B1%8F%E9%9A%9C"><span class="nav-number">3.2.2.</span> <span class="nav-text">读屏障</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ZGC%E8%B0%83%E4%BC%98%E5%AE%9E%E8%B7%B5"><span class="nav-number">4.</span> <span class="nav-text">ZGC调优实践</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%90%86%E8%A7%A3ZGC%E9%87%8D%E8%A6%81%E9%85%8D%E7%BD%AE%E5%8F%82%E6%95%B0"><span class="nav-number">4.1.</span> <span class="nav-text">理解ZGC重要配置参数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%90%86%E8%A7%A3ZGC%E8%A7%A6%E5%8F%91%E6%97%B6%E6%9C%BA"><span class="nav-number">4.2.</span> <span class="nav-text">理解ZGC触发时机</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%90%86%E8%A7%A3ZGC%E6%97%A5%E5%BF%97"><span class="nav-number">4.3.</span> <span class="nav-text">理解ZGC日志</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%90%86%E8%A7%A3ZGC%E5%81%9C%E9%A1%BF%E5%8E%9F%E5%9B%A0"><span class="nav-number">4.4.</span> <span class="nav-text">理解ZGC停顿原因</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

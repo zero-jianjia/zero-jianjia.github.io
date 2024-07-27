@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="[toc]&emsp;&emsp;InnoDB与MyISAM的最大不同有两点：一是支持事务（TRANSACTION）；二是采用了行级锁。（还有一个支持外键） 获取InnoDB行锁争用情况&emsp;&emsp;可以通过检查InnoDB_row_lock状态变量来分析系统上的行锁的争夺情况： 1mysql&gt; show status like &#x27;innodb_row_lock%&amp;#x2">
+<meta property="og:type" content="article">
+<meta property="og:title" content="通过SQL分析数据库加锁">
+<meta property="og:url" content="http://example.com/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/MySQL/%E5%8E%9F%E7%90%86/InnoDB%E7%9A%84%E9%94%81/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="[toc]&emsp;&emsp;InnoDB与MyISAM的最大不同有两点：一是支持事务（TRANSACTION）；二是采用了行级锁。（还有一个支持外键） 获取InnoDB行锁争用情况&emsp;&emsp;可以通过检查InnoDB_row_lock状态变量来分析系统上的行锁的争夺情况： 1mysql&gt; show status like &#x27;innodb_row_lock%&amp;#x2">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171003468.png">
+<meta property="article:published_time" content="2024-04-05T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.754Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171003468.png">
+
+<link rel="canonical" href="http://example.com/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/MySQL/%E5%8E%9F%E7%90%86/InnoDB%E7%9A%84%E9%94%81/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>通过SQL分析数据库加锁 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/MySQL/%E5%8E%9F%E7%90%86/InnoDB%E7%9A%84%E9%94%81/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          通过SQL分析数据库加锁
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-06 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-06T00:00:00+08:00">2024-04-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93-%E7%BC%93%E5%AD%98/" itemprop="url" rel="index"><span itemprop="name">数据库&缓存</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93-%E7%BC%93%E5%AD%98/MySQL/" itemprop="url" rel="index"><span itemprop="name">MySQL</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93-%E7%BC%93%E5%AD%98/MySQL/%E5%8E%9F%E7%90%86/" itemprop="url" rel="index"><span itemprop="name">原理</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>[toc]<br>&emsp;&emsp;InnoDB与MyISAM的最大不同有两点：一是支持事务（TRANSACTION）；二是采用了行级锁。（还有一个支持外键）</p>
+<h3 id="获取InnoDB行锁争用情况"><a href="#获取InnoDB行锁争用情况" class="headerlink" title="获取InnoDB行锁争用情况"></a>获取InnoDB行锁争用情况</h3><p>&emsp;&emsp;可以通过检查InnoDB_row_lock状态变量来分析系统上的行锁的争夺情况：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; show status like &#x27;innodb_row_lock%&#x27;;</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;如果发现锁争用比较严重，如InnoDB_row_lock_waits和InnoDB_row_lock_time_avg的值比较高，还可以通过设置InnoDB Monitors来进一步观察发生锁冲突的表、数据行等，并分析锁争用的原因。</p>
+<h3 id="InnoDB的行锁模式及加锁方法"><a href="#InnoDB的行锁模式及加锁方法" class="headerlink" title="InnoDB的行锁模式及加锁方法"></a>InnoDB的行锁模式及加锁方法</h3><p>&emsp;&emsp;InnoDB实现了以下两种类型的行锁。</p>
+<ul>
+<li>共享锁（S, shared locks）：允许一个事务去读一行，阻止其他事务获得相同数据集的排他锁。</li>
+<li>排他锁（X, exclusive locks）：允许获得排他锁的事务更新数据，阻止其他事务取得相同数据集的共享读锁和排他写锁。</li>
+</ul>
+<p>&emsp;&emsp;InnoDB支持多粒度的锁，也即，除了行锁外还支持表锁，表锁通过意向锁实现，用以提示事务即将对表中的行添加什么样的锁。InnoDB有两种内部使用的意向锁（Intention Locks）：</p>
+<ul>
+<li>意向共享锁（IS）：事务打算给数据行加行共享锁，事务在给一个数据行加共享锁前必须先取得该表的IS锁。</li>
+<li>意向排他锁（IX）：事务打算给数据行加行排他锁，事务在给一个数据行加排他锁前必须先取得该表的IX锁。</li>
+</ul>
+<p>&emsp;&emsp;上述锁模式的兼容情况具体如表:<br><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171003468.png"></p>
+<span id="more"></span>
+<p>&emsp;&emsp;如果一个事务请求的锁模式与当前的锁兼容，InnoDB就将请求的锁授予该事务；反之，如果两者不兼容，该事务就要等待锁释放。</p>
+<p>&emsp;&emsp;意向锁是InnoDB自动加的，不需用户干预。对于UPDATE、DELETE和INSERT语句，InnoDB会自动给涉及数据集加排他锁（X)；对于普通SELECT语句，InnoDB不会加任何锁；事务可以通过以下语句显示给记录集加共享锁或排他锁。<br>&emsp;&emsp;i：共享锁（S）：<code>SELECT * FROM table_name WHERE ... LOCK IN SHARE MODE</code><br>&emsp;&emsp;ii：排他锁（X）：<code>SELECT * FROM table_name WHERE ... FOR UPDATE</code></p>
+<p>&emsp;&emsp;用 SELECT … IN SHARE MODE 获得共享锁，主要用在需要数据依存关系时来确认某行记录是否存在，并确保没有人对这个记录进行UPDATE或者DELETE操作。但是如果当前事务也需要对该记录进行更新操作，则很有可能造成死锁，对于锁定行记录后需要进行更新操作的应用，应该使用SELECT… FOR UPDATE方式获得排他锁。</p>
+<p>&emsp;&emsp;从InnoDB锁住的对象来看，InnoDB又可分为<code>Record Lock</code>, <code>Gap Lock</code>和<code>Next-Key Lock</code>。其中Record Lock只对索引记录加锁，Gap Lock在索引记录之间的”间隙“加锁，这个”间隙“也包含第一条索引记录之前和最后一条索引记录之后的”间隙“。Next-Key Lock是Record Lock和Gap Lock的结合，除了锁住索引记录本身外还锁住索引记录之前的”间隙“。（注意Record Lock只对索引记录加锁，即使创建表时没有指定任何索引（此时InnoDB创建一个隐藏的索引使用该索引加锁））。</p>
+<p>&emsp;&emsp;默认情况下，InnoDB引擎使用 REPEATABLE READ 事务隔离级别和<code>innodb_locks_unsafe_for_binlog=0</code>的设置。此时，InnoDB使用Next-Key Lock来避免”幻象“读问题。</p>
+<p>&emsp;&emsp;假定索引包含4,9,12,18几条记录，Record Lock直接在4,9,12,18这几条索引记录上加锁，Gap Lock覆盖的间隙包括(-,4)、(4,9)、(9,12)、(12,18)、(18,-)，而Next-Key Lock可能锁定的区间包括(-,4]、(4,9]、(9,12]、(12,18]、(18,-)。<br>&emsp;&emsp;若事务持有索引R上的S锁或X锁，另外的事务便无法在R之前的间隙插入记录（这避免幻象读的基本原理）。如果，使用了唯一索引来检索唯一的行（不包括搜索条件只包含多列唯一索引中的部分列的情况）不会使用Gap Lock。例如user表id列上有唯一索引则SELECT * FROM user WHERE id &#x3D; 100只会在id&#x3D;100的行上对唯一索引加Record Lock，若该id不存在或者该列上无唯一索引则语句会锁住对应的间隙。</p>
+<p>&emsp;&emsp;InnoDB中存在一种称为 insert intention gap lock的Gap Lock，由INSERT语句在执行插入操作前设置，用以表明多个事务向相同的索引间隙插入数据时若在间隙内插入的位置不同则不必相互等待。假定有值为4和7的索引记录。两个不同的事务分别同时向4和7之间的间隙插入5和6两条记录，在获取插入行上的X锁前会先获取间隙内的插入意向锁，因为行并不冲突，所以不会相互阻塞。</p>
+<p>&emsp;&emsp;需要特别注意的是，不同的事务可以在同一gap上持有不兼容的锁类型。也即，对于Gap lock来说，gap X-lock与gap S-lock是等价的。Gap lock仅用来阻止其他事务在gap内插入。</p>
+<p>&emsp;&emsp;在讲解InnoDB四种事务隔离级别的时候，讲到过”幻象“读问题，也即在”READ COMMITTED“隔离级别下，同一事务的两次相同的查询可能返回不同的结果，或者”REPEATABLE READ“事务隔离级别下，事务B的更新对另一事务A的更新语句可见，且在事务A在对更新后的结果进行了更新后随后同一事务中的SELECT能够看到之前不存在的记录更新后的结果。具体可以参考对应章节的示例。InnoDB使用Next-key Lock来解决”幻读“。InnoDB默认事务隔离级别为REPEATABLE READ，该隔离级别下InnoDB使用Next-key Lock来锁住相关索引记录以及记录之前的”间隙“，以保证其他session中的事务不仅不能更新记录而且不能在其中插入数据，从而避免”幻读“问题。</p>
+<p>&emsp;&emsp;还用最初的表做实验，删除原有记录并在表t中插入i&#x3D;4,9,12,20,30几条记录。</p>
+<p>&emsp;&emsp;先将事务隔离级别调整为READ-COMMITED，我们已经知道，该隔离级别下用非锁定读时可以读取到其他事务中提交的更新，使前后两次同样条件的查询读取到的结果不一致，那么使用锁定读呢？从下边的例子可以看出，在READ-COMMITED隔离级别下，SESSION A中的事务使用锁定读(这里为X锁)，可以阻塞SESSION B中的事务对锁定的记录进行更新或删除，”一定程度上“避免了”不可重复读“或者”幻读”,但是，这里的锁只锁定了记录本身，也即Record Lock，没能阻止SESSION B中的事务在锁定的记录之间插入新的记录，因此当其他事物在这些”间隙“内插入记录并提交后SESSION A中的事务能够看到新插入的记录，还是存在”不可重复读“或者”幻读”。</p>
+<p>&emsp;&emsp;接下来将隔离级别调整为REATABLE READ，该隔离级别下使用非锁定读一般不会读取到其他事物提交的更新，但其他事务中的更新对其更新操作是可见的，当该事务对更新后的记录进行了更新后，同一事物内的查询便可以看到最新的结果，造成前后两次读取结果不一致（前边已有例子进行说明）。那么该隔离级别下使用锁定读呢？会不会也不能避免其他事物在锁定记录的”间隙“插入新的记录呢？答案是否定的，该隔离级别下，InnoDB使用Next-key Lock，除了锁定记录本身外还会锁定记录之间的”间隙”，从而阻止其他事物在读取的记录键插入新的记录，避免前后同一查询条件查询结果却不一致的问题。</p>
+<h3 id="锁的类型"><a href="#锁的类型" class="headerlink" title="锁的类型"></a>锁的类型</h3><p>&emsp;&emsp;Innodb Lock大体上可以分为：</p>
+<ul>
+<li>共享锁，shared locks（S锁）</li>
+<li>排它锁，exclusive locks（X锁）</li>
+<li>意向锁，intention lock，分为 意向共享锁(IS锁) 和 意向排它锁(IX锁)</li>
+<li>行锁，（record Locks、gap locks、next-key locks、Insert Intention Locks)</li>
+<li>自增锁，auto-inc locks</li>
+</ul>
+<p>&emsp;&emsp;<br>&emsp;&emsp;行锁的作用范围是行级别，数据库能够确定那些行需要锁的情况下使用行锁，如果不知道会影响哪些行的时候就会使用表锁。举个例子，一个用户表user，有主键id和用户生日birthday，当使用<code>update ... where id=?</code>这样的语句数据库明确知道会影响哪一行，它就会使用行锁，当使用<code>update ... where birthday=?</code>这样的的语句的时候因为事先不知道会影响哪些行就可能会使用表锁。</p>
+<ul>
+<li><p>InnoDB行锁是通过给索引上的索引项加锁来实现的，InnoDB这种行锁实现特点意味着：只有通过索引条件检索数据，InnoDB才使用行级锁，否则，InnoDB将使用表锁！</p>
+</li>
+<li><p>由于MySQL的行锁是针对索引加的锁，不是针对记录加的锁，所以虽然是访问不同行的记录，但是如果是使用相同的索引键，是会出现锁冲突的。</p>
+</li>
+<li><p>当表有多个索引的时候，不同的事务可以使用不同的索引锁定不同的行，另外，不论是使用主键索引、唯一索引或普通索引，InnoDB都会使用行锁来对数据加锁。</p>
+</li>
+<li><p>即便在条件中使用了索引字段，但是否使用索引来检索数据是由MySQL通过判断不同执行计划的代价来决定的，如果MySQL认为全表扫描效率更高，比如对一些很小的表，它就不会使用索引，这种情况下InnoDB将使用表锁，而不是行锁。 因此，在分析锁冲突时，别忘了检查SQL的执行计划，以确认是否真正使用了索引。</p>
+</li>
+<li><p>InnoDB行锁是通过给索引上的索引项加锁来实现的，如果没有索引，InnoDB将通过隐藏的聚集索引来对记录加锁。InnoDB行锁主要分为3种情形：</p>
+<ul>
+<li>Record lock：对索引项加锁</li>
+<li>Gap lock：对索引项之间的“间隙”、第一条记录前的“间隙”或最后一条记录后的“间隙”加锁</li>
+<li>Next-key lock：前两种的组合，对记录及其前面的间隙加锁。</li>
+</ul>
+</li>
+</ul>
+<h4 id="共享-排他锁"><a href="#共享-排他锁" class="headerlink" title="共享&#x2F;排他锁"></a>共享&#x2F;排他锁</h4><p>&emsp;&emsp;行锁分为：S Lock 和 X Lock。S Lock是共享锁，可以理解为读锁；X Lock即写锁。<br>&emsp;&emsp;兼容性：读锁可以读，读锁不可写；写锁不可读也不可写。</p>
+<h4 id="意向锁"><a href="#意向锁" class="headerlink" title="意向锁"></a>意向锁</h4><p>&emsp;&emsp;InnoDB支持多粒度的锁，即：允许表锁和行锁同时存在。但是，假如表锁覆盖了行锁的数据，所以表锁和行锁也会产生冲突。为了解决这种表锁和行锁共存的问题，就产生了意向锁这个东西。意向锁：从字面意思也很好理解，就是提前表明一个“意向”。</p>
+<p>&emsp;&emsp;意向锁分为：</p>
+<ul>
+<li>意向共享锁。它预示着，事务有意向对表中的”某些行”加S锁。select xxxx lock in share mode，要设置IS锁。</li>
+<li>意向排他锁。它预示着，事务有意向表中的“某些行”加X锁。select xxx for update，要设置IX锁。</li>
+</ul>
+<p>&emsp;&emsp;但意向锁仅仅是表明意向，它其实非常弱，意向锁之间可以相互并行，并不是排斥的：</p>
+<p>InnoDB还有两种内部使用的意向锁（Intention Locks），这两种意向锁都是表锁。</p>
+<ol>
+<li>意向共享锁（IS）：事务打算给数据行加行共享锁，事务在给一个数据行加共享锁前必须先取得该表的IS锁。</li>
+<li>意向排他锁（IX）：事务打算给数据行加行排他锁，事务在给一个数据行加排他锁前必须先取得该表的IX锁。</li>
+</ol>
+<p>如果一个事务请求的锁模式与当前的锁兼容，innodb 就将请求的锁授予该事务；反之，如果两者不兼容，该事务就要等待锁释放。</p>
+<p>意向锁是 innodb 自动加的，不需要用户干预。对于 update、delete 和 insert 语句，innodb 会自动给涉及数据集加排它锁（X）；对于普通 select 语句，innodb 不会加任何锁。</p>
+<h4 id="主键自增锁"><a href="#主键自增锁" class="headerlink" title="主键自增锁"></a>主键自增锁</h4><p>&emsp;&emsp;自增锁(auto-inc Locks)是一种特殊的表级锁，专门针对事务插入AUTO_INCREMENT类型的列，往往就是主键列。可以保证主键的值自增是“原子操作”，不会出现一致性、唯一性问题。</p>
+<p>&emsp;&emsp;</p>
+<h3 id="行锁的具体分类"><a href="#行锁的具体分类" class="headerlink" title="行锁的具体分类"></a>行锁的具体分类</h3><h4 id="记录锁-Record-Lock"><a href="#记录锁-Record-Lock" class="headerlink" title="记录锁(Record Lock)"></a>记录锁(Record Lock)</h4><p>&emsp;&emsp;记录锁(Record Lock)  是会去锁住索引记录， 记录锁也叫 行锁。<br>&emsp;&emsp;例如：<code>SELECT * FROM `test` WHERE `id`=1 FOR UPDATE;</code><br>&emsp;&emsp;假如没有任何一个索引，那么InnoDB会锁住隐形创建的那个主键。注意：这里锁的是索引，不一定只是主键索引，还可能是二级普通索引。</p>
+<h4 id="间隙锁-Gap-Lock"><a href="#间隙锁-Gap-Lock" class="headerlink" title="间隙锁(Gap Lock)"></a>间隙锁(Gap Lock)</h4><p>&emsp;&emsp;顾名思义，它会封锁索引记录中的“间隔”，限制其他事务在“间隔”中插入数据。它锁定的是一个不包含索引本身的范围。<br>&emsp;&emsp;举例来说，假如emp表中只有101条记录，其empid的值分别是 1,2,…,100,101，<code>select * from  emp where empid &gt; 100 for update;</code>是一个范围条件的检索，InnoDB不仅会对符合条件的empid值为101的记录加锁，也会对empid大于101（这些记录并不存在）的“间隙”加锁。</p>
+<h4 id="临键锁-Next-Key-Lock"><a href="#临键锁-Next-Key-Lock" class="headerlink" title="临键锁(Next-Key Lock)"></a>临键锁(Next-Key Lock)</h4><p>&emsp;&emsp;Next-Key Lock 可以说是记录锁(Record Lock)和间隙锁（Gap Lock）的组合，它的封锁范围，既包含索引记录，又包含索引区间。<br>&emsp;&emsp;临键锁的主要目的，也是为了避免幻读。如果把事务的隔离级别降级为RC，临键锁则也会失效。</p>
+<h3 id="不可重复读-No-Reaptable-Read-和幻读-Phantom-Problem"><a href="#不可重复读-No-Reaptable-Read-和幻读-Phantom-Problem" class="headerlink" title="不可重复读(No Reaptable Read)和幻读(Phantom Problem)"></a>不可重复读(No Reaptable Read)和幻读(Phantom Problem)</h3><p>&emsp;&emsp;不可重复读：修改。在同一个事务中，主要是说多次读取一条记录, 发现该记录中某些列值被修改过。<br>&emsp;&emsp;幻读: 增加或者删除。在同一个事务中，同一条完全相同的查询语句返回的结果集行数不同。</p>
+<p>&emsp;&emsp;多版本并发控制 MVCC（读）和 临键锁 Next-Key Lock（写）共同解决了幻读问题。<br>&emsp;&emsp;关于MVCC的原理，就是每份数据会有快照，事务中读取数据(简单的select xxx from，select xx from xx for update或者select xx from xxx in share mode不行)的时候，如果数据被锁住了，就读以前留下的快照数据。</p>
+<p>&emsp;&emsp;MVCC只在 Read Committed 和 Repeatable Read 下会开启。但是在这两种隔离级别下对于快照指定的数据定义不同。<br>&emsp;&emsp;在Read Committed下，MVCC读取的是被锁定数据的最新的一份数据。<br>&emsp;&emsp;在Repeatable Read下，MVCC读取的是事务刚开始时候的数据。</p>
+<h3 id="InnoDB行锁实现方式"><a href="#InnoDB行锁实现方式" class="headerlink" title="InnoDB行锁实现方式"></a>InnoDB行锁实现方式</h3><p>&emsp;&emsp;InnoDB行锁是通过给索引上的索引项加锁来实现的，这一点MySQL与Oracle不同，后者是通过在数据块中对相应数据行加锁来实现的。InnoDB这种行锁实现特点意味着：只有通过索引条件检索数据，InnoDB才使用行级锁，否则，InnoDB将使用表锁！</p>
+<p>&emsp;&emsp;在实际应用中，要特别注意InnoDB行锁的这一特性，不然的话，可能导致大量的锁冲突，从而影响并发性能。</p>
+<p>（1）在不通过索引条件查询的时候，InnoDB确实使用的是表锁，而不是行锁。<br>（2）由于MySQL的行锁是针对索引加的锁，不是针对记录加的锁，所以虽然是访问不同行的记录，但是如果是使用相同的索引键，是会出现锁冲突的。<br>（3）当表有多个索引的时候，不同的事务可以使用不同的索引锁定不同的行，另外，不论是使用主键索引、唯一索引或普通索引，InnoDB都会使用行锁来对数据加锁。<br>（4）即便在条件中使用了索引字段，但是否使用索引来检索数据是由MySQL通过判断不同执行计划的代价来决定的，如果MySQL认为全表扫描效率更高，比如对一些很小的表，它就不会使用索引，这种情况下InnoDB将使用表锁，而不是行锁。因此，在分析锁冲突时，别忘了检查SQL的执行计划，以确认是否真正使用了索引。</p>
+<h3 id="间隙锁（Next-Key锁）"><a href="#间隙锁（Next-Key锁）" class="headerlink" title="间隙锁（Next-Key锁）"></a>间隙锁（Next-Key锁）</h3><p>当我们用范围条件而不是相等条件检索数据，并请求共享或排他锁时，InnoDB会给符合条件的已有数据记录的索引项加锁；对于键值在条件范围内但并不存在的记录，叫做“间隙（GAP)”，InnoDB也会对这个“间隙”加锁，这种锁机制就是所谓的间隙锁（Next-Key锁）。</p>
+<p>举例来说，假如emp表中只有101条记录，其empid的值分别是 1,2,…,100,101，下面的SQL：</p>
+<p>Select * from  emp where empid &gt; 100 for update;</p>
+<p>是一个范围条件的检索，InnoDB不仅会对符合条件的empid值为101的记录加锁，也会对empid大于101（这些记录并不存在）的“间隙”加锁。</p>
+<p>InnoDB使用间隙锁的目的，一方面是为了防止幻读，以满足相关隔离级别的要求，对于上面的例子，要是不使用间隙锁，如果其他事务插入了empid大于100的任何记录，那么本事务如果再次执行上述语句，就会发生幻读；另外一方面，是为了满足其恢复和复制的需要。有关其恢复和复制对锁机制的影响，以及不同隔离级别下InnoDB使用间隙锁的情况，在后续的章节中会做进一步介绍。</p>
+<p>很显然，在使用范围条件检索并锁定记录时，InnoDB这种加锁机制会阻塞符合条件范围内键值的并发插入，这往往会造成严重的锁等待。因此，在实际应用开发中，尤其是并发插入比较多的应用，我们要尽量优化业务逻辑，尽量使用相等条件来访问更新数据，避免使用范围条件。</p>
+<p>还要特别说明的是，InnoDB除了通过范围条件加锁时使用间隙锁外，如果使用相等条件请求给一个不存在的记录加锁，InnoDB也会使用间隙锁！</p>
+<hr>
+<p>转载自：<br><a target="_blank" rel="noopener" href="https://blog.csdn.net/u013967628/article/details/85293041">https://blog.csdn.net/u013967628/article/details/85293041</a><br><a target="_blank" rel="noopener" href="https://blog.csdn.net/wangyiyungw/article/details/81002256">https://blog.csdn.net/wangyiyungw/article/details/81002256</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/MySQL/%E5%8E%9F%E7%90%86/redo%20log%E3%80%81undo%20log%E3%80%81binlog/" rel="prev" title="redo log、undo log、binlog">
+      <i class="fa fa-chevron-left"></i> redo log、undo log、binlog
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/Redis/Redis%E8%BF%87%E6%9C%9F%E7%AD%96%E7%95%A5%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/" rel="next" title="Redis过期策略实现原理">
+      Redis过期策略实现原理 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%8E%B7%E5%8F%96InnoDB%E8%A1%8C%E9%94%81%E4%BA%89%E7%94%A8%E6%83%85%E5%86%B5"><span class="nav-number">1.</span> <span class="nav-text">获取InnoDB行锁争用情况</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#InnoDB%E7%9A%84%E8%A1%8C%E9%94%81%E6%A8%A1%E5%BC%8F%E5%8F%8A%E5%8A%A0%E9%94%81%E6%96%B9%E6%B3%95"><span class="nav-number">2.</span> <span class="nav-text">InnoDB的行锁模式及加锁方法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%94%81%E7%9A%84%E7%B1%BB%E5%9E%8B"><span class="nav-number">3.</span> <span class="nav-text">锁的类型</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%85%B1%E4%BA%AB-%E6%8E%92%E4%BB%96%E9%94%81"><span class="nav-number">3.1.</span> <span class="nav-text">共享&#x2F;排他锁</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%84%8F%E5%90%91%E9%94%81"><span class="nav-number">3.2.</span> <span class="nav-text">意向锁</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%B8%BB%E9%94%AE%E8%87%AA%E5%A2%9E%E9%94%81"><span class="nav-number">3.3.</span> <span class="nav-text">主键自增锁</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%A1%8C%E9%94%81%E7%9A%84%E5%85%B7%E4%BD%93%E5%88%86%E7%B1%BB"><span class="nav-number">4.</span> <span class="nav-text">行锁的具体分类</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%AE%B0%E5%BD%95%E9%94%81-Record-Lock"><span class="nav-number">4.1.</span> <span class="nav-text">记录锁(Record Lock)</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%97%B4%E9%9A%99%E9%94%81-Gap-Lock"><span class="nav-number">4.2.</span> <span class="nav-text">间隙锁(Gap Lock)</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%B8%B4%E9%94%AE%E9%94%81-Next-Key-Lock"><span class="nav-number">4.3.</span> <span class="nav-text">临键锁(Next-Key Lock)</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%8D%E5%8F%AF%E9%87%8D%E5%A4%8D%E8%AF%BB-No-Reaptable-Read-%E5%92%8C%E5%B9%BB%E8%AF%BB-Phantom-Problem"><span class="nav-number">5.</span> <span class="nav-text">不可重复读(No Reaptable Read)和幻读(Phantom Problem)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#InnoDB%E8%A1%8C%E9%94%81%E5%AE%9E%E7%8E%B0%E6%96%B9%E5%BC%8F"><span class="nav-number">6.</span> <span class="nav-text">InnoDB行锁实现方式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%97%B4%E9%9A%99%E9%94%81%EF%BC%88Next-Key%E9%94%81%EF%BC%89"><span class="nav-number">7.</span> <span class="nav-text">间隙锁（Next-Key锁）</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

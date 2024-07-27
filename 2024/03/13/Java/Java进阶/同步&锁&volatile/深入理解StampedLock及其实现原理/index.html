@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="StampedLock是java8在java.util.concurrent.locks新增的一个API。 ReentrantReadWriteLock 在沒有任何读写锁时，才可以取得写入锁，这可用于实现了悲观读取。然而，如果读取很多，写入很少的情况下，使用 ReentrantReadWriteLock 可能会使写入线程遭遇饥饿问题，也就是写入线程无法竞争到锁定而一直处于等待状态。 Stamped">
+<meta property="og:type" content="article">
+<meta property="og:title" content="深入理解StampedLock及其实现原理">
+<meta property="og:url" content="http://example.com/2024/03/13/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5&%E9%94%81&volatile/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3StampedLock%E5%8F%8A%E5%85%B6%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="StampedLock是java8在java.util.concurrent.locks新增的一个API。 ReentrantReadWriteLock 在沒有任何读写锁时，才可以取得写入锁，这可用于实现了悲观读取。然而，如果读取很多，写入很少的情况下，使用 ReentrantReadWriteLock 可能会使写入线程遭遇饥饿问题，也就是写入线程无法竞争到锁定而一直处于等待状态。 Stamped">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2024-03-12T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.501Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2024/03/13/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5&%E9%94%81&volatile/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3StampedLock%E5%8F%8A%E5%85%B6%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>深入理解StampedLock及其实现原理 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/13/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5&%E9%94%81&volatile/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3StampedLock%E5%8F%8A%E5%85%B6%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          深入理解StampedLock及其实现原理
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-03-13 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-13T00:00:00+08:00">2024-03-13</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/" itemprop="url" rel="index"><span itemprop="name">Java进阶</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5-%E9%94%81-volatile/" itemprop="url" rel="index"><span itemprop="name">同步&锁&volatile</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>StampedLock是java8在java.util.concurrent.locks新增的一个API。</p>
+<p>ReentrantReadWriteLock 在沒有任何读写锁时，才可以取得写入锁，这可用于实现了悲观读取。然而，如果读取很多，写入很少的情况下，使用 ReentrantReadWriteLock 可能会使写入线程遭遇饥饿问题，也就是写入线程无法竞争到锁定而一直处于等待状态。</p>
+<p>StampedLock（印戳锁）是对ReentrantReadWriteLock读写锁的一种改进，主要的改进为：在没有写只有读的场景下，StampedLock支持不用加读锁而是直接进行读操作，最大程度提升读的效率，只有在发生过写操作之后，再加读锁才能进行读操作</p>
+<p>StampedLock有三种模式的锁，用于控制读取&#x2F;写入访问。StampedLock的状态由版本和模式组成。锁获取操作返回一个用于展示和访问锁状态的票据（stamp）变量，它用相应的锁状态表示并控制访问，数字0表示没有写锁被授权访问。在读锁上分为悲观锁和乐观锁。锁释放以及其他相关方法需要使用邮编（stamps）变量作为参数，如果他们和当前锁状态不符则失败，这三种模式为：</p>
+<ul>
+<li>写入：方法writeLock可能为了获取独占访问而阻塞当前线程，返回一个stamp变量，能够在unlockWrite方法中使用从而释放锁。也提供了tryWriteLock。当锁被写模式所占有，没有读或者乐观的读操作能够成功。</li>
+<li>读取：方法readLock可能为了获取非独占访问而阻塞当前线程，返回一个stamp变量，能够在unlockRead方法中用于释放锁。也提供了tryReadLock。</li>
+<li>乐观读取：方法tryOptimisticRead返回一个非0邮编变量，仅在当前锁没有以写入模式被持有。如果在获得stamp变量之后没有被写模式持有，方法validate将返回true。这种模式可以被看做一种弱版本的读锁，可以被一个写入者在任何时间打断。乐观读取模式仅用于短时间读取操作时经常能够降低竞争和提高吞吐量。</li>
+</ul>
+<p>StampedLock 的读写锁都是不可重入锁，所以在获取锁后释放锁前不应该再调用会获取锁的操作，以避免造成调用线程被阻塞</p>
+<span id="more"></span>
+
+<p>下面是java doc提供的StampedLock一个例子：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Point</span> &#123;</span><br><span class="line">    <span class="comment">//一个点的x，y坐标</span></span><br><span class="line">    <span class="keyword">private</span> <span class="type">double</span> x, y;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * Stamped类似一个时间戳的作用，每次写的时候对其+1来改变被操作对象的Stamped值</span></span><br><span class="line"><span class="comment">     * 这样其它线程读的时候发现目标对象的Stamped改变，则执行重读</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> <span class="type">StampedLock</span> <span class="variable">stampedLock</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">StampedLock</span>();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// an exclusively locked method</span></span><br><span class="line">    <span class="keyword">void</span> <span class="title function_">move</span><span class="params">(doubledeltaX, doubledeltaY)</span> &#123;</span><br><span class="line">        <span class="comment">/**stampedLock调用writeLock和unlockWrite时候都会导致stampedLock的stamp值的变化</span></span><br><span class="line"><span class="comment">         * 即每次+1，直到加到最大值，然后从0重新开始 */</span></span><br><span class="line">        <span class="type">long</span> <span class="variable">stamp</span> <span class="operator">=</span> stampedLock.writeLock(); <span class="comment">//写锁</span></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            x += deltaX;</span><br><span class="line">            y += deltaY;</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            stampedLock.unlockWrite(stamp);<span class="comment">//释放写锁</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="type">double</span> <span class="title function_">distanceFromOrigin</span><span class="params">()</span> &#123;    <span class="comment">// A read-only method</span></span><br><span class="line">        <span class="comment">/**tryOptimisticRead是一个乐观的读，使用这种锁的读不阻塞写</span></span><br><span class="line"><span class="comment">         * 每次读的时候得到一个当前的stamp值（类似时间戳的作用）*/</span></span><br><span class="line">        <span class="type">long</span> <span class="variable">stamp</span> <span class="operator">=</span> stampedLock.tryOptimisticRead();</span><br><span class="line"></span><br><span class="line">        <span class="comment">//这里就是读操作，读取x和y，因为读取x时，y可能被写了新的值，所以下面需要判断</span></span><br><span class="line">        <span class="type">double</span> <span class="variable">currentX</span> <span class="operator">=</span> x, currentY = y;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/**如果读取的时候发生了写，则stampedLock的stamp属性值会变化，此时需要重读，</span></span><br><span class="line"><span class="comment">         * 再重读的时候需要加读锁（并且重读时使用的应当是悲观的读锁，即阻塞写的读锁）</span></span><br><span class="line"><span class="comment">         * 当然重读的时候还可以使用tryOptimisticRead，此时需要结合循环了，即类似CAS方式</span></span><br><span class="line"><span class="comment">         * 读锁又重新返回一个stampe值*/</span></span><br><span class="line">        <span class="keyword">if</span> (!stampedLock.validate(stamp)) &#123;</span><br><span class="line">            stamp = stampedLock.readLock(); <span class="comment">//读锁</span></span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                currentX = x;</span><br><span class="line">                currentY = y;</span><br><span class="line">            &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">                stampedLock.unlockRead(stamp);<span class="comment">//释放读锁</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">//读锁验证成功后才执行计算，即读的时候没有发生写</span></span><br><span class="line">        <span class="keyword">return</span> Math.sqrt(currentX * currentX + currentY * currentY);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+<hr>
+<p> StampedLock源码分析</p>
+<p>StampedLock也是通过一个int变量state、一个队列来实现的<br><strong>state</strong><br>state的默认值是256 1 0000 0000<br>state是一个int变量，总共有32位<br>前24位表示版本号、低8位表示锁。<br>低8位的第1位表示是否为写锁，1表示写锁、0表示没有写锁<br>剩下7位表示悲观读锁的个数</p>
+<p> StampedLock引入乐观读，读时不加读锁，写锁也可进行写，避免写线程被饿死，读数据时读出来发现数据被修改了，再升级为悲观读，再读一次  </p>
+<p>  StampedLock是一个读写锁，因此也会像读写锁那样，把一个state变量分成两半，分别表示读锁和写锁的状态，同时，还需要一个数据的version，但是，一次CAS没有办法操作两个变量，所以这个state变量本身同时也表示了数据的version。下面先分析state变量 </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">StampedLock</span> <span class="keyword">implements</span> <span class="title class_">java</span>.io.Serializable &#123;</span><br><span class="line">       <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">int</span> <span class="variable">LG_READERS</span> <span class="operator">=</span> <span class="number">7</span>;</span><br><span class="line">       <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">long</span> <span class="variable">RUNIT</span> <span class="operator">=</span> <span class="number">1L</span>;</span><br><span class="line">       <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">long</span> <span class="variable">WBIT</span> <span class="operator">=</span> <span class="number">1L</span> &lt;&lt; LG_READERS; <span class="comment">// 第8位表示写锁</span></span><br><span class="line">       <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">long</span> <span class="variable">RBITS</span> <span class="operator">=</span> WBIT - <span class="number">1L</span>; <span class="comment">// 最低的7位表示读锁</span></span><br><span class="line">       <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">long</span> <span class="variable">RFULL</span> <span class="operator">=</span> RBITS - <span class="number">1L</span>; <span class="comment">// 读锁的数目</span></span><br><span class="line">       <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">long</span> <span class="variable">ABITS</span> <span class="operator">=</span> RBITS | WBIT; <span class="comment">// 读锁和写锁状态合二为一</span></span><br><span class="line">       <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">long</span> <span class="variable">SBITS</span> <span class="operator">=</span> ~RBITS;</span><br><span class="line">       <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">long</span> <span class="variable">ORIGIN</span> <span class="operator">=</span> WBIT &lt;&lt; <span class="number">1</span>; <span class="comment">// state的初始值</span></span><br><span class="line">       <span class="keyword">private</span> <span class="keyword">transient</span> <span class="keyword">volatile</span> <span class="type">long</span> state;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>用最低的8位表示读和写的状态，其中第8位表示写锁的状态，最低的7位表示读锁的状态。因为写锁只有一个bit位，所以写锁是不可重入的</p>
+<p>初始值不为0，而是把WBIT 向左移动了一位，也就是上面的ORIGIN 常量，构造方法如下所示</p>
+<p>为什么state的初始值不设为0呢？看乐观锁的实现：</p>
+<p>上面两个方法必须结合起来看：当state&amp;WBIT !&#x3D; 0的时候，说明有线程持有写锁，上面的tryOptimisticRead会永远返回0。这样，再调用validate（stamp），也就是validate（0）也会永远返回false。这正是我们想要的逻辑：当有线程持有写锁的时候，validate永远返回false，无论写线程是否释放了写锁。因为无论是否释放了（state回到初始值）写锁，state值都不为0，所以validate（0）永远为false<br>为什么上面的validate(…)方法不直接比较stamp&#x3D;state，而要比较state&amp;SBITS&#x3D;state&amp;SBITS 呢？<br>因为读锁和读锁是不互斥的！<br>所以，即使在“乐观读”的时候，state 值被修改了，但如果它改的是第7位，validate(…)还是会返回true。<br>另外要说明的一点是，上面使用了内存屏障VarHandle.acquireFence();，是因为在这行代码的下一行里面的stamp、SBITS变量不是volatile的，由此可以禁止其和前面的currentX&#x3D;X，currentY&#x3D;Y进行重排序<br>通过上面的分析，可以发现state的设计非常巧妙。只通过一个变量，既实现了读锁、写锁的状态记录，还实现了数据的版本号的记录</p>
+<hr>
+<p>转载自：<br><a target="_blank" rel="noopener" href="https://www.cnblogs.com/zmhjay1999/p/15183390.html">https://www.cnblogs.com/zmhjay1999/p/15183390.html</a><br><a target="_blank" rel="noopener" href="http://www.importnew.com/14941.html">http://www.importnew.com/14941.html</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/03/13/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5&%E9%94%81&volatile/%E6%B7%B1%E5%85%A5%E8%A7%A3%E6%9E%90%20volatile%20%E3%80%81CAS%20%E7%9A%84%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/" rel="prev" title="深入解析 volatile 、CAS 的实现原理">
+      <i class="fa fa-chevron-left"></i> 深入解析 volatile 、CAS 的实现原理
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/03/13/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5&%E9%94%81&volatile/%E5%81%8F%E5%90%91%E9%94%81%E4%B8%8E%E8%BD%BB%E9%87%8F%E7%BA%A7%E9%94%81/" rel="next" title="偏向锁与轻量级锁">
+      偏向锁与轻量级锁 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

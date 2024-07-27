@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="[TOC] 一、预备知识1. 缓存&emsp;&emsp;现代处理器为了提高访问数据的效率，在每个CPU核心上都会有多级 容量小、速度快 的缓存（分别称之为L1 cache，L2 cache，多核心共享L3 cache等），用于缓存数据。&emsp;&emsp;缓存系统中是以缓存行(cache line)为单位存储的。缓存行是 2 的整数幂个连续字节，一般为 32-256 个字节。最常见的缓存行大">
+<meta property="og:type" content="article">
+<meta property="og:title" content="深入解析 volatile 、CAS 的实现原理">
+<meta property="og:url" content="http://example.com/2024/03/13/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5&%E9%94%81&volatile/%E6%B7%B1%E5%85%A5%E8%A7%A3%E6%9E%90%20volatile%20%E3%80%81CAS%20%E7%9A%84%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="[TOC] 一、预备知识1. 缓存&emsp;&emsp;现代处理器为了提高访问数据的效率，在每个CPU核心上都会有多级 容量小、速度快 的缓存（分别称之为L1 cache，L2 cache，多核心共享L3 cache等），用于缓存数据。&emsp;&emsp;缓存系统中是以缓存行(cache line)为单位存储的。缓存行是 2 的整数幂个连续字节，一般为 32-256 个字节。最常见的缓存行大">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2024-03-12T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.501Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2024/03/13/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5&%E9%94%81&volatile/%E6%B7%B1%E5%85%A5%E8%A7%A3%E6%9E%90%20volatile%20%E3%80%81CAS%20%E7%9A%84%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>深入解析 volatile 、CAS 的实现原理 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/13/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5&%E9%94%81&volatile/%E6%B7%B1%E5%85%A5%E8%A7%A3%E6%9E%90%20volatile%20%E3%80%81CAS%20%E7%9A%84%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          深入解析 volatile 、CAS 的实现原理
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-03-13 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-13T00:00:00+08:00">2024-03-13</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/" itemprop="url" rel="index"><span itemprop="name">Java进阶</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5-%E9%94%81-volatile/" itemprop="url" rel="index"><span itemprop="name">同步&锁&volatile</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>[TOC]</p>
+<h1 id="一、预备知识"><a href="#一、预备知识" class="headerlink" title="一、预备知识"></a>一、预备知识</h1><h2 id="1-缓存"><a href="#1-缓存" class="headerlink" title="1. 缓存"></a>1. 缓存</h2><p>&emsp;&emsp;现代处理器为了提高访问数据的效率，在每个CPU核心上都会有多级 容量小、速度快 的缓存（分别称之为L1 cache，L2 cache，多核心共享L3 cache等），用于缓存数据。<br>&emsp;&emsp;缓存系统中是以缓存行(cache line)为单位存储的。缓存行是 2 的整数幂个连续字节，一般为 32-256 个字节。最常见的缓存行大小是 64个字节。<br>&emsp;&emsp;因此当CPU在执行一条读内存指令时，它是会将内存地址所在的内容加载进缓存中的，加载的大小取决于是缓存行大小的。也就是说，一次加载一整个缓存行。</p>
+<p>&emsp;</p>
+<h2 id="2-缓存一致性协议"><a href="#2-缓存一致性协议" class="headerlink" title="2. 缓存一致性协议"></a>2. 缓存一致性协议</h2><p>&emsp;&emsp;在多核处理器系统中，每个处理器核心都有它们自己的一级缓存、二级缓存等。这样一来当多个处理器核心在对共享的数据进行写操作时，就需要保证该共享数据在所有处理器核心中的可见性&#x2F;一致性。<br>&emsp;&emsp;【窥探技术 + MESI协议 】的出现，就是为了解决多核处理器时代，缓存不一致的问题的。</p>
+<h3 id="2-1-窥探技术-总线窥探-总线嗅探"><a href="#2-1-窥探技术-总线窥探-总线嗅探" class="headerlink" title="2.1 窥探技术(总线窥探&#x2F;总线嗅探)"></a>2.1 窥探技术(总线窥探&#x2F;总线嗅探)</h3><p>&emsp;&emsp;“窥探”背后的基本思想是，所有内存传输都发生在一条共享的总线上，而所有的处理器都能看到这条总线：缓存本身是独立的，但是内存是共享资源，所有的内存访问都要经过仲裁：同一个指令周期中，只有一个缓存可以读写内存。<br>&emsp;&emsp;窥探技术的思想是，缓存不仅仅在做内存传输的时候才和总线打交道，而是不停地在窥探总线上发生的数据交换，跟踪其他缓存在做什么。所以当一个缓存代表它所属的处理器去读写内存时，其他处理器都会得到通知，它们以此来使自己的缓存保持同步。只要某个处理器一写内存，其他处理器马上就知道这块内存在它们自己的缓存中对应的缓存行已经失效。</p>
+<span id="more"></span>
+
+<h3 id="2-2-MESI协议"><a href="#2-2-MESI协议" class="headerlink" title="2.2 MESI协议"></a>2.2 MESI协议</h3><p>&emsp;&emsp;缓存系统 操作的最小单位就是缓存行，而MESI是缓存行四种状态的首字母缩写，任何多核系统中的缓存行都处于这四种状态之一。<br>&emsp;&emsp;① 失效（Invalid）缓存行：该处理器缓存中无该缓存行，或缓存中的缓存行已经失效了。<br>&emsp;&emsp;② 共享（Shared）缓存行：缓存行的内容是同主内存内容保持一致的一份拷贝，在这种状态下的缓存行只能被读取，不能被写入。多组缓存可以同时拥有针对同一内存地址的共享缓存行。<br>&emsp;&emsp;③ 独占（Exclusive）缓存行：和S状态一样，也是和主内存内容保持一致的一份拷贝。区别在于，如果一个处理器持有了E状态的缓存行，那其他处理器就不能同时持该内容的缓存行，所以叫“独占”。这意味着，如果其他处理器原本也持有同一缓存行，那么它会马上变成“失效”状态（I状态）。<br>&emsp;&emsp;④ 已修改（Modified）缓存行：该缓存行已经被所属的处理器修改了。如果一个缓存行处于已修改状态，那么它在其他处理器缓存中的拷贝马上会变成失效状态，这个规律和E状态一样。此外，已修改缓存行如果被丢弃或标记为失效（即从M状态 ——&gt; I状态），那么先要把它的内容回写到内存中。</p>
+<p>&emsp;&emsp;只有当缓存行处于E或M状态时，处理器才能去写它，也就是说只有这两种状态下，处理器是独占这个缓存行的。当处理器想写某个缓存段时，如果它没有独占权，它必须先发送一条“我要独占权”的请求给总线，这会通知其他处理器，把它们拥有的同一缓存行的拷贝失效（I状态），如果它们有的话。只有在获得独占权后，处理器才能开始修改数据。并且此时，这个处理器知道，这个缓存行只有一份拷贝，在我自己的缓存里，所以不会有任何冲突。反之，如果有其他处理器想读取这个缓存行（能知道，因为一直在窥探总线），独占或已修改的缓存行必须先回到“共享”状态。如果是已修改的缓存段，那么还要先把内容回写到内存中。</p>
+<p>&emsp;&emsp;</p>
+<h1 id="二、volatile的内存语义"><a href="#二、volatile的内存语义" class="headerlink" title="二、volatile的内存语义"></a>二、volatile的内存语义</h1><p>&emsp;&emsp;volatile变量自身具有下列特性：<br>&emsp;&emsp;① 可见性：当一个变量被volatile修饰时，它会保证修改的值会立即被更新到主存，当有其他线程需要读取时，它会去内存中读取新值。<br>&emsp;&emsp;② 禁止指令重排序：通过增加内存屏障的方式禁止指令重排。happens-before规则中有这么一条，volatile变量规则：对一个volatile域的写，happens-before于任意后续对这个volatile域的读。</p>
+<p>&emsp;&emsp;happens-before的这个规则会保证volatile写-读具有如下的内存语义：</p>
+<blockquote>
+<p>volatile写的内存语义：当写一个 volatile 变量时，JMM 会把该线程对应的本地内存中的共享变量值刷新到主内存。<br>volatile读的内存语义：当读一个 volatile 变量时，JMM 会把该线程对应的本地内存置为无效。线程接下来将从主内存中读取共享变量。</p>
+</blockquote>
+<p>&emsp;&emsp;volatile内存语义的实现原理：为了实现 volatile 的内存语义，编译器在生成字节码时，会在指令序列中插入 <strong>内存屏障</strong> 来禁止特定类型的处理器重排序。因为内存屏障是一组处理器指令，它并不由JVM直接暴露，因此JVM会根据不同的操作系统插入不同的指令以达成所要内存屏障效果。<br>&emsp;&emsp;为了保证内存可见性，java编译器在生成指令序列的适当位置会插入内存屏障指令来禁止特定类型的处理器重排序。JMM把内存屏障指令分为下列四类：</p>
+<blockquote>
+<p>在每个volatile写操作的前面插入一个StoreStore屏障<br>在每个volatile写操作的后面插入一个StoreLoad屏障<br>在每个volatile读操作的后面插入一个LoadLoad屏障<br>在每个volatile读操作的后面插入一个LoadStore屏障</p>
+</blockquote>
+<p>&emsp;&emsp;内存屏障是一组处理器指令，而上面的四种内存屏障（StoreStore、StoreLoad、LoadLoad、LoadStore）是JMM内存屏障的分类，<strong>volatile 变量的内存可见性是基于内存屏障(Memory Barrier)实现</strong>，但在不同的处理器中，会转换成相应处理器对应的该内存屏障类型的指令。在X86处理器上执行volatile写操作时会插入一个带有lock前缀的指令（汇编指令）来实现volatile的内存语义的。如<code>0x01a3de24: lock addl $0x0,(%esp);</code><br>&emsp;&emsp;至于lock前缀是如何保证volatile的内存语义，lock 前缀的指令在多核处理器下会引发两件事情:</p>
+<ul>
+<li>将当前处理器缓存行的数据写回到系统内存。</li>
+<li>写回内存的操作会使在其他 CPU 里缓存了该内存地址的数据无效。</li>
+</ul>
+<hr>
+<p>&emsp;&emsp;</p>
+<h1 id="三、CAS-CompareAndSet"><a href="#三、CAS-CompareAndSet" class="headerlink" title="三、CAS(CompareAndSet)"></a>三、CAS(CompareAndSet)</h1><p>&emsp;&emsp;以原子的方式更新这个更新器所管理的对象(obj)的成员变量，如果当前值等于期望值(expect)时，将这个成员变量更新为给定的值(update)。该操作具有volatile 读和写的内存语义。<br>&emsp;&emsp;前面已经介绍了原子操作的概念，所以这里CAS涉及的两步：只有field的值为expect时；将field的值修改为update的值；这视为一个原子操作。</p>
+<h2 id="1-处理器如何实现原子操作"><a href="#1-处理器如何实现原子操作" class="headerlink" title="1. 处理器如何实现原子操作"></a>1. 处理器如何实现原子操作</h2><p>&emsp;&emsp;首先处理器会自动保证基本的内存操作的原子性。同时，处理器提供 <strong>总线锁定</strong> 和 <strong>缓存锁定</strong> 两个机制来保证复杂内存操作的原子性。<br>&emsp;&emsp;① 使用 总线锁 保证原子性<br>&emsp;&emsp;所谓总线锁就是使用处理器提供的一个<code>LOCK＃</code>信号，当一个处理器在总线上输出此信号时，其他处理器的请求将被阻塞住,那么该处理器可以独占使用共享内存。<br>&emsp;&emsp;② 使用 缓存锁 保证原子性<br>&emsp;&emsp;在同一时刻只需保证对某个内存地址的操作是原子性即可，但总线锁定把CPU和内存之间通信锁住了，这使得锁定期间，其他处理器不能操作其他内存地址的数据，所以总线锁定的开销比较大，处理器在某些场合下使用缓存锁定代替总线锁定来进行优化。</p>
+<p>&emsp;&emsp;所谓“缓存锁定”就是 如果缓存在处理器缓存行中内存区域在LOCK操作期间被锁定，当它执行锁操作回写内存时，处理器不在总线上声言LOCK＃信号，而是修改内部的内存地址，并允许它的缓存一致性机制来保证操作的原子性，因为缓存一致性机制会阻止同时修改被两个以上处理器缓存的内存区域数据，当其他处理器回写已被锁定的缓存行的数据时会起缓存行无效。<br>&emsp;&emsp;在JDK 8，Linux操作系统，X86处理器环境下，CAS的源码如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Adding a lock prefix to an instruction on MP machine</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> LOCK_IF_MP(mp) <span class="string">&quot;cmp $0, &quot;</span> #mp <span class="string">&quot;; je 1f; lock; 1: &quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">inline</span> jint     <span class="title function_">Atomic::cmpxchg</span>    <span class="params">(jint     exchange_value, <span class="keyword">volatile</span> jint*     dest, jint     compare_value)</span> &#123;</span><br><span class="line">  <span class="type">int</span> mp = os::is_MP();</span><br><span class="line">  __asm__ <span class="title function_">volatile</span> <span class="params">(LOCK_IF_MP(%<span class="number">4</span>) <span class="string">&quot;cmpxchgq %1,(%3)&quot;</span></span></span><br><span class="line"><span class="params">                    : <span class="string">&quot;=a&quot;</span> (exchange_value)</span></span><br><span class="line"><span class="params">                    : <span class="string">&quot;r&quot;</span> (exchange_value), <span class="string">&quot;a&quot;</span> (compare_value), <span class="string">&quot;r&quot;</span> (dest), <span class="string">&quot;r&quot;</span> (mp)</span></span><br><span class="line"><span class="params">                    : <span class="string">&quot;cc&quot;</span>, <span class="string">&quot;memory&quot;</span>)</span>;</span><br><span class="line">  <span class="keyword">return</span> exchange_value;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;程序会根据当前处理器的类型来决定是否为cmpxchg指令添加lock前缀。如果程序是在多处理器上运行，就为cmpxchg指令加上lock前缀（lock cmpxchg）。反之，如果程序是在单处理器上运行，就省略lock前缀（单处理器自身会维护单处理器内的顺序一致性，不需要lock前缀提供的内存屏障效果）。CAS在底层是使用cmpxchg指令完成的，还是compareAndSet的过程。<br>&emsp;&emsp;<br>&emsp;&emsp;应用层面其实体现的很明显, volatile是通过线程屏障, 也就是编译器插入指令,然后在真正运行时会自动转成lock前缀的指令, 而cas则在java中是native方法,那么必然有其对应的c++代码,这样很明显volatile的性能要好点.</p>
+<p>&emsp;&emsp;cas调用了汇编指令cmpxchg，lock_if_mp在CPU指令上也会加锁，但是这个锁和java的锁不太一样，不用切换到内核态所以更轻量级。</p>
+<h2 id="2-lock前缀"><a href="#2-lock前缀" class="headerlink" title="2. lock前缀"></a>2. lock前缀</h2><p>&emsp;&emsp;lock前缀的指令的说明：<br>&emsp;&emsp;① 保证指令的执行的原子性<br>&emsp;&emsp;带有lock前缀的指令在执行期间会锁住总线，使得其他处理器暂时无法通过总线访问内存。很显然，这会带来昂贵的开销。从Pentium 4，Intel Xeon及P6处理器开始，intel在原有总线锁的基础上做了一个很有意义的优化：如果要访问的内存区域（area of memory）在lock前缀指令执行期间已经在处理器内部的缓存中被锁定（即包含该内存区域的缓存行当前处于独占或已修改状态），并且该内存区域被完全包含在单个缓存行（cache line）中，那么处理器将直接执行该指令。由于在指令执行期间该缓存行会一直被锁定，其它处理器无法读&#x2F;写该指令要访问的内存区域，因此能保证指令执行的原子性。(将当前处理器对应缓存的内容刷新到内存，并使其它处理器对应的缓存失效)。</p>
+<p>&emsp;&emsp;② 禁止该指令与之前和之后的读和写指令重排序<br>&emsp;&emsp;LOCK前缀会禁止指令与之前和之后的读和写指令重排序。这相当于JMM中定义的StoreLoad内存屏障的效果。也正是因为这个内存屏障的效果，会使得线程把其写缓冲区中的所有数据刷新到内存中。注意，这里不是单单被修改的数据会被回写到主内存，而是写缓存中所有的数据都回写到主内存。<br>&emsp;&emsp;而将写缓冲区的数据回写到内存时，就会通过缓存一致性协议（如，MESI协议）和窥探技术来保证写入的数据被其他处理器的缓存可见。<br>&emsp;&emsp;而这就相当于实现了volatile的内存语义。<br>&emsp;&emsp;所以，CAS的指令的原子性，以及内存语义就是通过lock前缀指令来完成的。</p>
+<h1 id="四、synchronized与volatile"><a href="#四、synchronized与volatile" class="headerlink" title="四、synchronized与volatile"></a>四、synchronized与volatile</h1><p>&emsp;&emsp;synchronized关键字是防止多个线程同时执行一段代码，那么就会很影响程序执行效率，而volatile关键字在某些情况下性能要优于synchronized，但是要注意volatile关键字是无法替代synchronized关键字的，因为volatile关键字无法保证操作的原子性。通常来说，使用volatile必须具备以下2个条件：<br>&emsp;&emsp;1）对变量的写操作不依赖于当前值<br>&emsp;&emsp;2）该变量没有包含在具有其他变量的不变式中</p>
+<p>&emsp;&emsp;实际上，这些条件表明，可以被写入 volatile 变量的这些有效值独立于任何程序的状态，包括变量的当前状态。<br>&emsp;&emsp;下面列举几个Java中使用volatile的几个场景。<br>&emsp;&emsp;1. 状态标记量</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">volatile</span> <span class="type">boolean</span> <span class="variable">flag</span> <span class="operator">=</span> <span class="literal">false</span>;</span><br><span class="line"><span class="keyword">while</span>(!flag)&#123;</span><br><span class="line">     doSomething();</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setFlag</span><span class="params">()</span> &#123;</span><br><span class="line">    flag = <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">volatile</span> <span class="type">boolean</span> <span class="variable">inited</span> <span class="operator">=</span> <span class="literal">false</span>;</span><br><span class="line"><span class="comment">//线程1:</span></span><br><span class="line">context = loadContext();  </span><br><span class="line">inited = <span class="literal">true</span>;            </span><br><span class="line"><span class="comment">//线程2:</span></span><br><span class="line"><span class="keyword">while</span>(!inited )&#123;</span><br><span class="line">    sleep()</span><br><span class="line">&#125;</span><br><span class="line">doSomethingwithconfig(context);</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;2.double check</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Singleton</span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">volatile</span> <span class="keyword">static</span> <span class="type">Singleton</span> <span class="variable">instance</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">      </span><br><span class="line">    <span class="keyword">private</span> <span class="title function_">Singleton</span><span class="params">()</span> &#123;</span><br><span class="line">    &#125;</span><br><span class="line">      </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> Singleton <span class="title function_">getInstance</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">if</span>(instance==<span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="keyword">synchronized</span> (Singleton.class) &#123;</span><br><span class="line">                 <span class="keyword">if</span>(instance==<span class="literal">null</span>)</span><br><span class="line">                     instance = <span class="keyword">new</span> <span class="title class_">Singleton</span>();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> instance;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;volatile让变量每次在使用的时候，都从主存中取。而不是从各个线程的“工作内存”。volatile具有synchronized关键字的“可见性”，但是没有synchronized关键字的“并发正确性”，也就是说不保证线程执行的有序性。也就是说，volatile变量对于每次使用，线程都能得到当前volatile变量的最新值。但是volatile变量并不保证并发的正确性。</p>
+<hr>
+<p>转载自：<br><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/bd68ddf91240">https://www.jianshu.com/p/bd68ddf91240</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/03/13/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5&%E9%94%81&volatile/%E7%94%B1CopyOnWriteArrayList%E7%B1%BB%E7%9A%84set%E6%96%B9%E6%B3%95%E5%BC%95%E5%8F%91%E5%AF%B9volatile%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3/" rel="prev" title="由CopyOnWriteArrayList类的set方法引发对volatile深入理解">
+      <i class="fa fa-chevron-left"></i> 由CopyOnWriteArrayList类的set方法引发对volatile深入理解
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/03/13/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5&%E9%94%81&volatile/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3StampedLock%E5%8F%8A%E5%85%B6%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/" rel="next" title="深入理解StampedLock及其实现原理">
+      深入理解StampedLock及其实现原理 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E9%A2%84%E5%A4%87%E7%9F%A5%E8%AF%86"><span class="nav-number">1.</span> <span class="nav-text">一、预备知识</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E7%BC%93%E5%AD%98"><span class="nav-number">1.1.</span> <span class="nav-text">1. 缓存</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E7%BC%93%E5%AD%98%E4%B8%80%E8%87%B4%E6%80%A7%E5%8D%8F%E8%AE%AE"><span class="nav-number">1.2.</span> <span class="nav-text">2. 缓存一致性协议</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E7%AA%A5%E6%8E%A2%E6%8A%80%E6%9C%AF-%E6%80%BB%E7%BA%BF%E7%AA%A5%E6%8E%A2-%E6%80%BB%E7%BA%BF%E5%97%85%E6%8E%A2"><span class="nav-number">1.2.1.</span> <span class="nav-text">2.1 窥探技术(总线窥探&#x2F;总线嗅探)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-MESI%E5%8D%8F%E8%AE%AE"><span class="nav-number">1.2.2.</span> <span class="nav-text">2.2 MESI协议</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81volatile%E7%9A%84%E5%86%85%E5%AD%98%E8%AF%AD%E4%B9%89"><span class="nav-number">2.</span> <span class="nav-text">二、volatile的内存语义</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81CAS-CompareAndSet"><span class="nav-number">3.</span> <span class="nav-text">三、CAS(CompareAndSet)</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%A4%84%E7%90%86%E5%99%A8%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E5%8E%9F%E5%AD%90%E6%93%8D%E4%BD%9C"><span class="nav-number">3.1.</span> <span class="nav-text">1. 处理器如何实现原子操作</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-lock%E5%89%8D%E7%BC%80"><span class="nav-number">3.2.</span> <span class="nav-text">2. lock前缀</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%9B%9B%E3%80%81synchronized%E4%B8%8Evolatile"><span class="nav-number">4.</span> <span class="nav-text">四、synchronized与volatile</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

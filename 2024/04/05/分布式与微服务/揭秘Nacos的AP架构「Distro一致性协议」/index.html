@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="[toc]每个 Nacos 节点虽然只负责属于自己的客户端，但是每个节点都是包含有所有的客户端信息的，所以当客户端想要查询注册信息时，可以直接从请求的 Nacos 的节点拿到全量数据。 Nacos 的架构 ​        Nacos 是支持两种分布式定理的：CP(分区一致性)和 AP(分区可用性) ，而 AP 是通过 Nacos 自研的 Distro 协议来保证的，CP 是通过 Nacos 的">
+<meta property="og:type" content="article">
+<meta property="og:title" content="揭秘Nacos的AP架构「Distro一致性协议」">
+<meta property="og:url" content="http://example.com/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E6%8F%AD%E7%A7%98Nacos%E7%9A%84AP%E6%9E%B6%E6%9E%84%E3%80%8CDistro%E4%B8%80%E8%87%B4%E6%80%A7%E5%8D%8F%E8%AE%AE%E3%80%8D/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="[toc]每个 Nacos 节点虽然只负责属于自己的客户端，但是每个节点都是包含有所有的客户端信息的，所以当客户端想要查询注册信息时，可以直接从请求的 Nacos 的节点拿到全量数据。 Nacos 的架构 ​        Nacos 是支持两种分布式定理的：CP(分区一致性)和 AP(分区可用性) ，而 AP 是通过 Nacos 自研的 Distro 协议来保证的，CP 是通过 Nacos 的">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407272304276.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407272308094.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407272309523.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407272310361.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407272310529.png">
+<meta property="article:published_time" content="2024-04-04T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T15:12:55.218Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407272304276.png">
+
+<link rel="canonical" href="http://example.com/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E6%8F%AD%E7%A7%98Nacos%E7%9A%84AP%E6%9E%B6%E6%9E%84%E3%80%8CDistro%E4%B8%80%E8%87%B4%E6%80%A7%E5%8D%8F%E8%AE%AE%E3%80%8D/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>揭秘Nacos的AP架构「Distro一致性协议」 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E6%8F%AD%E7%A7%98Nacos%E7%9A%84AP%E6%9E%B6%E6%9E%84%E3%80%8CDistro%E4%B8%80%E8%87%B4%E6%80%A7%E5%8D%8F%E8%AE%AE%E3%80%8D/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          揭秘Nacos的AP架构「Distro一致性协议」
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-05T00:00:00+08:00">2024-04-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/" itemprop="url" rel="index"><span itemprop="name">分布式与微服务</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>[toc]<br>每个 Nacos 节点虽然只负责属于自己的客户端，但是每个节点都是包含有所有的客户端信息的，所以当客户端想要查询注册信息时，可以直接从请求的 Nacos 的节点拿到全量数据。</p>
+<h3 id="Nacos-的架构"><a href="#Nacos-的架构" class="headerlink" title="Nacos 的架构"></a>Nacos 的架构</h3><p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407272304276.png" alt="img"></p>
+<p>​        Nacos 是支持两种分布式定理的：CP(分区一致性)和 AP(分区可用性) ，而 AP 是通过 Nacos 自研的 Distro 协议来保证的，CP 是通过 Nacos 的 JRaft 协议来保证的。</p>
+<p>​        因为注册中心作为系统中很重要的的一个服务，需要尽最大可能对外提供可用的服务，所以选择 AP 来保证服务的高可用，另外 Nacos 还采取了心跳机制来自动完成服务数据补偿的机制，所以说 Distro 协议是弱一致性的。</p>
+<p>​        如果采用 CP 协议，则需要当前集群可用的节点数过半才能工作。</p>
+<p>​        问题：Nacos 哪些地方用到了 AP 和 CP?</p>
+<ul>
+<li>针对临时服务实例，采用 AP 来保证注册中心的可用性，Distro 协议。</li>
+<li>针对持久化服务实例，采用 CP 来保证各个节点的强一致性，JRaft 协议。(JRaft 是 Nacos 对 Raft 的一种改造)</li>
+<li>针对配置中心，无 Database 作为存储的情况下，Nacos 节点之间的内存数据为了保持一致，采用 CP。Nacos 提供这种模式只是为了方便用户本机运行，降低对存储依赖，生产环境一般都是通过外置存储组件来保证数据一致性。</li>
+<li>针对配置中心，有 Database 作为存储的情况下，Nacos 通过持久化后通知其他节点到数据库拉取数据来保证数据一致性，另外采用读写分离架构来保证高可用，所以这里我认为这里采用的 AP，欢迎探讨。</li>
+<li>针对 异地多活，采用 AP 来保证高可用。</li>
+</ul>
+<span id="more"></span>
+
+
+
+<h2 id="一、Distro-的设计思想和六大机制"><a href="#一、Distro-的设计思想和六大机制" class="headerlink" title="一、Distro 的设计思想和六大机制"></a>一、Distro 的设计思想和六大机制</h2><p>Distro 协议是 Nacos 对于临时实例数据开发的一致性协议。Distro 协议是集 Gossip + Eureka 协议的优点并加以优化后出现的。</p>
+<p>Gossip 协议有什么坑? 由于随机选取发送的节点，不可避免地存在消息重复发送给同一节点的情况，增加了网络的传输的压力，给消息节点带来额外的处理负载。</p>
+<p>Distro协议的优化：每个节点负责一部分数据，然后将数据同步给其他节点，有效地降低了消息冗余的问题。</p>
+<p>关于临时实例数据：临时数据其实是存储在内存缓存中的，并且在其他节点在启动时会进行全量数据同步，然后节点也会定期进行数据校验。</p>
+<p>AP 中的 P 代表网络分区，所以 Distro 在分布式集群环境下才能真正发挥其作用。它保证了在多个 Nacos 节点组成的 Nacos 集群环境中，当其中某个 Nacos 宕机后，整个集群还是能正常工作。</p>
+<p>Distro 的设计机制：</p>
+<ul>
+<li>平等机制：Nacos 的每个节点是平等的，都可以处理写的请求。</li>
+<li>异步复制机制：Nacos 把变更的数据异步复制到其他节点。</li>
+<li>健康检查机制：每个节点只存了部分数据，定期检查客户端状态保持数据一致性。</li>
+<li>本地读机制： 每个节点独立处理读请求，及时从本地发出响应。</li>
+<li>新节点同步机制：Nacos 启动时，从其他节点同步数据。</li>
+<li>路由转发机制：客户端发送的写请求，如果属于自己则处理，否则路由转发给其他节点。</li>
+</ul>
+<h2 id="二、异步复制机制：写入数据后同步给其他节点"><a href="#二、异步复制机制：写入数据后同步给其他节点" class="headerlink" title="二、异步复制机制：写入数据后同步给其他节点"></a>二、异步复制机制：写入数据后同步给其他节点</h2><p>当注册请求交给 Nacos 节点来处理时，这里面会做几件事：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407272308094.png" alt="img"></p>
+<p>添加实例信息的流程</p>
+<p>① 将实例信息存放到内存缓存 ConcurrentHashMap 里面。</p>
+<p>② 添加一个任务到 BlockingQueue 里面，这个任务就是将最新的实例列表通过 UDP 的方式推送给所有客户端(服务实例)，这样客户端就拿到了最新的服务实例列表，缓存到本地。</p>
+<p>③ 开启 1s 的延迟任务，将数据通过给其他 Nacos 节点。</p>
+<p>说明：第二件事是 Nacos 和 客户端如何保持数据一致性的，第三件事是 Nacos 集群间如何保持数据一致性的，因本篇重点讲解 Nacos 的 AP 原理，所以会针对第三件事来进行阐述。而第二件事，会在后续文章中重点讲解。</p>
+<h2 id="三、定时同步：如何保持数据一致性"><a href="#三、定时同步：如何保持数据一致性" class="headerlink" title="三、定时同步：如何保持数据一致性"></a>三、定时同步：如何保持数据一致性</h2><h3 id="3-1-为什么需要定时同步"><a href="#3-1-为什么需要定时同步" class="headerlink" title="3.1 为什么需要定时同步"></a>3.1 为什么需要定时同步</h3><p>在 Nacos 集群模式下，它作为一个完整的注册中心，必须具有高可用特性。</p>
+<p>在集群模式下，客户端只需要和其中一个 Nacos 节点通信就可以了，但是每个节点其实是包含所有客户端信息的，这样做的好处是每个 Nacos 节点只需要负责自己的客户端就可以(分摊压力)，而当客户端想要拉取全量注册表到本地时，从任意节点都可以读取到(数据一致性)。</p>
+<p>那么 Nacos 集群之间是如何通过 Distro 协议来保持数据一致性的呢?</p>
+<h4 id="3-2-定期检验元数据"><a href="#3-2-定期检验元数据" class="headerlink" title="3.2 定期检验元数据"></a>3.2 定期检验元数据</h4><p>在版本 v1 中 ，采用的是定期检验元信息的方式。元信息就是当前节点包含的客户端信息的 md5 值。</p>
+<p>检验的原理如下图所示：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407272309523.png" alt="img"></p>
+<p>Nacos 各个节点会有一个心跳任务，定期向其他机器发送一次数据检验请求，在校验的过程中，当某个节点发现其他机器上的数据的元信息和本地数据的元信息不一致，则会发起一次全量拉取请求，将数据补齐。</p>
+<h3 id="3-3-关于版本迭代的说明"><a href="#3-3-关于版本迭代的说明" class="headerlink" title="3.3 关于版本迭代的说明"></a>3.3 关于版本迭代的说明</h3><p>在版本 v2 中，定期校验数据已经不用了，采用的是健康检查机制，来和其他节点来保持数据的同步，由于涉及的内容还挺多，放到下一讲来专门讲解 Nacos 的健康检查机制：</p>
+<p>客户端与 Nacos 节点的健康检查机制。</p>
+<p>集群模式下的健康检查机制。</p>
+<h2 id="四、新节点同步机制，如何保持数据一致性"><a href="#四、新节点同步机制，如何保持数据一致性" class="headerlink" title="四、新节点同步机制，如何保持数据一致性"></a>四、新节点同步机制，如何保持数据一致性</h2><h3 id="4-1-原理"><a href="#4-1-原理" class="headerlink" title="4.1 原理"></a>4.1 原理</h3><p>新加入的 Distro 节点会进行全量数据拉取，轮询所有的 Distro 节点，向其他节点发送请求拉取全量数据。</p>
+<p>在全量拉取操作完成之后，每台机器上都维护了当前的所有注册上来的非持久化实例数据。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407272310361.png" alt="img"></p>
+<h2 id="五、本地读机制"><a href="#五、本地读机制" class="headerlink" title="五、本地读机制"></a>五、本地读机制</h2><h3 id="5-1-原理"><a href="#5-1-原理" class="headerlink" title="5.1 原理"></a>5.1 原理</h3><p>每个 Nacos 节点虽然只负责属于自己的客户端，但是每个节点都是包含有所有的客户端信息的，所以当客户端想要查询注册信息时，可以直接从请求的 Nacos 的节点拿到全量数据。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407272310529.png" alt="img"></p>
+<p>读操作的原理</p>
+<p>这样设计的好处是保证了高可用(AP)，分为两个方面：</p>
+<ul>
+<li><p>① 读操作都能进行及时的响应，不需要到其他节点拿数据。</p>
+</li>
+<li><p>② 当脑裂发生时，Nacos 的节点也能正常返回数据，即使数据可能不一致，当网络恢复时，通过健康检查机制或数据检验也能达到数据一致性。</p>
+</li>
+</ul>
+<hr>
+<p>转载自：<br><a target="_blank" rel="noopener" href="https://www.51cto.com/article/707999.html">https://www.51cto.com/article/707999.html</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/04/01/Java/JVM/stop%20the%20world%E6%A1%88%E4%BE%8B/" rel="prev" title="stop the world案例">
+      <i class="fa fa-chevron-left"></i> stop the world案例
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/%E5%A6%82%E4%BD%95%E9%80%89%E6%8B%A9%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/" rel="next" title="如何选择分布式事务">
+      如何选择分布式事务 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#Nacos-%E7%9A%84%E6%9E%B6%E6%9E%84"><span class="nav-number">1.</span> <span class="nav-text">Nacos 的架构</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81Distro-%E7%9A%84%E8%AE%BE%E8%AE%A1%E6%80%9D%E6%83%B3%E5%92%8C%E5%85%AD%E5%A4%A7%E6%9C%BA%E5%88%B6"><span class="nav-number"></span> <span class="nav-text">一、Distro 的设计思想和六大机制</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E5%BC%82%E6%AD%A5%E5%A4%8D%E5%88%B6%E6%9C%BA%E5%88%B6%EF%BC%9A%E5%86%99%E5%85%A5%E6%95%B0%E6%8D%AE%E5%90%8E%E5%90%8C%E6%AD%A5%E7%BB%99%E5%85%B6%E4%BB%96%E8%8A%82%E7%82%B9"><span class="nav-number"></span> <span class="nav-text">二、异步复制机制：写入数据后同步给其他节点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E5%AE%9A%E6%97%B6%E5%90%8C%E6%AD%A5%EF%BC%9A%E5%A6%82%E4%BD%95%E4%BF%9D%E6%8C%81%E6%95%B0%E6%8D%AE%E4%B8%80%E8%87%B4%E6%80%A7"><span class="nav-number"></span> <span class="nav-text">三、定时同步：如何保持数据一致性</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E4%B8%BA%E4%BB%80%E4%B9%88%E9%9C%80%E8%A6%81%E5%AE%9A%E6%97%B6%E5%90%8C%E6%AD%A5"><span class="nav-number">1.</span> <span class="nav-text">3.1 为什么需要定时同步</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-%E5%AE%9A%E6%9C%9F%E6%A3%80%E9%AA%8C%E5%85%83%E6%95%B0%E6%8D%AE"><span class="nav-number">1.1.</span> <span class="nav-text">3.2 定期检验元数据</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-%E5%85%B3%E4%BA%8E%E7%89%88%E6%9C%AC%E8%BF%AD%E4%BB%A3%E7%9A%84%E8%AF%B4%E6%98%8E"><span class="nav-number">2.</span> <span class="nav-text">3.3 关于版本迭代的说明</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E6%96%B0%E8%8A%82%E7%82%B9%E5%90%8C%E6%AD%A5%E6%9C%BA%E5%88%B6%EF%BC%8C%E5%A6%82%E4%BD%95%E4%BF%9D%E6%8C%81%E6%95%B0%E6%8D%AE%E4%B8%80%E8%87%B4%E6%80%A7"><span class="nav-number"></span> <span class="nav-text">四、新节点同步机制，如何保持数据一致性</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-%E5%8E%9F%E7%90%86"><span class="nav-number">1.</span> <span class="nav-text">4.1 原理</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%94%E3%80%81%E6%9C%AC%E5%9C%B0%E8%AF%BB%E6%9C%BA%E5%88%B6"><span class="nav-number"></span> <span class="nav-text">五、本地读机制</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#5-1-%E5%8E%9F%E7%90%86"><span class="nav-number">1.</span> <span class="nav-text">5.1 原理</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

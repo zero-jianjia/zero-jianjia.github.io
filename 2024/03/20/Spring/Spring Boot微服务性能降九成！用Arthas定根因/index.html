@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="[toc] 背景接收到公司业务部门的开发反馈，应用在升级公司内部框架后，UAT（预生产）环境接口性能压测不达标。升级前压测报告：  升级后压测报告：  在机器配置（1C4G）相同的情况下，吞吐量从原来的 53.9&#x2F;s 下降到了 6.4&#x2F;s，且 CPU 负载较高。 并且开发反馈从公司全链路监控系统 SkyWalking 中查询到的链路信息可以得知大部分请求 Feign 调用的耗时">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Spring Boot微服务性能降九成！用Arthas定根因">
+<meta property="og:url" content="http://example.com/2024/03/20/Spring/Spring%20Boot%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%80%A7%E8%83%BD%E9%99%8D%E4%B9%9D%E6%88%90%EF%BC%81%E7%94%A8Arthas%E5%AE%9A%E6%A0%B9%E5%9B%A0/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="[toc] 背景接收到公司业务部门的开发反馈，应用在升级公司内部框架后，UAT（预生产）环境接口性能压测不达标。升级前压测报告：  升级后压测报告：  在机器配置（1C4G）相同的情况下，吞吐量从原来的 53.9&#x2F;s 下降到了 6.4&#x2F;s，且 CPU 负载较高。 并且开发反馈从公司全链路监控系统 SkyWalking 中查询到的链路信息可以得知大部分请求 Feign 调用的耗时">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291727596.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291727434.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291727321.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291728343.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291728297.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291728118.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291729917.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291729044.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291729570.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291729222.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291730598.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291731985.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291731227.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291731188.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291731115.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291731748.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291732320.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291732239.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291732191.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291732573.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291732097.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291732539.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291733630.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291733017.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291733821.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291734293.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291734845.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291734311.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291734310.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291734976.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291735772.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291735346.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291735424.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291735027.webp">
+<meta property="article:published_time" content="2024-03-19T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.583Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291727596.png">
+
+<link rel="canonical" href="http://example.com/2024/03/20/Spring/Spring%20Boot%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%80%A7%E8%83%BD%E9%99%8D%E4%B9%9D%E6%88%90%EF%BC%81%E7%94%A8Arthas%E5%AE%9A%E6%A0%B9%E5%9B%A0/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>Spring Boot微服务性能降九成！用Arthas定根因 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/20/Spring/Spring%20Boot%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%80%A7%E8%83%BD%E9%99%8D%E4%B9%9D%E6%88%90%EF%BC%81%E7%94%A8Arthas%E5%AE%9A%E6%A0%B9%E5%9B%A0/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Spring Boot微服务性能降九成！用Arthas定根因
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-03-20 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-20T00:00:00+08:00">2024-03-20</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>[toc]</p>
+<h3 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h3><p>接收到公司业务部门的开发反馈，应用在升级公司内部框架后，UAT（预生产）环境接口性能压测不达标。<br>升级前压测报告：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291727596.png" alt="1.png"></p>
+<p>升级后压测报告：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291727434.png" alt="img"></p>
+<p>在机器配置（1C4G）相同的情况下，吞吐量从原来的 53.9&#x2F;s 下降到了 6.4&#x2F;s，且 CPU 负载较高。</p>
+<p>并且开发反馈从公司全链路监控系统 SkyWalking 中查询到的链路信息可以得知大部分请求 Feign 调用的耗时不太正常（390ms），而实际被调用的下游服务响应速度很快（3ms）。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291727321.png" alt="img"></p>
+<span id="more"></span>
+<h3 id="定位问题"><a href="#定位问题" class="headerlink" title="定位问题"></a>定位问题</h3><p>在接收到反馈以后，我立即申请了相应机器的权限，并往相应机器上传了 Arthas（version 3.4.3）。让业务方保持压测，开始问题定位。</p>
+<h4 id="1-执行-profiler-命令对-CPU-进行性能分析"><a href="#1-执行-profiler-命令对-CPU-进行性能分析" class="headerlink" title="1. 执行 profiler 命令对 CPU 进行性能分析"></a>1. 执行 profiler 命令对 CPU 进行性能分析</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[arthas@17962]$ profiler start -d 30 -f /tmp/arthas/1.txt</span><br></pre></td></tr></table></figure>
+
+<p>等待 30s 后，打开 1.txt，查看 CPU 性能分析结果，开头部分示例如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">--- 1630160766 ns (4.24%), 141 samples</span><br><span class="line">  ......</span><br><span class="line">  [14] org.springframework.boot.loader.LaunchedURLClassLoader.definePackageIfNecessary</span><br><span class="line">  [15] org.springframework.boot.loader.LaunchedURLClassLoader.loadClass</span><br><span class="line">  [16] java.lang.ClassLoader.loadClass</span><br><span class="line">  [17] java.lang.Class.forName0</span><br><span class="line">  [18] java.lang.Class.forName</span><br><span class="line">  [19] org.springframework.util.ClassUtils.forName</span><br><span class="line">  [20] org.springframework.http.converter.json.Jackson2ObjectMapperBuilder.registerWellKnownModulesIfAvailable</span><br><span class="line">  [21] org.springframework.http.converter.json.Jackson2ObjectMapperBuilder.configure</span><br><span class="line">  [22] org.springframework.http.converter.json.Jackson2ObjectMapperBuilder.build</span><br><span class="line">  [23] org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupport.addDefaultHttpMessageConverters</span><br><span class="line">  [24] org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupport.getMessageConverters</span><br><span class="line">  [25] org.springframework.boot.autoconfigure.http.HttpMessageConverters$1.defaultMessageConverters</span><br><span class="line">  [26] org.springframework.boot.autoconfigure.http.HttpMessageConverters.getDefaultConverters</span><br><span class="line">  [27] org.springframework.boot.autoconfigure.http.HttpMessageConverters.&lt;init&gt;</span><br><span class="line">  [28] org.springframework.boot.autoconfigure.http.HttpMessageConverters.&lt;init&gt;</span><br><span class="line">  [29] org.springframework.boot.autoconfigure.http.HttpMessageConverters.&lt;init&gt;</span><br><span class="line">  [30] com.zhangmen.xxx.DefaultFeignConfig.lambda$feignDecoder$0</span><br><span class="line">  [31] com.zhangmen.xxx.DefaultFeignConfig$$Lambda$704.256909008.getObject</span><br><span class="line">  [32] org.springframework.cloud.openfeign.support.SpringDecoder.decode</span><br><span class="line">  [33] org.springframework.cloud.openfeign.support.ResponseEntityDecoder.decode</span><br><span class="line"> ......</span><br></pre></td></tr></table></figure>
+
+
+
+<h4 id="2-对可疑的方法执行-trace-命令输出方法路径上每个节点的耗时"><a href="#2-对可疑的方法执行-trace-命令输出方法路径上每个节点的耗时" class="headerlink" title="2. 对可疑的方法执行 trace 命令输出方法路径上每个节点的耗时"></a>2. 对可疑的方法执行 trace 命令输出方法路径上每个节点的耗时</h4><p>分析上一步得到的 CPU 性能分析结果，可以发现最占用 CPU 的栈中，确实有 Feign 相关的栈帧。</p>
+<p>并且发现 Feign 相关的栈帧周围出现了 com.zhangmen 相关的栈帧：<br><code>com.zhangmen.xxx.DefaultFeignConfig$$Lambda$704.256909008.getObject</code> 和 <code>com.zhangmen.xxx.DefaultFeignConfig.lambda$feignDecoder$0</code>。</p>
+<p>在 1.txt 中搜索<br><code>com.zhangmen.xxx.DefaultFeignConfig</code>，发现有 340 次命中，因此认为这是一个非常可疑的方法。</p>
+<p>执行 trace 命令输出该方法路径上每个节点的耗时：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[arthas@17962]$ trace com.zhangmen.xxx.DefaultFeignConfig * &#x27;#cost&gt;200&#x27; -n 3</span><br><span class="line">`---[603.999323ms] com.zhangmen.xxx.DefaultFeignConfig:lambda$feignEncoder$1()</span><br><span class="line">    `---[603.856565ms] org.springframework.boot.autoconfigure.http.HttpMessageConverters:&lt;init&gt;() #42</span><br></pre></td></tr></table></figure>
+
+<p>发现HttpMessageConverters:() 比较耗时，并继续一层层 trace 追踪下去：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[arthas@17962]$ trace org.springframework.boot.autoconfigure.http.HttpMessageConverters &lt;init&gt; &#x27;#cost&gt;200&#x27; -n 3</span><br><span class="line">......</span><br><span class="line">[arthas@17962]$ trace org.springframework.http.converter.json.Jackson2ObjectMapperBuilder registerWellKnownModulesIfAvailable &#x27;#cost&gt;200&#x27; -n 3</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291728343.png" alt="img"></p>
+<p>最终发现<br>org.springframework.util.ClassUtils:forName() 比较耗时，并且抛出了异常。使用 watch 命令查看具体的异常：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[arthas@17962]$ watch org.springframework.util.ClassUtils forName -e &quot;throwExp&quot; -n </span><br></pre></td></tr></table></figure>
+
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291728297.webp" alt="图片"></p>
+<h3 id="解决问题"><a href="#解决问题" class="headerlink" title="解决问题"></a>解决问题</h3><p>将定位到的问题，反馈给相关业务开发，并建议引入 jackson-datatype-joda 依赖。 引入依赖后压测报告：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291728118.png" alt="img"></p>
+<p>吞吐量从原来的 6.4&#x2F;s 提升到了 69.3&#x2F;s。</p>
+<p>这时候相关业务开发反馈，这个问题是代码中自定义了 Feign 的编解码器（下图所示）导致的，并且这个编解码器在升级框架前也是一直存在的。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291729917.webp" alt="图片"></p>
+<p>于是，对升级框架前的代码进行压测并在压测过程中使用 Arthas 执行以下命令：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291729044.png" alt="img"></p>
+<p>发现同样有这个异常。引入 jackson-datatype-joda 依赖，再次进行压测，压测报告如下：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291729570.webp" alt="图片"></p>
+<p>汇总前面的压测结果：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291729222.webp" alt="图片"></p>
+<p>可以发现一个新的问题：为什么新旧版本同时不引入依赖，吞吐量相差近 8 倍，新旧版本同时引入依赖，吞吐量相差近 1 倍？</p>
+<h3 id="进一步定位问题"><a href="#进一步定位问题" class="headerlink" title="进一步定位问题"></a>进一步定位问题</h3><p>根据上一步中发现的新问题，接下来对 未升级框架并引入依赖的版本 和 升级框架并引入依赖的版本 分别进行压测，并在压测过程中使用 Arthas 的 profiler 命令采样 CPU 性能分析数据，得到样本 1 和样本 2 。并从样本 1 和样本 2 中找到相似栈进行对比：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291730598.webp" alt="图片"></p>
+<p>通过对比可以发现，两个样本的相似栈的前 17 行有所不同。并对样本 2 中的可疑栈帧进行 trace 追踪：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[arthas@10561]$ trace org.apache.catalina.loader.WebappClassLoaderBase$CombinedEnumeration * &#x27;#cost&gt;100&#x27; -n 3</span><br><span class="line">`---[171.744137ms] org.apache.catalina.loader.WebappClassLoaderBase$CombinedEnumeration:hasMoreElements()</span><br><span class="line">    `---[171.736943ms] org.apache.catalina.loader.WebappClassLoaderBase$CombinedEnumeration:inc() #2685</span><br><span class="line">        `---[171.724546ms] org.apache.catalina.loader.WebappClassLoaderBase$CombinedEnumeration:inc()</span><br></pre></td></tr></table></figure>
+
+<p>发现升级框架后，在类加载器这部分存在比较耗时的情况。</p>
+<p>而对样本 1 中这部分进行 trace 追踪没有出现耗时大于 100ms 的情况。又进一步使用 profiler 命令，分别生成两个版本在压测场景下的火焰图，并找到相似栈进行对比：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[arthas@10561]$ profiler start -d 30 -f /tmp/arthas/1.svg</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291731985.webp" alt="图片"></p>
+<p>发现 升级框架并引入依赖的版本 还多出了一些 <code>org/springframework/boot/loader/</code> 相关的栈。</p>
+<h3 id="进一步解决问题"><a href="#进一步解决问题" class="headerlink" title="进一步解决问题"></a>进一步解决问题</h3><p>将新的发现反馈给相关业务开发。他们反映此次除了框架升级外，还有 Spring Boot war to jar 部署的调整。从使用独立的 Tomcat war 部署，改造成用 Spring Boot 内嵌 Tomcat java -jar 部署。故怀疑两种部署方式在类加载器上存在性能差异。</p>
+<p>相关业务开发在我上一步定位问题期间，根据我最初定位到的问题，在 Google 搜索 feign<br>com.fasterxml.jackson.datatype.joda.JodaModule，找到了一篇相关的文章《loadClass 导致线上服务卡顿分析》。或参考：<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_35762553/article/details/112087522">feign 序列化_Feign编码不规范，导致CPU100%</a>。</p>
+<p>看了这篇文章后，我又 Debug 了部分源码，最后了解到问题产生的根本原因是：<strong>SpringEncoder &#x2F; SpringDecoder 在每次编码 &#x2F; 解码时都会调用 ObjectFactory.getObject()).getConverters() 获取 HttpMessageConverters</strong>。而我们自定义的 DefaultFeignConfig 中配置的ObjectFactory 的实现是每次都 new 一个新的 HttpMessageConverters 对象。</p>
+<p>HttpMessageConverters 的构造方法又默认会执行 getDefaultConverters 方法获取默认的 HttpMessageConverter 集合，并初始化这些默认的 HttpMessageConverter。其中的<br>MappingJackson2HttpMessageConverter（有两个，见下图） 每次初始化时都会加载不在 classpath 中的 <code>com.fasterxml.jackson.datatype.joda.JodaModule</code>和 <code>com.fasterxml.jackson.datatype.joda$JodaModule</code>（org.springframework.util.ClassUtils 加载不到类时，会尝试再加载一下内部类），并抛出 ClassNotFoundException，且该异常最后被生吞。</p>
+<p>而部分和 XML 相关的默认的 HttpMessageConverter，<br>SourceHttpMessageConverter 和 Jaxb2RootElementHttpMessageConverter（各有两个，见下图）每次初始化时，会执行 TransformerFactory.newInstance()，执行过程中会使用 SPI 扫描 classpath 下的 <code>META-INF/services</code> 目录获取具体的实现，并且每次扫描完也没有获取到具体的实现，最终使用默认指定的 <code>com.sun.org.apache.xalan.internal.xsltc.trax.TransformerFactoryImpl</code>作为实现。</p>
+<p>最终导致每一次 Feign 调用（包含编码和解码），都会加载 4 次不在 classpath 中的<br><code>com.fasterxml.jackson.datatype.joda.JodaModule</code> 和 <code>com.fasterxml.jackson.datatype.joda$JodaModule</code>（共8次），且 8 次使用 SPI 扫描 classpath 下的 META-INF &#x2F; services 目录获取查找不到的实现，而 war to jar 后，类加载器在频繁查找和加载资源上的性能有所下降，最终导致严重影响接口性能。</p>
+<p>默认的 HttpMessageConverter 集合：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291731227.webp" alt="图片"></p>
+<p>部分关键代码如下。<code>org/springframework/boot/autoconfigure/http/HttpMessageConverters</code>：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291731188.webp" alt="图片"></p>
+<p><code>org/springframework/http/converter/json/Jackson2ObjectMapperBuilder.registerWellKnownModulesIfAvailable</code>：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291731115.webp" alt="图片"></p>
+<p><code>org/springframework/util.ClassUtils.forName</code>：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291731748.webp" alt="图片"></p>
+<p><code>org/springframework/http/converter/xml/SourceHttpMessageConverter：</code></p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291732320.webp" alt="图片"></p>
+<p><code>javax/xml/transform/FactoryFinder.find</code>：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291732239.webp" alt="图片"></p>
+<p>文章中对于这个问题还提供了两种解决方法：</p>
+<p><strong>第一种方法</strong>，就是我最初建议的引入 jackson-datatype-joda 依赖，避免每次初始化默认的<br>MappingJackson2HttpMessageConverter 时 ClassLoader 反复加载不在 classpath 中的 <code>com.fasterxml.jackson.datatype.joda.JodaModule</code> 和 <code>com.fasterxml.jackson.datatype.joda$JodaModule</code>。</p>
+<p><strong>第二种方法</strong>，不初始化默认的 HttpMessageConverter。由于我们此处只需要使用自定义的<br>FastJsonHttpMessageConverter 来执行编解码，完全可以避免执行 getDefaultConverters 方法，重复初始化许多用不到的默认的 HttpMessageConverter。因此在 new HttpMessageConverters 对象时 ，可以将 addDefaultConverters 参数设置为 false。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ObjectFactory&lt;HttpMessageConverters&gt; objectFactory = () -&gt; <span class="keyword">new</span> <span class="title class_">HttpMessageConverters</span>(</span><br><span class="line">  <span class="literal">false</span>, </span><br><span class="line">  <span class="keyword">new</span> <span class="title class_">HttpMessageConverter</span>[] &#123; (HttpMessageConverter)fastJsonHttpMessageConverter &#125;);</span><br></pre></td></tr></table></figure>
+
+<p>实际上，我们还可以修改 DefaultFeignConfig 中 ObjectFactory 的实现，避免每次都 new 一个新的 HttpMessageConverters 对象（重复初始化 HttpMessageConverters），实现进一步优化。<br>故建议相关业务开发，将 DefaultFeignConfig 修改成如下代码：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291732191.webp" alt="图片"></p>
+<p>在相关业务开发将新旧版本代码中的 DefaultFeignConfig 都进行改进并部署到 FAT（测试）环境以后，我在自己本机用 JMeter 对 FAT 环境进行了模拟压测。</p>
+<p>旧版改进后压测结果：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291732573.webp" alt="图片"></p>
+<p>新版改进后压测结果：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291732097.webp" alt="图片"></p>
+<p>发现此时，两个版本的接口性能已经基本相同。</p>
+<p>最终测试人员在 UAT 环境，对升级框架并改进 DefaultFeignConfig 后的代码再次进行压测，压测结果如下：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291732539.webp" alt="图片"></p>
+<p>吞吐量从最初不达标的 6.4&#x2F;s，提升到了160.4&#x2F;s。</p>
+<p>那为什么 war to jar 部署的调整，会导致类加载器在频繁查找和加载资源时性能有所下降呢？</p>
+<p>在对 SpringBoot 可执行 jar 的原理做了一番了解以后。怀疑和 Spring Boot 为了做到能够以一个 fat jar 来启动，从而扩展了 JDK 的 JarFile URL 协议，并定制了自己的 ClassLoader 和 jar 文件协议的 Hander，实现了 jar in jar、jar in directory 的加载方式有关。</p>
+<h3 id="War2Jar-类加载器性能下降根因探究"><a href="#War2Jar-类加载器性能下降根因探究" class="headerlink" title="War2Jar 类加载器性能下降根因探究"></a>War2Jar 类加载器性能下降根因探究</h3><p>为了验证自己的猜测，我在自己本机搭建了一个简单的 Demo。Demo 中有两个服务，A 和 B。将 A 和 B 都注册到 Eureka 注册中心，并且 A 通过 Feign 调用 B。接下来使用 Jmeter 在相同的配置下对各种场景进行压测，并在压测过程中使用 Arthas 的 profiler 命令生成各种场景下的火焰图。</p>
+<p>压测结果如下（-Xms512m -Xmx512m）：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291733630.webp" alt="图片"></p>
+<p>通过对比表格三和表格四可以得知，代码优化后，是否引入依赖，对吞吐量几乎没有影响。</p>
+<p>通过表格三和表格四可以得知，代码优化后，在不会频繁查找和加载不存在的资源时，三种部署方式的吞吐量基本一致。</p>
+<p>通过表格二可以得知，在频繁使用 SPI 获取 classpath 下查找不到的实现时，Tomcat war 部署性能更好。</p>
+<p>通过表格一可以得知，在频繁加载不存在的类时，将 jar 包解压后通过 JarLauncher 启动性能更好。</p>
+<p>对比表格一中 ③ 和 ② 相似栈的火焰图：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291733017.webp" alt="图片"></p>
+<p>可以发现两者在<br><code>org/springframework/boot/loader/LaunchedURLClassLoader.loadClass</code> 加载类时，存在差异。</p>
+<p>② 不仅会执行<br>java&#x2F;lang&#x2F;ClassLoader.loadClass，还会执行 org&#x2F;springframework&#x2F;boot&#x2F;loader&#x2F;LaunchedURLClassLoader.definePackageIfNecessary。</p>
+<p>查看<br>org&#x2F;springframework&#x2F;boot&#x2F;loader&#x2F;LaunchedURLClassLoader.loadClass 的源码：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291733821.webp" alt="图片"></p>
+<p>发现存在一个条件分支。</p>
+<p>查看<code>org/springframework/boot/loader/Launcher.createArchive</code> 的源码：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291734293.webp" alt="图片"></p>
+<p>发现这个条件的值与应用是 可执行 jar 文件 还是 文件目录 有关。</p>
+<p>对 ② 再次进行压测，并<code> trace org/springframework/boot/loader/LaunchedURLClassLoader.definePackageIfNecessary</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">`---[165.770773ms] org.springframework.boot.loader.LaunchedURLClassLoader:definePackageIfNecessary()</span><br><span class="line">    +---[0.00347ms] org.springframework.boot.loader.LaunchedURLClassLoader:getPackage() #197</span><br><span class="line">    `---[165.761244ms] org.springframework.boot.loader.LaunchedURLClassLoader:definePackage() #199</span><br></pre></td></tr></table></figure>
+
+<p>发现这个地方确实存在比较耗时的情况。</p>
+<p>阅读该部分源码，从注释中即可得知，definePackageIfNecessary 主要是为了在调用 findClass 之前尝试根据类名去定义类所在的 package，确保 jar 文件嵌套 jar 包里的 manifest 能够和 package 关联起来。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291734845.webp" alt="图片"></p>
+<p>Debug definePackageIfNecessary 这部分代码，发现在 definePackage 时，会遍历 <code>BOOT-INF/lib/</code> 下所有的 jar 包 以及 <code>BOOT-INF/classes/</code>。如果发现这些资源中存在指定的类，就继续调用 definePackage 方法，否则遍历完直接返回 null。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291734311.webp" alt="图片"></p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291734310.webp" alt="图片"></p>
+<p>前面说过，每一次 Feign 调用都会加载 4 次不在 classpath 中的<br><code>com.fasterxml.jackson.datatype.joda.JodaModule</code> 和<code>com.fasterxml.jackson.datatype.joda$JodaModule</code> （共8次）。而我这个简单的 Demo 应用依赖的 jar 有 117 个（实际企业级项目将会更多）。那么每一次 Feign 调用，就会执行 8 * (117 + 1)，总计 944 次循环里的逻辑。而逻辑中的 org.springframework.boot.loader.jar.Handler.openConnection 方法在执行过程中又会涉及到比较耗时的 IO 操作，最终导致严重影响接口性能。从生成的火焰图中，也可以看到这部分处理逻辑。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291734976.webp" alt="图片"></p>
+<p>至此，已经可以确认 war to jar 部署的调整，导致类加载器在频繁查找和加载资源时性能有所下降的根因就是：Spring Boot 为了做到能够以一个 fat jar 来启动，增加了一些定制的处理逻辑，而这部分定制的处理逻辑在频繁执行时，会对程序性能产生较大影响。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>大家在自定义 Feign 的编解码器时，如果用到了 SpringEncoder &#x2F; SpringDecoder，应避免 HttpMessageConverters 的重复初始化。如果不需要使用那些默认的 HttpMessageConverter，可以在初始化 HttpMessageConverters 时将第一个入参设置为 false，从而不初始化那些默认的 HttpMessageConverter。</p>
+<p>另外，应该了解不同的部署方式在类加载器频繁查找和加载资源时是存在性能差异的。</p>
+<p>我们在写代码时，也应该要避免重复初始化，以及反复查找和加载不存在的资源。</p>
+<p>最后，善用SkyWalking 和Arthas 可以帮助我们更加高效地排查程序错误和性能瓶颈。</p>
+<h3 id="彩蛋"><a href="#彩蛋" class="headerlink" title="彩蛋"></a>彩蛋</h3><p>如果应用使用了 SkyWalking Agent，再使用 Arthas，可能会遇到 Arthas 部分命令（trace、watch 等会对类进行增强的命令）不能正常工作的问题。</p>
+<p>解决方案：<br><a target="_blank" rel="noopener" href="https://github.com/apache/skywalking/blob/master/docs/en/FAQ/Compatible-with-other-javaagent-bytecode-processing.md">https://github.com/apache/skywalking/blob/master/docs/en/FAQ/Compatible-with-other-javaagent-bytecode-processing.md</a></p>
+<p>而当 Arthas 可以正常工作以后，我们对于 SkyWalking Agent 已经增强过的类的方法执行 trace 等命令时，最好在方法名后面加上一个 * 符号进行模糊匹配。Arthas 最终会将所有匹配方法的 trace 追踪结果进行汇总展示。</p>
+<p>方法名不加 * 进行 trace：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291735772.webp" alt="图片"></p>
+<p>方法名加上 * 进行trace：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291735346.webp" alt="图片"></p>
+<p>可以看到方法名加上 * 以后，trace 得到的结果才是我们理想的结果。</p>
+<p>这是由于 SkyWalking Agent 使用了 ByteBuddy 做字节码增强。而 ByteBuddy 每增强一个方法，都会为该方法生成一个辅助内部类（HelloController$auxiliary$jiu2bTqU），并且会对当前类（HelloController）中的原方法（test1）进行重命名（test1$original$lyu0XDob），并生成一个与原方法同名的方法（test1）和一个不同名但仅供辅助内部类调用的方法（test1$original$lyu0XDob$accessor$8F82ImAF）。</p>
+<p>使用同事开发的 Java 反编译工具可以直观地看到相关代码：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291735424.webp" alt="图片"></p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291735027.webp" alt="图片"></p>
+<p>另外，在使用 Arthas 的时候，建议选择最新的版本。比如，3.4.2 以前的版本 trace 追踪大方法时就可能会导致 JVM Metaspace OOM。详情见：<a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/359329753">《记一次由 Arthas 引起的 Metaspace OOM 问题》</a>。</p>
+<p>如果你想要基于 Arthas 打造企业级在线诊断平台，可以参考<a target="_blank" rel="noopener" href="https://www.wangt.cc/2020/10/%E5%B7%A5%E5%95%86%E9%93%B6%E8%A1%8C%E6%89%93%E9%80%A0%E5%9C%A8%E7%BA%BF%E8%AF%8A%E6%96%AD%E5%B9%B3%E5%8F%B0%E7%9A%84%E6%8E%A2%E7%B4%A2%E4%B8%8E%E5%AE%9E%E8%B7%B5/">《工商银行打造在线诊断平台的探索与实践》</a>。</p>
+<hr>
+<p>转载自：<br><a target="_blank" rel="noopener" href="https://www.toutiao.com/article/6927425570175271431/?log_from=fef855f940eae_1706251588291">https://www.toutiao.com/article/6927425570175271431/?log_from=fef855f940eae_1706251588291</a><br><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/RuqltkN9VdVQ1K3GKuJ-Gw">https://mp.weixin.qq.com/s/RuqltkN9VdVQ1K3GKuJ-Gw</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/03/20/Spring/%E6%95%B4%E5%90%88Mysql%E9%A1%B9%E7%9B%AE%20%E6%95%B0%E6%8D%AE%E5%BA%93%E8%BF%9E%E6%8E%A5%E6%B1%A0hikari%E9%85%8D%E7%BD%AE%E4%BF%A1%E6%81%AF/" rel="prev" title="整合Mysql项目:数据库连接池hikari配置信息">
+      <i class="fa fa-chevron-left"></i> 整合Mysql项目:数据库连接池hikari配置信息
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/03/20/Spring/UnexpectedRollbackExceptionTransaction%EF%BC%9Arolled%20back%20because%20it%20has%20been%20marked%20as%20rollback-only/" rel="next" title="UnexpectedRollbackException:Transaction rolled back because it has been marked as rollback-only">
+      UnexpectedRollbackException:Transaction rolled back because it has been marked as rollback-only <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%83%8C%E6%99%AF"><span class="nav-number">1.</span> <span class="nav-text">背景</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%9A%E4%BD%8D%E9%97%AE%E9%A2%98"><span class="nav-number">2.</span> <span class="nav-text">定位问题</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-%E6%89%A7%E8%A1%8C-profiler-%E5%91%BD%E4%BB%A4%E5%AF%B9-CPU-%E8%BF%9B%E8%A1%8C%E6%80%A7%E8%83%BD%E5%88%86%E6%9E%90"><span class="nav-number">2.1.</span> <span class="nav-text">1. 执行 profiler 命令对 CPU 进行性能分析</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-%E5%AF%B9%E5%8F%AF%E7%96%91%E7%9A%84%E6%96%B9%E6%B3%95%E6%89%A7%E8%A1%8C-trace-%E5%91%BD%E4%BB%A4%E8%BE%93%E5%87%BA%E6%96%B9%E6%B3%95%E8%B7%AF%E5%BE%84%E4%B8%8A%E6%AF%8F%E4%B8%AA%E8%8A%82%E7%82%B9%E7%9A%84%E8%80%97%E6%97%B6"><span class="nav-number">2.2.</span> <span class="nav-text">2. 对可疑的方法执行 trace 命令输出方法路径上每个节点的耗时</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%A7%A3%E5%86%B3%E9%97%AE%E9%A2%98"><span class="nav-number">3.</span> <span class="nav-text">解决问题</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BF%9B%E4%B8%80%E6%AD%A5%E5%AE%9A%E4%BD%8D%E9%97%AE%E9%A2%98"><span class="nav-number">4.</span> <span class="nav-text">进一步定位问题</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BF%9B%E4%B8%80%E6%AD%A5%E8%A7%A3%E5%86%B3%E9%97%AE%E9%A2%98"><span class="nav-number">5.</span> <span class="nav-text">进一步解决问题</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#War2Jar-%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8%E6%80%A7%E8%83%BD%E4%B8%8B%E9%99%8D%E6%A0%B9%E5%9B%A0%E6%8E%A2%E7%A9%B6"><span class="nav-number">6.</span> <span class="nav-text">War2Jar 类加载器性能下降根因探究</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">7.</span> <span class="nav-text">总结</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BD%A9%E8%9B%8B"><span class="nav-number">8.</span> <span class="nav-text">彩蛋</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

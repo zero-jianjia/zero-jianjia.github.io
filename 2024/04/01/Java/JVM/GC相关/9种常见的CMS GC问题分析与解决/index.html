@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="[toc] GC CauseJVM 什么样的条件下选择进行 GC 操作，具体 Cause 的分类可以看一下 Hotspot 源码：src&#x2F;share&#x2F;vm&#x2F;gc&#x2F;shared&#x2F;gcCause.hpp 和 src&#x2F;share&#x2F;vm&#x2F;gc&#x2F;shared&#x2F;gcCause.cpp 中。 1234567891">
+<meta property="og:type" content="article">
+<meta property="og:title" content="9种常见的CMS GC问题分析与解决">
+<meta property="og:url" content="http://example.com/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/9%E7%A7%8D%E5%B8%B8%E8%A7%81%E7%9A%84CMS%20GC%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90%E4%B8%8E%E8%A7%A3%E5%86%B3/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="[toc] GC CauseJVM 什么样的条件下选择进行 GC 操作，具体 Cause 的分类可以看一下 Hotspot 源码：src&#x2F;share&#x2F;vm&#x2F;gc&#x2F;shared&#x2F;gcCause.hpp 和 src&#x2F;share&#x2F;vm&#x2F;gc&#x2F;shared&#x2F;gcCause.cpp 中。 1234567891">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291400583.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291402967.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291403799.png">
+<meta property="article:published_time" content="2024-03-31T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.299Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291400583.png">
+
+<link rel="canonical" href="http://example.com/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/9%E7%A7%8D%E5%B8%B8%E8%A7%81%E7%9A%84CMS%20GC%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90%E4%B8%8E%E8%A7%A3%E5%86%B3/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>9种常见的CMS GC问题分析与解决 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/9%E7%A7%8D%E5%B8%B8%E8%A7%81%E7%9A%84CMS%20GC%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90%E4%B8%8E%E8%A7%A3%E5%86%B3/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          9种常见的CMS GC问题分析与解决
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/JVM/" itemprop="url" rel="index"><span itemprop="name">JVM</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/JVM/GC%E7%9B%B8%E5%85%B3/" itemprop="url" rel="index"><span itemprop="name">GC相关</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>[toc]</p>
+<h1 id="GC-Cause"><a href="#GC-Cause" class="headerlink" title="GC Cause"></a>GC Cause</h1><p>JVM 什么样的条件下选择进行 GC 操作，具体 Cause 的分类可以看一下 Hotspot 源码：src&#x2F;share&#x2F;vm&#x2F;gc&#x2F;shared&#x2F;gcCause.hpp 和 src&#x2F;share&#x2F;vm&#x2F;gc&#x2F;shared&#x2F;gcCause.cpp 中。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br></pre></td><td class="code"><pre><span class="line">const char* GCCause::to_string(GCCause::Cause cause) &#123;</span><br><span class="line">  switch (cause) &#123;</span><br><span class="line">    case _java_lang_system_gc:</span><br><span class="line">      return &quot;System.gc()&quot;;</span><br><span class="line"></span><br><span class="line">    case _full_gc_alot:</span><br><span class="line">      return &quot;FullGCAlot&quot;;</span><br><span class="line">     </span><br><span class="line">    case _scavenge_alot:</span><br><span class="line">      return &quot;ScavengeAlot&quot;;</span><br><span class="line">     </span><br><span class="line">    case _allocation_profiler:</span><br><span class="line">      return &quot;Allocation Profiler&quot;;</span><br><span class="line">     </span><br><span class="line">    case _jvmti_force_gc:</span><br><span class="line">      return &quot;JvmtiEnv ForceGarbageCollection&quot;;</span><br><span class="line">     </span><br><span class="line">    case _gc_locker:</span><br><span class="line">      return &quot;GCLocker Initiated GC&quot;;</span><br><span class="line">     </span><br><span class="line">    case _heap_inspection:</span><br><span class="line">      return &quot;Heap Inspection Initiated GC&quot;;</span><br><span class="line">     </span><br><span class="line">    case _heap_dump:</span><br><span class="line">      return &quot;Heap Dump Initiated GC&quot;;</span><br><span class="line">     </span><br><span class="line">    case _wb_young_gc:</span><br><span class="line">      return &quot;WhiteBox Initiated Young GC&quot;;</span><br><span class="line">     </span><br><span class="line">    case _wb_conc_mark:</span><br><span class="line">      return &quot;WhiteBox Initiated Concurrent Mark&quot;;</span><br><span class="line">     </span><br><span class="line">    case _wb_full_gc:</span><br><span class="line">      return &quot;WhiteBox Initiated Full GC&quot;;</span><br><span class="line">     </span><br><span class="line">    case _no_gc:</span><br><span class="line">      return &quot;No GC&quot;;</span><br><span class="line">     </span><br><span class="line">    case _allocation_failure:</span><br><span class="line">      return &quot;Allocation Failure&quot;;</span><br><span class="line">     </span><br><span class="line">    case _tenured_generation_full:</span><br><span class="line">      return &quot;Tenured Generation Full&quot;;</span><br><span class="line">     </span><br><span class="line">    case _metadata_GC_threshold:</span><br><span class="line">      return &quot;Metadata GC Threshold&quot;;</span><br><span class="line">     </span><br><span class="line">    case _metadata_GC_clear_soft_refs:</span><br><span class="line">      return &quot;Metadata GC Clear Soft References&quot;;</span><br><span class="line">     </span><br><span class="line">    case _cms_generation_full:</span><br><span class="line">      return &quot;CMS Generation Full&quot;;</span><br><span class="line">     </span><br><span class="line">    case _cms_initial_mark:</span><br><span class="line">      return &quot;CMS Initial Mark&quot;;</span><br><span class="line">     </span><br><span class="line">    case _cms_final_remark:</span><br><span class="line">      return &quot;CMS Final Remark&quot;;</span><br><span class="line">     </span><br><span class="line">    case _cms_concurrent_mark:</span><br><span class="line">      return &quot;CMS Concurrent Mark&quot;;</span><br><span class="line">     </span><br><span class="line">    case _old_generation_expanded_on_last_scavenge:</span><br><span class="line">      return &quot;Old Generation Expanded On Last Scavenge&quot;;</span><br><span class="line">     </span><br><span class="line">    case _old_generation_too_full_to_scavenge:</span><br><span class="line">      return &quot;Old Generation Too Full To Scavenge&quot;;</span><br><span class="line">     </span><br><span class="line">    case _adaptive_size_policy:</span><br><span class="line">      return &quot;Ergonomics&quot;;</span><br><span class="line">     </span><br><span class="line">    case _g1_inc_collection_pause:</span><br><span class="line">      return &quot;G1 Evacuation Pause&quot;;</span><br><span class="line">     </span><br><span class="line">    case _g1_humongous_allocation:</span><br><span class="line">      return &quot;G1 Humongous Allocation&quot;;</span><br><span class="line">     </span><br><span class="line">    case _dcmd_gc_run:</span><br><span class="line">      return &quot;Diagnostic Command&quot;;</span><br><span class="line">     </span><br><span class="line">    case _last_gc_cause:</span><br><span class="line">      return &quot;ILLEGAL VALUE - last gc cause - ILLEGAL VALUE&quot;;</span><br><span class="line">     </span><br><span class="line">    default:</span><br><span class="line">      return &quot;unknown GCCause&quot;;</span><br><span class="line">  &#125;</span><br><span class="line">  ShouldNotReachHere();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>重点需要关注的几个GC Cause：</p>
+<ul>
+<li><p>System.gc()：手动触发GC操作。</p>
+</li>
+<li><p>CMS：CMS GC 在执行过程中的一些动作，重点关注 CMS Initial Mark 和 CMS Final Remark 两个 STW 阶段。</p>
+</li>
+<li><p>Promotion Failure：Old 区没有足够的空间分配给 Young 区晋升的对象（即使总可用内存足够大）。</p>
+</li>
+<li><p>Concurrent Mode Failure：CMS GC 运行期间，Old 区预留的空间不足以分配给新的对象，此时收集器会发生退化，严重影响 GC 性能，下面的一个案例即为这种场景。</p>
+</li>
+<li><p>GCLocker Initiated GC：如果线程执行在 JNI 临界区时，刚好需要进行 GC，此时 GC Locker 将会阻止 GC 的发生，同时阻止其他线程进入 JNI 临界区，直到最后一个线程退出临界区时触发一次 GC。</p>
+</li>
+</ul>
+<span id="more"></span>
+
+<h1 id="GC-问题分类"><a href="#GC-问题分类" class="headerlink" title="GC 问题分类"></a>GC 问题分类</h1><p>笔者选取了九种不同类型的 GC 问题，覆盖了大部分场景，如果有更好的场景，欢迎在评论区给出。</p>
+<ul>
+<li><p>Unexpected GC：意外发生的 GC，实际上不需要发生，我们可以通过一些手段去避免。</p>
+<ul>
+<li>Space Shock：空间震荡问题，参见“场景一：动态扩容引起的空间震荡”。</li>
+<li>Explicit GC：显示执行 GC 问题，参见“场景二：显式 GC 的去与留”。</li>
+</ul>
+</li>
+<li><p>Partial GC：部分收集操作的 GC，只对某些分代&#x2F;分区进行回收。</p>
+<ul>
+<li><p>Young GC：分代收集里面的 Young 区收集动作，也可以叫做 Minor GC。</p>
+<ul>
+<li>ParNew：Young GC 频繁，参见“场景四：过早晋升”。</li>
+</ul>
+</li>
+<li><p>Old GC：分代收集里面的 Old 区收集动作，也可以叫做 Major GC，有些也会叫做 Full GC，但其实这种叫法是不规范的，在 CMS 发生 Foreground GC 时才是 Full GC，CMSScavengeBeforeRemark 参数也只是在 Remark 前触发一次Young GC。</p>
+<ul>
+<li>CMS：Old GC 频繁，参见“场景五：CMS Old GC 频繁”。</li>
+<li>CMS：Old GC 不频繁但单次耗时大，参见“场景六：单次 CMS Old GC 耗时长”。</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>Full GC：全量收集的 GC，对整个堆进行回收，STW 时间会比较长，一旦发生，影响较大，也可以叫做 Major GC，参见“场景七：内存碎片&amp;收集器退化”。</p>
+</li>
+<li><p>MetaSpace：元空间回收引发问题，参见“场景三：MetaSpace 区 OOM”。</p>
+</li>
+<li><p>Direct Memory：直接内存（也可以称作为堆外内存）回收引发问题，参见“场景八：堆外内存 OOM”。</p>
+</li>
+<li><p>JNI：本地 Native 方法引发问题，参见“场景九：JNI 引发的 GC 问题”。</p>
+</li>
+</ul>
+<h2 id="场景一：动态扩容引起的空间震荡"><a href="#场景一：动态扩容引起的空间震荡" class="headerlink" title="场景一：动态扩容引起的空间震荡"></a>场景一：动态扩容引起的空间震荡</h2><p><strong>1.1 现象</strong></p>
+<p>服务刚刚启动时 GC 次数较多，最大空间剩余很多但是依然发生 GC，这种情况我们可以通过观察 GC 日志或者通过监控工具来观察堆的空间变化情况即可。GC Cause 一般为 Allocation Failure，且在 GC 日志中会观察到经历一次 GC ，堆内各个空间的大小会被调整，如下图所示：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291400583.png" alt="img"></p>
+<p><strong>1.2 原因</strong></p>
+<p>在 JVM 的参数中 -Xms 和 -Xmx 设置的不一致，在初始化时只会初始 -Xms 大小的空间存储信息，每当空间不够用时再向操作系统申请，这样的话必然要进行一次 GC。另外，如果空间剩余很多时也会进行缩容操作，JVM 通过 -XX:MinHeapFreeRatio 和 -XX:MaxHeapFreeRatio 来控制扩容和缩容的比例。</p>
+<p><strong>1.3 策略</strong></p>
+<p>定位：观察 CMS GC 触发时间点 Old&#x2F;MetaSpace 区的 committed 占比是不是一个固定的值，或者像上文提到的观察总的内存使用率也可以。</p>
+<p>解决：尽量将成对出现的空间大小配置参数设置成固定的，如 -Xms 和 -Xmx，-XX:MaxNewSize 和 -XX:NewSize，-XX:MetaSpaceSize 和 -XX:MaxMetaSpaceSize 等。</p>
+<p><strong>1.4 小结</strong></p>
+<p>一般来说，我们需要保证 Java 虚拟机的堆是稳定的，确保 -Xms 和 -Xmx 设置的是一个值（即初始值和最大值一致），获得一个稳定的堆，同理在 MetaSpace 区也有类似的问题。不过在不追求停顿时间的情况下震荡的空间也是有利的，可以动态地伸缩以节省空间，例如作为富客户端的 Java 应用。这个问题虽然初级，但是发生的概率还真不小，尤其是在一些规范不太健全的情况下。</p>
+<h2 id="场景二：显式-GC-的去与留"><a href="#场景二：显式-GC-的去与留" class="headerlink" title="场景二：显式 GC 的去与留"></a>场景二：显式 GC 的去与留</h2><p><strong>2.1 现象</strong></p>
+<p>除了扩容缩容会触发 CMS GC 之外，还有 Old 区达到回收阈值、MetaSpace 空间不足、Young 区晋升失败、大对象担保失败等几种触发条件，如果这些情况都没有发生却触发了 GC ？这种情况有可能是代码中手动调用了 System.gc 方法，此时可以找到 GC 日志中的 GC Cause 确认下。那么这种 GC 到底有没有问题，翻看网上的一些资料，有人说可以添加 -XX:+DisableExplicitGC 参数来避免这种 GC，也有人说不能加这个参数，加了就会影响 Native Memory 的回收。先说结论，笔者这里建议保留 System.gc，那为什么要保留？我们一起来分析下。</p>
+<p><strong>2.2 原因</strong></p>
+<p>找到 System.gc 在 Hotspot 中的源码，可以发现增加 -XX:+DisableExplicitGC 参数后，这个方法变成了一个空方法，如果没有加的话便会调用 Universe::heap()::collect 方法，继续跟进到这个方法中，发现 System.gc 会引发一次 STW 的 Full GC，对整个堆做收集。</p>
+<p><strong>2.3 策略</strong></p>
+<p>通过上面的分析看到，无论是保留还是去掉都会有一定的风险点，不过目前互联网中的 RPC 通信会大量使用 NIO，所以笔者在这里建议保留。此外 JVM 还提供了 -XX:+ExplicitGCInvokesConcurrent  和 -XX:+ExplicitGCInvokesConcurrentAndUnloadsClasses ，这样的话就能大幅降低了 STW 开销，同时也不会发生 NIO Direct Memory OOM。</p>
+<p><strong>2.4 小结</strong></p>
+<p>不止 CMS，在 G1 或 ZGC中开启 ExplicitGCInvokesConcurrent 模式，都会采用高性能的并发收集方式进行收集，不过还是建议在代码规范方面也要做好约束，规范好 System.gc 的使用。</p>
+<h2 id="场景三：MetaSpace-区-OOM"><a href="#场景三：MetaSpace-区-OOM" class="headerlink" title="场景三：MetaSpace 区 OOM"></a>场景三：MetaSpace 区 OOM</h2><p><strong>3.1 现象</strong></p>
+<p>JVM 在启动后或者某个时间点开始，MetaSpace 的已使用大小在持续增长，同时每次 GC 也无法释放，调大 MetaSpace 空间也无法彻底解决。</p>
+<p><strong>3.2 原因</strong></p>
+<p>在讨论为什么会 OOM 之前，我们先来看一下这个区里面会存什么数据，Java 7 之前字符串常量池被放到了 Perm 区，所有被 intern 的 String 都会被存在这里，由于 String.intern 是不受控的，所以 -XX:MaxPermSize 的值也不太好设置，经常会出现 java.lang.OutOfMemoryError: PermGen space 异常，所以在 Java 7 之后常量池等字面量（Literal）、类静态变量（Class Static）、符号引用（Symbols Reference）等几项被移到 Heap 中。而 Java 8 之后 PermGen 也被移除，取而代之的是 MetaSpace。</p>
+<p>在最底层，JVM 通过 mmap 接口向操作系统申请内存映射，每次申请 2MB 空间，这里是虚拟内存映射，不是真的就消耗了主存的 2MB，只有之后在使用的时候才会真的消耗内存。申请的这些内存放到一个链表中 VirtualSpaceList，作为其中的一个 Node。</p>
+<p>在上层，MetaSpace 主要由 Klass Metaspace 和 NoKlass Metaspace 两大部分组成。</p>
+<ul>
+<li><p>Klass MetaSpace：就是用来存 Klass 的，就是 Class 文件在 JVM 里的运行时数据结构，这部分默认放在 Compressed Class Pointer Space 中，是一块连续的内存区域，紧接着 Heap。Compressed Class Pointer Space 不是必须有的，如果设置了 -XX:-UseCompressedClassPointers，或者 -Xmx 设置大于 32 G，就不会有这块内存，这种情况下 Klass 都会存在 NoKlass Metaspace 里。</p>
+</li>
+<li><p>NoKlass MetaSpace：专门来存 Klass 相关的其他的内容，比如 Method，ConstantPool 等，可以由多块不连续的内存组成。虽然叫做 NoKlass Metaspace，但是也其实可以存 Klass 的内容，上面已经提到了对应场景。</p>
+</li>
+</ul>
+<p>MetaSpace 的对象为什么无法释放，我们看下面两点：</p>
+<ul>
+<li><p>MetaSpace 内存管理：类和其元数据的生命周期与其对应的类加载器相同，只要类的类加载器是存活的，在 Metaspace 中的类元数据也是存活的，不能被回收。每个加载器有单独的存储空间，通过 ClassLoaderMetaspace 来进行管理 SpaceManager* 的指针，相互隔离的。</p>
+</li>
+<li><p>MetaSpace 弹性伸缩：由于 MetaSpace 空间和 Heap 并不在一起，所以这块的空间可以不用设置或者单独设置，一般情况下避免 MetaSpace 耗尽 VM 内存都会设置一个 MaxMetaSpaceSize，在运行过程中，如果实际大小小于这个值，JVM 就会通过 -XX:MinMetaspaceFreeRatio 和 -XX:MaxMetaspaceFreeRatio 两个参数动态控制整个 MetaSpace 的大小，具体使用可以看 MetaSpaceGC::compute_new_size() 方法（下方代码），这个方法会在 CMSCollector 和 G1CollectorHeap 等几个收集器执行 GC 时调用。这个里面会根据 used_after_gc，MinMetaspaceFreeRatio 和 MaxMetaspaceFreeRatio 这三个值计算出来一个新的 _capacity_until_GC 值（水位线）。然后根据实际的 _capacity_until_GC 值使用 MetaspaceGC::inc_capacity_until_GC() 和 MetaspaceGC::dec_capacity_until_GC() 进行 expand 或 shrink，这个过程也可以参照场景一中的伸缩模型进行理解。</p>
+</li>
+</ul>
+<p>由场景一可知，为了避免弹性伸缩带来的额外 GC 消耗，我们会将 -XX:MetaSpaceSize 和 -XX:MaxMetaSpaceSize 两个值设置为固定的，但是这样也会导致在空间不够的时候无法扩容，然后频繁地触发 GC，最终 OOM。所以关键原因就是 ClassLoader 不停地在内存中 load 了新的 Class ，一般这种问题都发生在动态类加载等情况上。</p>
+<p><strong>3.3 策略</strong></p>
+<p>了解大概什么原因后，如何定位和解决就很简单了，可以 dump 快照之后通过 JProfiler 或 MAT 观察 Classes 的 Histogram（直方图） 即可，或者直接通过命令即可定位， jcmd 打几次 Histogram 的图，看一下具体是哪个包下的 Class 增加较多就可以定位了。不过有时候也要结合InstBytes、KlassBytes、Bytecodes、MethodAll 等几项指标综合来看下。如下图便是笔者使用 jcmd 排查到一个 Orika 的问题。</p>
+<p><code>jcmd &lt;PID&gt; GC.class_stats|awk &#39;&#123;print$13&#125;&#39;|sed  &#39;s/\(.*\)\.\(.*\)/\1/g&#39;|sort |uniq -c|sort -nrk1</code></p>
+<p>如果无法从整体的角度定位，可以添加 -XX:+TraceClassLoading 和 -XX:+TraceClassUnLoading 参数观察详细的类加载和卸载信息。</p>
+<p><strong>3.4 小结</strong></p>
+<p>原理理解比较复杂，但定位和解决问题会比较简单，经常会出问题的几个点有 Orika 的 classMap、JSON 的 ASMSerializer、Groovy 动态加载类等，基本都集中在反射、Javasisit 字节码增强、CGLIB 动态代理、OSGi 自定义类加载器等的技术点上。另外就是及时给 MetaSpace 区的使用率加一个监控，如果指标有波动提前发现并解决问题。</p>
+<h2 id="场景四：过早晋升"><a href="#场景四：过早晋升" class="headerlink" title="场景四：过早晋升"></a>场景四：过早晋升</h2><p><strong>4.1 现象</strong></p>
+<p>这种场景主要发生在分代的收集器上面，专业的术语称为“Premature Promotion”。90% 的对象朝生夕死，只有在 Young 区经历过几次 GC 的洗礼后才会晋升到 Old 区，每经历一次 GC 对象的 GC Age 就会增长 1，最大通过 -XX:MaxTenuringThreshold 来控制。</p>
+<p>过早晋升一般不会直接影响 GC，总会伴随着浮动垃圾、大对象担保失败等问题，但这些问题不是立刻发生的，我们可以观察以下几种现象来判断是否发生了过早晋升。</p>
+<p>分配速率接近于晋升速率，对象晋升年龄较小。</p>
+<p>GC 日志中出现“Desired survivor size 107347968 bytes, new threshold 1(max 6)”等信息，说明此时经历过一次 GC 就会放到 Old 区。</p>
+<p>Full GC 比较频繁，且经历过一次 GC 之后 Old 区的变化比例非常大。</p>
+<p>比如说 Old 区触发的回收阈值是 80%，经历过一次 GC 之后下降到了 10%，这就说明 Old 区的 70% 的对象存活时间其实很短。</p>
+<p>过早晋升的危害：</p>
+<ul>
+<li><p>Young GC 频繁，总的吞吐量下降。</p>
+</li>
+<li><p>Full GC 频繁，可能会有较大停顿。</p>
+</li>
+</ul>
+<p><strong>4.2 原因</strong></p>
+<p>主要的原因有以下两点：</p>
+<ul>
+<li><p>Young&#x2F;Eden 区过小：过小的直接后果就是 Eden 被装满的时间变短，本应该回收的对象参与了 GC 并晋升，Young GC 采用的是复制算法，由基础篇我们知道 copying 耗时远大于 mark，也就是 Young GC 耗时本质上就是 copy 的时间（CMS 扫描 Card Table 或 G1 扫描 Remember Set 出问题的情况另说），没来及回收的对象增大了回收的代价，所以 Young GC  时间增加，同时又无法快速释放空间，Young GC 次数也跟着增加。</p>
+</li>
+<li><p>分配速率过大：可以观察出问题前后 Mutator 的分配速率，如果有明显波动可以尝试观察网卡流量、存储类中间件慢查询日志等信息，看是否有大量数据被加载到内存中。</p>
+</li>
+</ul>
+<p>同时无法 GC 掉对象还会带来另外一个问题，引发动态年龄计算：JVM 通过 -XX:MaxTenuringThreshold 参数来控制晋升年龄，每经过一次 GC，年龄就会加一，达到最大年龄就可以进入 Old 区，最大值为 15（因为 JVM 中使用 4 个比特来表示对象的年龄）。设定固定的 MaxTenuringThreshold 值作为晋升条件：</p>
+<ul>
+<li><p>MaxTenuringThreshold 如果设置得过大，原本应该晋升的对象一直停留在 Survivor 区，直到 Survivor 区溢出，一旦溢出发生，Eden + Survivor 中对象将不再依据年龄全部提升到 Old 区，这样对象老化的机制就失效了。</p>
+</li>
+<li><p>MaxTenuringThreshold 如果设置得过小，过早晋升即对象不能在 Young 区充分被回收，大量短期对象被晋升到 Old 区，Old 区空间迅速增长，引起频繁的 Major GC，分代回收失去了意义，严重影响 GC 性能。</p>
+</li>
+</ul>
+<p>相同应用在不同时间的表现不同，特殊任务的执行或者流量成分的变化，都会导致对象的生命周期分布发生波动，那么固定的阈值设定，因为无法动态适应变化，会造成和上面问题，所以 Hotspot 会使用动态计算的方式来调整晋升的阈值。</p>
+<p><strong>4.3 策略</strong></p>
+<p>知道问题原因后我们就有解决的方向，如果是 Young&#x2F;Eden 区过小，我们可以在总的 Heap 内存不变的情况下适当增大 Young 区，具体怎么增加？一般情况下 Old 的大小应当为活跃对象的 2~3 倍左右，考虑到浮动垃圾问题最好在 3 倍左右，剩下的都可以分给 Young 区。</p>
+<p>拿笔者的一次典型过早晋升优化来看，原配置为 Young 1.2G + Old 2.8G，通过观察 CMS GC 的情况找到存活对象大概为 300~400M，于是调整 Old 1.5G 左右，剩下 2.5G 分给 Young 区。仅仅调了一个 Young 区大小参数（-Xmn），整个 JVM 一分钟 Young GC 从 26 次降低到了 11 次，单次时间也没有增加，总的 GC 时间从 1100ms 降低到了 500ms，CMS GC 次数也从 40 分钟左右一次降低到了 7 小时 30 分钟一次。</p>
+<p>如果是分配速率过大：</p>
+<ul>
+<li><p>偶发较大：通过内存分析工具找到问题代码，从业务逻辑上做一些优化。</p>
+</li>
+<li><p>一直较大：当前的 Collector 已经不满足 Mutator 的期望了，这种情况要么扩容 Mutator 的 VM，要么调整 GC 收集器类型或加大空间。</p>
+</li>
+</ul>
+<p><strong>4.4 小结</strong></p>
+<p>过早晋升问题一般不会特别明显，但日积月累之后可能会爆发一波收集器退化之类的问题，所以我们还是要提前避免掉的，可以看看自己系统里面是否有这些现象，如果比较匹配的话，可以尝试优化一下。一行代码优化的 ROI 还是很高的。</p>
+<p>如果在观察 Old 区前后比例变化的过程中，发现可以回收的比例非常小，如从 80% 只回收到了 60%，说明我们大部分对象都是存活的，Old 区的空间可以适当调大些。</p>
+<h2 id="场景五：CMS-Old-GC-频繁"><a href="#场景五：CMS-Old-GC-频繁" class="headerlink" title="场景五：CMS Old GC 频繁"></a>场景五：CMS Old GC 频繁</h2><p><strong>5.1 现象</strong></p>
+<p>Old 区频繁的做 CMS GC，但是每次耗时不是特别长，整体最大 STW 也在可接受范围内，但由于 GC 太频繁导致吞吐下降比较多。</p>
+<p><strong>5.2 原因</strong></p>
+<p>这种情况比较常见，基本都是一次 Young GC 完成后，负责处理 CMS GC 的一个后台线程 concurrentMarkSweepThread 会不断地轮询，使用 shouldConcurrentCollect() 方法做一次检测，判断是否达到了回收条件。如果达到条件，使用 collect_in_background() 启动一次 Background 模式 GC。轮询的判断是使用 sleepBeforeNextCycle() 方法，间隔周期为 -XX:CMSWaitDuration 决定，默认为2s。</p>
+<p>是否触发 GC，分为以下几种情况：</p>
+<ul>
+<li><p>CMS 默认采用 JVM 运行时的统计数据判断是否需要触发 CMS GC，如果需要根据 -XX:CMSInitiatingOccupancyFraction 的值进行判断，需要设置参数 -XX:+UseCMSInitiatingOccupancyOnly。</p>
+</li>
+<li><p>如果开启了 -XX:UseCMSInitiatingOccupancyOnly 参数，判断当前 Old 区使用率是否大于阈值，则触发 CMS GC，该阈值可以通过参数 -XX:CMSInitiatingOccupancyFraction 进行设置，如果没有设置，默认为 92%。</p>
+</li>
+<li><p>如果之前的 Young GC 失败过，或者下次 Young 区执行 Young GC 可能失败，这两种情况下都需要触发 CMS - GC。</p>
+</li>
+<li><p>CMS 默认不会对 MetaSpace 或 Perm 进行垃圾收集，如果希望对这些区域进行垃圾收集，需要设置参数 -XX:+CMSClassUnloadingEnabled。</p>
+</li>
+</ul>
+<p><strong>5.3 策略</strong></p>
+<p>我们这里还是拿最常见的达到回收比例这个场景来说，与过早晋升不同的是这些对象确实存活了一段时间，Survival Time 超过了 TP9999 时间，但是又达不到长期存活，如各种数据库、网络链接，带有失效时间的缓存等。</p>
+<p>处理这种常规内存泄漏问题基本是一个思路，主要步骤如下：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291402967.png" alt="img"></p>
+<p>Dump Diff 和 Leak Suspects 比较直观就不介绍了，这里说下其它几个关键点：</p>
+<ul>
+<li><p>内存 Dump：使用 jmap、arthas 等 dump 堆进行快照时记得摘掉流量，同时分别在 CMS GC 的发生前后分别 dump 一次。</p>
+</li>
+<li><p>分析 Top Component：要记得按照对象、类、类加载器、包等多个维度观察 Histogram，同时使用 outgoing 和 incoming 分析关联的对象，另外就是 Soft Reference 和 Weak Reference、Finalizer 等也要看一下。</p>
+</li>
+<li><p>分析 Unreachable：重点看一下这个，关注下 Shallow 和 Retained 的大小。如下图所示，笔者之前一次 GC 优化，就根据 Unreachable Objects 发现了 Hystrix 的滑动窗口问题。</p>
+</li>
+</ul>
+<p><strong>5.4 小结</strong></p>
+<p>经过整个流程下来基本就能定位问题了，不过在优化的过程中记得使用控制变量的方法来优化，防止一些会加剧问题的改动被掩盖。</p>
+<h2 id="场景六：单次-CMS-Old-GC-耗时长"><a href="#场景六：单次-CMS-Old-GC-耗时长" class="headerlink" title="场景六：单次 CMS Old GC 耗时长"></a>场景六：单次 CMS Old GC 耗时长</h2><p><strong>6.1 现象</strong></p>
+<p>CMS GC 单次 STW 最大超过 1000ms，不会频繁发生，如下图所示最长达到了 8000ms。某些场景下会引起“雪崩效应”，这种场景非常危险，我们应该尽量避免出现。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291403799.png" alt="img"></p>
+<p><strong>6.2 原因</strong></p>
+<p>CMS 在回收的过程中，STW 的阶段主要是 Init Mark 和 Final Remark 这两个阶段，也是导致 CMS Old GC 最多的原因，另外有些情况就是在 STW 前等待 Mutator 的线程到达 SafePoint 也会导致时间过长，但这种情况较少，我们在此处主要讨论前者。发生收集器退化或者碎片压缩的场景请看场景七。</p>
+<p>想要知道这两个阶段为什么会耗时，我们需要先看一下这两个阶段都会干什么。整个过程中会 STW 的主要是 initial Mark 和 Final Remark。</p>
+<ul>
+<li><p>CMS Init Mark整个过程比较简单，从 GC Root 出发标记 Old 中的对象，处理完成后借助 BitMap 处理下 Young 区对 Old 区的引用，整个过程基本都比较快，很少会有较大的停顿。</p>
+</li>
+<li><p>CMS Final Remark是最终的第二次标记，这种情况只有在 Background GC 执行了 InitialMarking 步骤的情形下才会执行，如果是 Foreground GC 执行的 InitialMarking 步骤则不需要再次执行 FinalRemark。Final Remark 的开始阶段与 Init Mark 处理的流程相同，但是后续多了 Card Table 遍历、Reference 实例的清理并将其加入到 Reference 维护的 pend_list 中，如果要收集元数据信息，还要清理 SystemDictionary、CodeCache、SymbolTable、StringTable 等组件中不再使用的资源。</p>
+</li>
+</ul>
+<p><strong>6.3 策略</strong></p>
+<p>知道了两个 STW 过程执行流程，我们分析解决就比较简单了，由于大部分问题都出在 Final Remark 过程，这里我们也拿这个场景来举例，主要步骤：</p>
+<p>【方向】观察详细 GC 日志，找到出问题时 Final Remark 日志，分析下 Reference 处理和元数据处理 real 耗时是否正常，详细信息需要通过 -XX:+PrintReferenceGC 参数开启。基本在日志里面就能定位到大概是哪个方向出了问题，耗时超过 10% 的就需要关注。</p>
+<p>【根因】有了具体的方向我们就可以进行深入的分析，一般来说最容易出问题的地方就是 Reference 中的 FinalReference 和元数据信息处理中的 scrub symbol table 两个阶段，想要找到具体问题代码就需要内存分析工具 MAT 或 JProfiler 了，注意要 dump 即将开始 CMS GC 的堆。在用 MAT 等工具前也可以先用命令行看下对象 Histogram，有可能直接就能定位问题。</p>
+<ul>
+<li><p>对 FinalReference 的分析主要观察 java.lang.ref.Finalizer 对象的 dominator tree，找到泄漏的来源。经常会出现问题的几个点有 Socket 的 SocksSocketImpl 、Jersey 的 ClientRuntime、MySQL 的 ConnectionImpl 等等。</p>
+</li>
+<li><p>scrub symbol table 表示清理元数据符号引用耗时，符号引用是 Java 代码被编译成字节码时，方法在 JVM 中的表现形式，生命周期一般与 Class 一致，当 _should_unload_classes 被设置为 true 时在 CMSCollector::refProcessingWork() 中与 Class Unload、String Table 一起被处理。</p>
+</li>
+</ul>
+<p>【策略】知道 GC 耗时的根因就比较好处理了，这种问题不会大面积同时爆发，不过有很多时候单台 STW 的时间会比较长，如果业务影响比较大，及时摘掉流量，具体后续优化策略如下：</p>
+<ul>
+<li><p>FinalReference：找到内存来源后通过优化代码的方式来解决，如果短时间无法定位可以增加 -XX:+ParallelRefProcEnabled 对 Reference 进行并行处理。</p>
+</li>
+<li><p>symbol table：观察 MetaSpace 区的历史使用峰值，以及每次 GC 前后的回收情况，一般没有使用动态类加载或者 DSL 处理等，MetaSpace 的使用率上不会有什么变化，这种情况可以通过 -XX:-CMSClassUnloadingEnabled 来避免 MetaSpace 的处理，JDK8 会默认开启 CMSClassUnloadingEnabled，这会使得 CMS 在 CMS-Remark 阶段尝试进行类的卸载。</p>
+</li>
+</ul>
+<p><strong>6.4 小结</strong></p>
+<p>正常情况进行的 Background CMS GC，出现问题基本都集中在 Reference 和 Class 等元数据处理上，在 Reference 类的问题处理方面，不管是 FinalReference，还是 SoftReference、WeakReference 核心的手段就是找准时机 dump 快照，然后用内存分析工具来分析。Class 处理方面目前除了关闭类卸载开关，没有太好的方法。</p>
+<p>在 G1 中同样有 Reference 的问题，可以观察日志中的 Ref Proc，处理方法与 CMS 类似。</p>
+<h2 id="场景七：内存碎片-收集器退化"><a href="#场景七：内存碎片-收集器退化" class="headerlink" title="场景七：内存碎片&amp;收集器退化"></a>场景七：内存碎片&amp;收集器退化</h2><p><strong>7.1 现象</strong></p>
+<p>并发的 CMS GC 算法，退化为 Foreground 单线程串行 GC 模式，STW 时间超长，有时会长达十几秒。其中 CMS 收集器退化后单线程串行 GC 算法有两种：</p>
+<ul>
+<li><p>带压缩动作的算法，称为 MSC，上面我们介绍过，使用标记-清理-压缩，单线程全暂停的方式，对整个堆进行垃圾收集，也就是真正意义上的 Full GC，暂停时间要长于普通 CMS。</p>
+</li>
+<li><p>不带压缩动作的算法，收集 Old 区，和普通的 CMS 算法比较相似，暂停时间相对 MSC 算法短一些。</p>
+</li>
+</ul>
+<p><strong>7.2 原因</strong></p>
+<p>CMS 发生收集器退化主要有以下几种情况。</p>
+<ul>
+<li>晋升失败（Promotion Failed）</li>
+</ul>
+<p>顾名思义，晋升失败就是指在进行 Young GC 时，Survivor 放不下，对象只能放入 Old，但此时 Old 也放不下。直觉上乍一看这种情况可能会经常发生，但其实因为有 concurrentMarkSweepThread 和担保机制的存在，发生的条件是很苛刻的，除非是短时间将 Old 区的剩余空间迅速填满，例如上文中说的动态年龄判断导致的过早晋升（见下文的增量收集担保失败）。另外还有一种情况就是内存碎片导致的 Promotion Failed，Young GC 以为 Old 有足够的空间，结果到分配时，晋级的大对象找不到连续的空间存放。</p>
+<p>使用 CMS 作为 GC 收集器时，运行过一段时间的 Old 区如下图所示，清除算法导致内存出现多段的不连续，出现大量的内存碎片。</p>
+<p>碎片带来了两个问题：</p>
+<ol>
+<li><p>空间分配效率较低：上文已经提到过，如果是连续的空间 JVM 可以通过使用 pointer bumping 的方式来分配，而对于这种有大量碎片的空闲链表则需要逐个访问 freelist 中的项来访问，查找可以存放新建对象的地址。</p>
+</li>
+<li><p>空间利用效率变低：Young 区晋升的对象大小大于了连续空间的大小，那么将会触发 Promotion Failed ，即使整个 Old 区的容量是足够的，但由于其不连续，也无法存放新对象，也就是本文所说的问题。</p>
+</li>
+</ol>
+<ul>
+<li>增量收集担保失败</li>
+</ul>
+<p>分配内存失败后，会判断统计得到的 Young GC 晋升到 Old 的平均大小，以及当前 Young 区已使用的大小也就是最大可能晋升的对象大小，是否大于 Old 区的剩余空间。只要 CMS 的剩余空间比前两者的任意一者大，CMS 就认为晋升还是安全的，反之，则代表不安全，不进行Young GC，直接触发Full GC。</p>
+<ul>
+<li>显式 GC</li>
+</ul>
+<p>这种情况参见场景二。</p>
+<ul>
+<li>并发模式失败（Concurrent Mode Failure）</li>
+</ul>
+<p>最后一种情况，也是发生概率较高的一种，在 GC 日志中经常能看到 Concurrent Mode Failure 关键字。这种是由于并发 Background CMS GC 正在执行，同时又有 Young GC 晋升的对象要放入到了 Old 区中，而此时 Old 区空间不足造成的。</p>
+<p>为什么 CMS GC 正在执行还会导致收集器退化呢？主要是由于 CMS 无法处理浮动垃圾（Floating Garbage）引起的。CMS 的并发清理阶段，Mutator 还在运行，因此不断有新的垃圾产生，而这些垃圾不在这次清理标记的范畴里，无法在本次 GC 被清除掉，这些就是浮动垃圾，除此之外在 Remark 之前那些断开引用脱离了读写屏障控制的对象也算浮动垃圾。所以 Old 区回收的阈值不能太高，否则预留的内存空间很可能不够，从而导致 Concurrent Mode Failure 发生。</p>
+<p><strong>7.3 策略</strong></p>
+<p>分析到具体原因后，我们就可以针对性解决了，具体思路还是从根因出发，具体解决策略：</p>
+<ul>
+<li><p>内存碎片：通过配置 -XX:UseCMSCompactAtFullCollection&#x3D;true 来控制 Full GC的过程中是否进行空间的整理（默认开启，注意是Full GC，不是普通CMS GC），以及 -XX: CMSFullGCsBeforeCompaction&#x3D;n 来控制多少次 Full GC 后进行一次压缩。</p>
+</li>
+<li><p>增量收集：降低触发 CMS GC 的阈值，即参数 -XX:CMSInitiatingOccupancyFraction 的值，让 CMS GC 尽早执行，以保证有足够的连续空间，也减少 Old 区空间的使用大小，另外需要使用 -XX:+UseCMSInitiatingOccupancyOnly 来配合使用，不然 JVM 仅在第一次使用设定值，后续则自动调整。</p>
+</li>
+<li><p>浮动垃圾：视情况控制每次晋升对象的大小，或者缩短每次 CMS GC 的时间，必要时可调节 NewRatio 的值。另外就是使用 -XX:+CMSScavengeBeforeRemark 在过程中提前触发一次 Young GC，防止后续晋升过多对象。</p>
+</li>
+</ul>
+<p><strong>7.4 小结</strong></p>
+<p>正常情况下触发并发模式的 CMS GC，停顿非常短，对业务影响很小，但 CMS GC 退化后，影响会非常大，建议发现一次后就彻底根治。只要能定位到内存碎片、浮动垃圾、增量收集相关等具体产生原因，还是比较好解决的，关于内存碎片这块，如果 -XX:CMSFullGCsBeforeCompaction 的值不好选取的话，可以使用 -XX:PrintFLSStatistics 来观察内存碎片率情况，然后再设置具体的值。</p>
+<p>最后就是在编码的时候也要避免需要连续地址空间的大对象的产生，如过长的字符串，用于存放附件、序列化或反序列化的 byte 数组等，还有就是过早晋升问题尽量在爆发问题前就避免掉。</p>
+<h2 id="场景八：堆外内存-OOM"><a href="#场景八：堆外内存-OOM" class="headerlink" title="场景八：堆外内存 OOM"></a>场景八：堆外内存 OOM</h2><p><strong>8.1 现象</strong></p>
+<p>内存使用率不断上升，甚至开始使用 SWAP 内存，同时可能出现 GC 时间飙升，线程被 Block 等现象，通过 top 命令发现 Java 进程的 RES 甚至超过了 -Xmx 的大小。出现这些现象时，基本可以确定是出现了堆外内存泄漏。</p>
+<p><strong>8.2 原因</strong></p>
+<p>JVM 的堆外内存泄漏，主要有两种的原因：</p>
+<ul>
+<li><p>通过 UnSafe#allocateMemory，ByteBuffer#allocateDirect 主动申请了堆外内存而没有释放，常见于 NIO、Netty 等相关组件。</p>
+</li>
+<li><p>代码中有通过 JNI 调用 Native Code 申请的内存没有释放。</p>
+</li>
+</ul>
+<p><strong>8.3 策略</strong></p>
+<p>哪种原因造成的堆外内存泄漏？</p>
+<p>首先，我们需要确定是哪种原因导致的堆外内存泄漏。这里可以使用 NMT（NativeMemoryTracking） 进行分析。在项目中添加 -XX:NativeMemoryTracking&#x3D;detail JVM参数后重启项目（需要注意的是，打开 NMT 会带来 5%~10% 的性能损耗）。使用命令 jcmd pid VM.native_memory detail 查看内存分布。重点观察 total 中的 committed，因为 jcmd 命令显示的内存包含堆内内存、Code 区域、通过 Unsafe.allocateMemory 和 DirectByteBuffer 申请的内存，但是不包含其他 Native Code（C 代码）申请的堆外内存。</p>
+<p>如果 total 中的 committed 和 top 中的 RES 相差不大，则应为主动申请的堆外内存未释放造成的，如果相差较大，则基本可以确定是 JNI 调用造成的。</p>
+<ul>
+<li>原因一：主动申请未释放</li>
+</ul>
+<p>JVM 使用 -XX:MaxDirectMemorySize&#x3D;size 参数来控制可申请的堆外内存的最大值。在 Java 8 中，如果未配置该参数，默认和 -Xmx 相等。</p>
+<p>NIO 和 Netty 都会取 -XX:MaxDirectMemorySize 配置的值，来限制申请的堆外内存的大小。NIO 和 Netty 中还有一个计数器字段，用来计算当前已申请的堆外内存大小，NIO 中是 java.nio.Bits#totalCapacity、Netty 中 io.netty.util.internal.PlatformDependent#DIRECT_MEMORY_COUNTER。</p>
+<p>当申请堆外内存时，NIO 和 Netty 会比较计数器字段和最大值的大小，如果计数器的值超过了最大值的限制，会抛出 OOM 的异常。</p>
+<p>NIO 中是：OutOfMemoryError: Direct buffer memory。</p>
+<p>Netty 中是：OutOfDirectMemoryError: failed to allocate capacity byte(s) of direct memory (used: usedMemory , max: DIRECT_MEMORY_LIMIT )。</p>
+<p>我们可以检查代码中是如何使用堆外内存的，NIO 或者是 Netty，通过反射，获取到对应组件中的计数器字段，并在项目中对该字段的数值进行打点，即可准确地监控到这部分堆外内存的使用情况。</p>
+<p>此时，可以通过 Debug 的方式确定使用堆外内存的地方是否正确执行了释放内存的代码。另外，需要检查 JVM 的参数是否有 -XX:+DisableExplicitGC 选项，如果有就去掉，因为该参数会使 System.gc 失效。（场景二：显式 GC 的去与留）</p>
+<ul>
+<li>原因二：通过 JNI 调用的 Native Code 申请的内存未释放</li>
+</ul>
+<p>这种情况排查起来比较困难，我们可以通过 Google perftools + Btrace 等工具，帮助我们分析出问题的代码在哪里。</p>
+<p>gperftools 是 Google 开发的一款非常实用的工具集，它的原理是在 Java 应用程序运行时，当调用 malloc 时换用它的 libtcmalloc.so，这样就能对内存分配情况做一些统计。我们使用 gperftools 来追踪分配内存的命令。如下图所示，通过 gperftools 发现 Java_java_util_zip_Inflater_init 比较可疑。</p>
+<p>接下来可以使用 Btrace，尝试定位具体的调用栈。Btrace 是 Sun 推出的一款 Java 追踪、监控工具，可以在不停机的情况下对线上的 Java 程序进行监控。如下图所示，通过 Btrace 定位出项目中的 ZipHelper 在频繁调用 GZIPInputStream ，在堆外内存分配对象。</p>
+<p>最终定位到是，项目中对 GIPInputStream 的使用错误，没有正确的 close()。</p>
+<p>除了项目本身的原因，还可能有外部依赖导致的泄漏，如 Netty 和 Spring Boot，详细情况可以学习下这两篇文章：《疑案追踪：Spring Boot内存泄露排查记》、《Netty堆外内存泄露排查盛宴》。</p>
+<p><strong>8.4 小结</strong></p>
+<p>首先可以使用 NMT + jcmd 分析泄漏的堆外内存是哪里申请，确定原因后，使用不同的手段，进行原因定位。</p>
+<h2 id="场景九：JNI-引发的-GC-问题"><a href="#场景九：JNI-引发的-GC-问题" class="headerlink" title="场景九：JNI 引发的 GC 问题"></a>场景九：JNI 引发的 GC 问题</h2><p><strong>9.1 现象</strong></p>
+<p>在 GC 日志中，出现 GC Cause 为 GCLocker Initiated GC。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">2020-09-23T16:49:09.727+0800: 504426.742: [GC (GCLocker Initiated GC) 504426.742: [ParNew (promotion failed): 209716K-&gt;6042K(1887488K), 0.0843330 secs] 1449487K-&gt;1347626K(3984640K), 0.0848963 secs] [Times: user=0.19 sys=0.00, real=0.09 secs]</span><br><span class="line">2020-09-23T16:49:09.812+0800: 504426.827: [Full GC (GCLocker Initiated GC) 504426.827: [CMS: 1341583K-&gt;419699K(2097152K), 1.8482275 secs] 1347626K-&gt;419699K(3984640K), [Metaspace: 297780K-&gt;297780K(1329152K)], 1.8490564 secs] [Times: user=1.62 sys=0.20, real=1.85 secs]</span><br></pre></td></tr></table></figure>
+<p><strong>9.2 原因</strong></p>
+<p>JNI（Java Native Interface）意为 Java 本地调用，它允许 Java 代码和其他语言写的 Native 代码进行交互。</p>
+<p>JNI 如果需要获取 JVM 中的 String 或者数组，有两种方式：</p>
+<ul>
+<li><p>拷贝传递。</p>
+</li>
+<li><p>共享引用（指针），性能更高。</p>
+</li>
+</ul>
+<p>由于 Native 代码直接使用了 JVM 堆区的指针，如果这时发生 GC，就会导致数据错误。因此，在发生此类 JNI 调用时，禁止 GC 的发生，同时阻止其他线程进入 JNI 临界区，直到最后一个线程退出临界区时触发一次 GC。</p>
+<p>GC Locker 可能导致的不良后果有：</p>
+<ul>
+<li><p>如果此时是 Young 区不够 Allocation Failure 导致的 GC，由于无法进行 Young GC，会将对象直接分配至 Old 区。</p>
+</li>
+<li><p>如果 Old 区也没有空间了，则会等待锁释放，导致线程阻塞。</p>
+</li>
+<li><p>可能触发额外不必要的 Young GC，JDK 有一个 Bug，有一定的几率，本来只该触发一次 GCLocker Initiated GC 的 Young GC，实际发生了一次 Allocation Failure GC 又紧接着一次 GCLocker Initiated GC。是因为 GCLocker Initiated GC 的属性被设为 full，导致两次 GC 不能收敛。</p>
+</li>
+</ul>
+<p><strong>9.3 策略</strong></p>
+<ul>
+<li><p>添加 -XX+PrintJNIGCStalls 参数，可以打印出发生 JNI 调用时的线程，进一步分析，找到引发问题的 JNI 调用。</p>
+</li>
+<li><p>JNI 调用需要谨慎，不一定可以提升性能，反而可能造成 GC 问题。</p>
+</li>
+<li><p>升级 JDK 版本到 14，避免 JDK-8048556 导致的重复 GC。</p>
+</li>
+</ul>
+<p><strong>9.4 小结</strong></p>
+<p>JNI 产生的 GC 问题较难排查，需要谨慎使用。</p>
+<hr>
+<p>转载自：<br><a target="_blank" rel="noopener" href="https://blog.csdn.net/MeituanTech/article/details/109664525">https://blog.csdn.net/MeituanTech/article/details/109664525</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/G1%E6%97%A5%E5%BF%97/" rel="prev" title="G1日志">
+      <i class="fa fa-chevron-left"></i> G1日志
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/CMS%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E5%99%A8/" rel="next" title="CMS垃圾收集器">
+      CMS垃圾收集器 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#GC-Cause"><span class="nav-number">1.</span> <span class="nav-text">GC Cause</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#GC-%E9%97%AE%E9%A2%98%E5%88%86%E7%B1%BB"><span class="nav-number">2.</span> <span class="nav-text">GC 问题分类</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9C%BA%E6%99%AF%E4%B8%80%EF%BC%9A%E5%8A%A8%E6%80%81%E6%89%A9%E5%AE%B9%E5%BC%95%E8%B5%B7%E7%9A%84%E7%A9%BA%E9%97%B4%E9%9C%87%E8%8D%A1"><span class="nav-number">2.1.</span> <span class="nav-text">场景一：动态扩容引起的空间震荡</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9C%BA%E6%99%AF%E4%BA%8C%EF%BC%9A%E6%98%BE%E5%BC%8F-GC-%E7%9A%84%E5%8E%BB%E4%B8%8E%E7%95%99"><span class="nav-number">2.2.</span> <span class="nav-text">场景二：显式 GC 的去与留</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9C%BA%E6%99%AF%E4%B8%89%EF%BC%9AMetaSpace-%E5%8C%BA-OOM"><span class="nav-number">2.3.</span> <span class="nav-text">场景三：MetaSpace 区 OOM</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9C%BA%E6%99%AF%E5%9B%9B%EF%BC%9A%E8%BF%87%E6%97%A9%E6%99%8B%E5%8D%87"><span class="nav-number">2.4.</span> <span class="nav-text">场景四：过早晋升</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9C%BA%E6%99%AF%E4%BA%94%EF%BC%9ACMS-Old-GC-%E9%A2%91%E7%B9%81"><span class="nav-number">2.5.</span> <span class="nav-text">场景五：CMS Old GC 频繁</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9C%BA%E6%99%AF%E5%85%AD%EF%BC%9A%E5%8D%95%E6%AC%A1-CMS-Old-GC-%E8%80%97%E6%97%B6%E9%95%BF"><span class="nav-number">2.6.</span> <span class="nav-text">场景六：单次 CMS Old GC 耗时长</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9C%BA%E6%99%AF%E4%B8%83%EF%BC%9A%E5%86%85%E5%AD%98%E7%A2%8E%E7%89%87-%E6%94%B6%E9%9B%86%E5%99%A8%E9%80%80%E5%8C%96"><span class="nav-number">2.7.</span> <span class="nav-text">场景七：内存碎片&amp;收集器退化</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9C%BA%E6%99%AF%E5%85%AB%EF%BC%9A%E5%A0%86%E5%A4%96%E5%86%85%E5%AD%98-OOM"><span class="nav-number">2.8.</span> <span class="nav-text">场景八：堆外内存 OOM</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9C%BA%E6%99%AF%E4%B9%9D%EF%BC%9AJNI-%E5%BC%95%E5%8F%91%E7%9A%84-GC-%E9%97%AE%E9%A2%98"><span class="nav-number">2.9.</span> <span class="nav-text">场景九：JNI 引发的 GC 问题</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

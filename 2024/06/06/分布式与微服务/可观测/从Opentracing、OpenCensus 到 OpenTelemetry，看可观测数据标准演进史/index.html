@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="[toc] 前言&emsp;&emsp;伴随着分布式应用、Serverless 应用被越来越多开发者及企业所接受，但其背后所隐藏的运维问题也逐渐凸显出来–微服务架构中请求链路过长从而导致问题定位时间长，运维想要日常监控也非常困难。以一个具体问题举例，在分布式应用中完成一个单一用户请求可能会需要多个不同的微服务处理，这其中任何一个服务失败或性能拉垮，都会对用户请求响应造成极大影响。随着业务不断扩张，">
+<meta property="og:type" content="article">
+<meta property="og:title" content="从Opentracing、OpenCensus 到 OpenTelemetry，看可观测数据标准演进史">
+<meta property="og:url" content="http://example.com/2024/06/06/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%8F%AF%E8%A7%82%E6%B5%8B/%E4%BB%8EOpentracing%E3%80%81OpenCensus%20%E5%88%B0%20OpenTelemetry%EF%BC%8C%E7%9C%8B%E5%8F%AF%E8%A7%82%E6%B5%8B%E6%95%B0%E6%8D%AE%E6%A0%87%E5%87%86%E6%BC%94%E8%BF%9B%E5%8F%B2/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="[toc] 前言&emsp;&emsp;伴随着分布式应用、Serverless 应用被越来越多开发者及企业所接受，但其背后所隐藏的运维问题也逐渐凸显出来–微服务架构中请求链路过长从而导致问题定位时间长，运维想要日常监控也非常困难。以一个具体问题举例，在分布式应用中完成一个单一用户请求可能会需要多个不同的微服务处理，这其中任何一个服务失败或性能拉垮，都会对用户请求响应造成极大影响。随着业务不断扩张，">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240606161441.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240606161456.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240606161508.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240606161534.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240606161544.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240606161550.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240606161556.png">
+<meta property="article:published_time" content="2024-06-05T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.714Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240606161441.png">
+
+<link rel="canonical" href="http://example.com/2024/06/06/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%8F%AF%E8%A7%82%E6%B5%8B/%E4%BB%8EOpentracing%E3%80%81OpenCensus%20%E5%88%B0%20OpenTelemetry%EF%BC%8C%E7%9C%8B%E5%8F%AF%E8%A7%82%E6%B5%8B%E6%95%B0%E6%8D%AE%E6%A0%87%E5%87%86%E6%BC%94%E8%BF%9B%E5%8F%B2/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>从Opentracing、OpenCensus 到 OpenTelemetry，看可观测数据标准演进史 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/06/06/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%8F%AF%E8%A7%82%E6%B5%8B/%E4%BB%8EOpentracing%E3%80%81OpenCensus%20%E5%88%B0%20OpenTelemetry%EF%BC%8C%E7%9C%8B%E5%8F%AF%E8%A7%82%E6%B5%8B%E6%95%B0%E6%8D%AE%E6%A0%87%E5%87%86%E6%BC%94%E8%BF%9B%E5%8F%B2/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          从Opentracing、OpenCensus 到 OpenTelemetry，看可观测数据标准演进史
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-06-06 00:00:00" itemprop="dateCreated datePublished" datetime="2024-06-06T00:00:00+08:00">2024-06-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/" itemprop="url" rel="index"><span itemprop="name">分布式与微服务</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%8F%AF%E8%A7%82%E6%B5%8B/" itemprop="url" rel="index"><span itemprop="name">可观测</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>[toc]</p>
+<h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>&emsp;&emsp;伴随着分布式应用、Serverless 应用被越来越多开发者及企业所接受，但其背后所隐藏的运维问题也逐渐凸显出来–微服务架构中请求链路过长从而导致问题定位时间长，运维想要日常监控也非常困难。以一个具体问题举例，在分布式应用中完成一个单一用户请求可能会需要多个不同的微服务处理，这其中任何一个服务失败或性能拉垮，都会对用户请求响应造成极大影响。随着业务不断扩张，这个调用链也越来越复杂。仅凭借打印日志或 APM 性能监控很难做到全景浏览或者一竿到底。对于问题排查或性能分析时，这无异于盲人摸象。</p>
+<p>&emsp;&emsp;面对这样的问题，Google 发表了论文《“Dapper - a Large-Scale Distributed Systems Tracing Infrastructure”》介绍他们的分布式跟踪技术，并认为分布式跟踪系统应该满足以下业务需求：</p>
+<ul>
+<li>性能低损耗： 分布式跟踪系统对服务的性能损耗应尽可能做到忽略不计，尤其是那些对性能敏感的应用。</li>
+<li>低侵入： 尽可能做到业务代码的低侵入或无侵入。</li>
+<li>快速扩展：能够随着业务或微服务规模快速扩大。</li>
+<li>实时展现：低延时采集数据，实时监控系统，对系统的异常状况作出快速的反应。</li>
+</ul>
+<span id="more"></span>
+
+<p>&emsp;&emsp;除了以上要求，该论文也针对分布式追踪的数据采集、数据持久化、数据展示三个核心环节进行了完整阐述。这其中，数据采集指在代码中埋点，设置请求中需要上报的内容。数据持久化指将上报的数据落盘存储。数据展示则是根据 TraceID 查询与之关联的请求在界面上呈现。</p>
+<p>&emsp;&emsp;也是随着这篇论文的诞生，分布式追踪（Distributed Tracing)被越来越多人接受，技术概念逐渐兴起。相关产品如雨后春笋般涌现，Uber 的 Jaeger、Twitter 的 Zipkin 等分布式追踪产品声名大噪。但在这过程中也带来了一个问题：虽然每个产品都有自己一套数据采集标准和 SDK，但大多都是基于谷歌 Dapper 协议，只是实现不尽相同。为了解决这个问题，OpenTracing 和 OpenCensus 诞生。</p>
+<h1 id="OpenTracing"><a href="#OpenTracing" class="headerlink" title="OpenTracing"></a>OpenTracing</h1><p>&emsp;&emsp;对于很多开发人员而言，想让应用支持分布式追踪太难了。这不仅需要在进程内进行追踪数据的传递，还要在进程之间传递。更难的是还需要其他组件对分布式跟踪的支持，比如 NGINX, Cassandra, Redis 等开源服务，或者在服务内引入的 gRPC, ORMs 等开源库。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240606161441.png" alt="在这里插入图片描述"></p>
+<p>&emsp;&emsp;在 OepnTracing 之前，一方面，很多分布式追踪系统通过使用不兼容 API 的应用程序级检测进行实现，这使得开发人员对应用与任何特定的分布式跟踪紧密耦合，都会感到不安。另一方面，这些应用程序级检测 API 具有非常相似的语义。为了解决不同的分布式追踪系统 API 不兼容问题，或者说追踪数据从一个库到另一个库和一个进程到下一个进程传递过程中的标准化问题，诞生了 OpenTracing 规范。位于应用程序&#x2F;类库和追踪或日志分析程序之间的轻量级标准化层。</p>
+<h2 id="优势"><a href="#优势" class="headerlink" title="优势"></a>优势</h2><p>&emsp;&emsp;OpenTracing 的优势在于制定了一套无关厂商、无关平台的协议标准，使开发人员只需要修改 Tracer 就可以更迅捷的添加或更换底层监控的实现。也是基于这一点，2016 年云原生计算基金会 CNCF 正式接纳 OpenTracing，顺利成为 CNCF 第三个项目。而前两个项目都已成为云原生及开源领域的事实标准—Kubernetes 和 Prometheus。由此也可以看到行业对于可观测及统一标准的重视程度。</p>
+<p>&emsp;&emsp;OpenTracing 由 API 规范、实现该规范的框架和库，以及项目文档组成，并进行以下努力：</p>
+<ul>
+<li>后台无关的 API 接口标准化：被追踪的服务只需要调用相关 API 接口，就可被任何实现这套接口的追踪后台支持。</li>
+<li>对跟踪最小单位 Span 管理标准化：定义开始 Span，结束 Span 和记录 Span 耗时的 API。</li>
+<li>进程间跟踪数据传递方式标准化：定义 API 方便追踪数据的传递。</li>
+<li>对多语言应用支持的标准化：全面覆盖 GO、Python、Javascript、Java、C#、Objective-C、C++ 、Ruby、PHP 等开发语言。它支持 Zipkin、LightStep、Appdash 跟踪器，并可以轻松集成到 GRPC、Flask、DropWizard、Django和Go Kit 等框架中。</li>
+</ul>
+<h2 id="核心术语介绍"><a href="#核心术语介绍" class="headerlink" title="核心术语介绍"></a>核心术语介绍</h2><ul>
+<li><p>Trace<br>一个完整请求链路。</p>
+</li>
+<li><p>Span - 一次调用过程<br>  系统中具有开始时间和执行时长的逻辑单元，并包含多个状态。<br>  每个 Span 封装以下状态：</p>
+</li>
+</ul>
+<blockquote>
+<p>An operation name - 操作名称<br>A start timestamp - 起始时间<br>A finish timestamp - 结束时间<br>Span Tag - 一组键值对构成的 Span 标签集合。键值对的键必须为 String，值可以是字符串、布尔或数字类型。<br>Span Log - 一组 Span 的日志集合。每次 Log 操作包含一个键值对以及时间戳。键值对的键必须为 String，值可以是任意类型。</p>
+</blockquote>
+<ul>
+<li><p>References - Span 间关系<br>              相关的零个或者多个 Span。Span 间通过 SpanContext 建立 References 关系。</p>
+</li>
+<li><p>SpanContext - 通过 SpanContext，引用其他因果相关的 Span。</p>
+</li>
+</ul>
+<p>&emsp;&emsp;OpenTracing 目前定义了两种类型的引用：ChildOf 和 FollowsFrom. 这两种引用类型都专门模拟了子 Span 和父 Span 之间的直接因果关系。</p>
+<p>&emsp;&emsp;ChildOf 关系中的父级 Span 要等待子 Span 返回，子 Span 执行时间影响了其所在父 Span 执行时间，父 Span 依赖子 Span 执行结果。除了串行的任务之外，我们的逻辑中还有很多并行的任务，它们对应的 Span 也是并行的，这种情况下一个父 Span 可以合并所有子 Span 执行结果并等待所有并行子 Span 结束。在分布式应用中某些上游系统不以任何方式依赖下游系统执行结果，例如，上游系统通过消息队列向下游系统发送消息。这种情况下，下游系统对应的子 Span 和上游系统对应的父级 Span 之间是 FollowsFrom 关系。</p>
+<h2 id="数据模型"><a href="#数据模型" class="headerlink" title="数据模型"></a>数据模型</h2><p>&emsp;&emsp;在了解相关术语之后，我们可以发现 OpenTracing 规范中具备三个关键且互连的类型：Tracer、Span 和 SpanContext。</p>
+<p>&emsp;&emsp;OpenTracing 的技术模型，也就清晰起来：Trace 调用链通过归属于此调用链的 Span 来隐性定义，每次调用就称为一个 Span，每个 Span 都要带上全局的 TraceId 。Trace 调用链可以被认为是一个由多个 Span 组成的有向无环图（DAG 图），一条 Trace 中 Span 是首尾连接的。TraceID 及相关内容以 SpanContext 为载体，通过传输协议，遵循着 Span“路径”按序进行。以上可以看作分布式应用中一次客户端请求全过程，除了从业务视角的 DAG 图之外，为了更好的展示组件调用时间、先后关系等信息，我们也尝试基于时间轴的时序图去更好地展现 Trace 调用链。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240606161456.png" alt="在这里插入图片描述"></p>
+<h2 id="相关产品"><a href="#相关产品" class="headerlink" title="相关产品"></a>相关产品</h2><p>&emsp;&emsp;遵循 OpenTracing 协议的产品有 Jaeger、Zipkin、 LightStep 和 AppDash 等追踪组件，并可以轻松集成到 gRPC、Flask、Django 和 Go-kit 等开源框架中。</p>
+<h1 id="OpenCensus"><a href="#OpenCensus" class="headerlink" title="OpenCensus"></a>OpenCensus</h1><p>&emsp;&emsp;在整个可观测领域，为了更好的实现 DevOps，除了分布式追踪 Trace，运维人员开始关注 Log 和 Metrics。Metrics 指标监控作为可观测的重要组成部分，包括 CPU、内存、硬盘、网络等机器指标，gRPC 请求延迟、错误率等网络协议指标，用户数、访问数等业务指标。</p>
+<p>&emsp;&emsp;OpenCensus 提供了统一的测量工具：跨服务捕获跟踪跨度 Span、应用级别指标 Metrics。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240606161508.png" alt="在这里插入图片描述"></p>
+<h2 id="优势-1"><a href="#优势-1" class="headerlink" title="优势"></a>优势</h2><ul>
+<li>相较于 OpenTracing 只支持 Traces，OpenCensus 支持 Traces 和 Metrics。</li>
+<li>相较于 OpenTracing 制定规范，OpenCensus 不仅制定规范，还包含了 Agent 和 Collector。</li>
+<li>家属团阵容相较 OpenTracing 更加庞大，获得 Google、微软支持。</li>
+</ul>
+<h2 id="OpenCensus做了什么"><a href="#OpenCensus做了什么" class="headerlink" title="OpenCensus做了什么"></a>OpenCensus做了什么</h2><ul>
+<li>标准通信协议和一致的 API ：用于处理 Metrics 和 Trace。</li>
+<li>多语言库支持：Java、C++、Go、.Net、Python、PHP、Node.js、Erlang 、Ruby。</li>
+<li>与 RPC 框架的集成。</li>
+<li>集成存储和分析工具。</li>
+<li>完全开源并支持三方集成和输出的插件化。</li>
+<li>不需要额外服务器或 Agent 来支持 OpenCensus。</li>
+</ul>
+<h2 id="核心术语介绍-1"><a href="#核心术语介绍-1" class="headerlink" title="核心术语介绍"></a>核心术语介绍</h2><p>除了沿用 OpenTracing 的相关术语之外，OpenCensus 也定义了一些新术语。</p>
+<ul>
+<li>Tags<br>OpenCensus 允许在记录时将指标与维度相关联。从而能够从不同角度分析测量结果。</li>
+<li>Stats<br>收集库和应用记录的可观测结果，汇总、导出统计数据，并包括 Recording（记录）、Views（聚合度量查询）两部分。</li>
+<li>Trace<br>除了 Opentracing 所提供的 Span 属性之外，OpenCensus 还支持 Parent SpanId、Remote Parent、Attributes、Annotations、Message Events、Links 等属性。</li>
+<li>Agent<br>OpenCensus Agent 是一个守护进程，允许 OpenCensus 的多语言部署使用Exporter。与传统上为每个语言库和每个应用程序删除和配置 OpenCensus Exporter不同，使用 OpenCensus Agent，只需为其目标语言单独启用 OpenCensus Agent Exporter。对于运维团队而言，实现单个 exporte 管理并从多语言应用程序中获取数据，将数据发送到所选择的后端。与此同时，尽可能的减少反复启动或部署对于应用的影响。最后，Agent 还附带了“Receivers”。“Receivers”使 Agent 直通后端，去接收可观测数据并将其路由到所选择的 Exporter。比如 Zipkin、Jaeger 或 Prometheus。</li>
+</ul>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240606161534.png" alt="在这里插入图片描述"></p>
+<ul>
+<li><p>Collector<br>Collector 作为 OpenCensus 的重要组成部分，由 Go 语言便编写，可以从任何可用 Receivers 的应用中接受流量，而不用关注编程语言以及部署方式，而这个好处显而易见。对于提供 Metrics 和 Trace 的服务或应用而言，只需要一个 Exporters 导出组件，就能从多语言应用中获取数据。</p>
+</li>
+<li><p>Exporters<br>OpenCensus 可以通过各种 Exporter 实现将相关数据上传到各种后端，比如：Prometheus for stats、OpenZipkin for traces、Stackdriver Monitoring for stats and Trace for traces、Jaeger for traces、Graphite for stats。</p>
+<p>对于开发者而言，只需要管理维护单个 Exporter，所有应用都使用 OpenCensus Exporter 发送数据。与此同时，开发人员自由选择将数据发送到业务所需的后端，并随时进行更好。为了解决通过网络发送大量数据可能需要处理发送失败的问题，Collector 具有缓冲和重试功能，可确保数据完整性与可用性。</p>
+</li>
+</ul>
+<h2 id="相关产品-1"><a href="#相关产品-1" class="headerlink" title="相关产品"></a>相关产品</h2><p>&emsp;&emsp;遵循 OpenCensus 协议的产品有 Prometheus、SignalFX、Stackdriver 和 Zipkin。</p>
+<p>&emsp;&emsp;看到这里，我们可以看到从功能、特性等维度来评估上述两者。OpenTracing 和 OpenCensus 各有明显优缺点：OpenTracing 支持语言更多、对其他系统耦合性更低；OpenCensus 支持 Metrics、分布式跟踪，同时从 API 层一直到基础设施层都进行支持。对很多开发人员而言，选择困难症发作的同时，一个新的想法不断被讨论：是否能有一个能够将 OpenTracing 和 OpenCensus，并且能够支持 Log 日志相关可观测数据的项目呢？</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240606161544.png" alt="在这里插入图片描述"></p>
+<h1 id="OpenTelemetry"><a href="#OpenTelemetry" class="headerlink" title="OpenTelemetry"></a>OpenTelemetry</h1><p>在回答上一个问题时，我们先看看一个典型服务问题排查过程是怎样的：</p>
+<ol>
+<li>通过各式各样预设报警发现异常（Metrics&#x2F;Logs）</li>
+<li>打开监控大盘查找异常现象，并通过查询找到异常模块（Metrics）</li>
+<li>对异常模块以及关联日志进行查询分析，找到核心的报错信息（Logs）</li>
+<li>通过详细的调用链数据定位到引起问题的代码（Tracing）</li>
+</ol>
+<p>为了能够获得更好的可观测性或快速解决上述问题，Tracing、Metrics、Logs缺一不可。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240606161550.png" alt="在这里插入图片描述"></p>
+<p>与此同时，行业中已经有了丰富的开源及商业方案，其中包括：</p>
+<ul>
+<li>Metric：Zabbix、Nagios、Prometheus、InfluxDB、OpenFalcon、OpenCensus</li>
+<li>Tracing：Jaeger、Zipkin、SkyWalking、OpenTracing、OpenCensus</li>
+<li>Logs：ELK、Splunk、SumoLogic、Loki、Loggly。</li>
+</ul>
+<p>有着五花八门的方案同时，各个方案也有着五花八门的协议格式&#x2F;数据类型。不同的方案之间很难兼容&#x2F;互通。与此同时，实际的业务场景中也会将各种方案混用，开发人员只能自己开发各类 Adapter 去兼容。</p>
+<h2 id="什么是-OpenTelemetry"><a href="#什么是-OpenTelemetry" class="headerlink" title="什么是 OpenTelemetry"></a>什么是 OpenTelemetry</h2><p>为了更好的将 Traces、Metrics 和 Logs 融合在一起，OpenTelemetry 诞生了。作为 CNCF 的孵化项目，OpenTelemetry 由 OpenTracing 和 OpenCensus 项目合并而成，是一组规范、API 接口、SDK、工具和集成。为众多开发人员带来 Metrics、Tracing、Logs 的统一标准，三者都有相同的元数据结构，可以轻松实现互相关联。</p>
+<p>OpenTelemetry 与厂商、平台无关，不提供与可观测性相关的后端服务。可根据用户需求将可观测类数据导出到存储、查询、可视化等不同后端，如 Prometheus、Jaeger 、云厂商服务中。</p>
+<h2 id="优势-2"><a href="#优势-2" class="headerlink" title="优势"></a>优势</h2><p>OpenTelemetry 核心优势集中在以下部分：</p>
+<ul>
+<li>完全打破各个厂商的 Lock-on 隐患</li>
+</ul>
+<p>​	作为运维人员而言，发现工具不够用，但评估实现成本太高而无法切换时，一定会跳起来大骂厂商“狗贼又要谋害朕”。而 OpenTelemetry 的出现，旨在通过提供标准化 instrumentation 框架打破这种宿命，作为一个可插拔的服务，可以轻松添加常见的技术协议与格式，让服务选择更加自由。</p>
+<ul>
+<li>规范的制定和协议的统一</li>
+</ul>
+<p>​	OpenTelemetry 采用基于标准的实现方法。对标准的关注对于 OpenTelemetry 来说尤其重要，因为需要追踪跨语言的互操作性。许多语言都带有类型定义，可以在实现中使用，例如用于创建可重用组件的接口。包括可观测客户端内部实现所需要的规范，以及可观测客户端与外部通信所需实现的协议规范。具体包括：</p>
+<blockquote>
+<ul>
+<li>API：定义 Metrics、Tracing、Logs 数据的类型和操作。</li>
+<li>SDK：定义 API 特定语言实现需求，定义配置、数据处理和导出概念。</li>
+<li>数据：定义 OpenTelemetry Line Protocol （OTLP）。虽然在 Opentelemetry中组件支持了 Zipkin v2 或 Jaeger Thrift 协议格式的实现，但都以第三方贡献库形式提供。只有 OTLP 是 Opentelemetry 官方原生支持的格式。</li>
+</ul>
+</blockquote>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240606161556.png" alt="在这里插入图片描述"></p>
+<p>&emsp;&emsp;每种语言都通过其 API 实现规范。API 包含特定于语言的类型和接口定义，它们是抽象类、类型和接口，由具体的语言实现使用。它们还包含无操作（no-op）实现，以支持本地测试并为单元测试提供工具。API 的定义位于每种语言的实现中。正如 OpenTelemetry Python 客户端所述：“opentelemetry-api 包包括抽象类和无操作实现，它们组成了遵循规范的 OpenTelemetry API。”可以在 Javascript 客户端中看到类似定义：“这个包提供了与 OpenTelemetry API 交互所需的所有东西，包括所有 TypeScript 接口、枚举和 no-op 实现。它既可以在服务器上使用，也可以在浏览器中使用。”</p>
+<ul>
+<li>多语言 SDK 的实现和集成</li>
+</ul>
+<p>&emsp;&emsp;OpenTelemetry 为每个常见语言都实现了对应 SDK，将导出器与 API 结合在一起。SDK 是具体的、可执行的 API 实现。包含 C++、.NET、Erlang&#x2F;Elixir、Go、Java、JavaScript、PHP、Python、Ruby、Rust、Swift。</p>
+<p>&emsp;&emsp;OpenTelemetry SDK 通过使用 OpenTelemetry API 使用选择的语言生成可观测数据，并将该数据导出到后端。并允许为公共库或框架增强。用户可以使用 SDK 进行代码自动注入和手动埋点，同时对其他三方库（Log4j、LogBack 等）集成支持；这些包一般都是根据 opentelemetry-specification 里面的规范与定义，结合语言自身的特点去实现在客户端采集可观测数据的基本能力。如元数据在服务间、进程间的传递，Trace 添加监测与数据导出，Metrics 指标的创建、使用及数据导出等。</p>
+<ul>
+<li>数据收集系统的实现</li>
+</ul>
+<p>&emsp;&emsp;在 Tracing 实践中有个基本原则，可观测数据收集过程需要与业务逻辑处理正交。尽量减少可观测客户端对原有业务逻辑的影响，Collector 是基于这个原则。</p>
+<p>&emsp;&emsp;OpenTelemetry 基于 OpenCensus Service 的收集系统，包括 Agent 和 Collector。Collector 涵盖采集（Collect）、转换（Transform）和导出（Export）可观测数据的功能，支持以多种格式（例如 OTLP、Jaeger、Prometheus 等）接收可观测数据，并将数据发送到一个或多个后端。它还支持在输出可观测数据之前，对其进行处理和过滤。Collector contrib 软件包支持更多数据格式和后端。</p>
+<p>&emsp;&emsp;从架构层面来说，Collector 有两种模式。一种是把 Collector 部署在应用相同的主机内（如Kubernetes 的 DaemonSet），或者部署在应用相同的 Pod 里面（如Kubernetes 中的 Sidecar），应用采集到的遥测数据，直接通过回环网络传递给 Collector。这种模式统称为 Agent 模式。另一种模式是把 Collector 当作一个独立的中间件，应用把采集到的遥测数据往这个中间件里面传递。这种模式称之为 Gateway 模式。两种模式既可以单独使用，也可以组合使用，只需要数据出口的数据协议格式跟数据入口的数据协议格式保持一致。</p>
+<ul>
+<li><p>自动代码注入技术<br>OpenTelemetry 也开始提供可以自动代码注入的实现，目前已经支持Java各类主流框架的自动注入。</p>
+</li>
+<li><p>云原生架构<br>OpenTelemetry 设计之初就已经考虑了云原生的特性，并且还提供了 Kubernetes Operator 用于快速部署使用。</p>
+</li>
+</ul>
+<h2 id="OpenTelemetry-支持的数据类型"><a href="#OpenTelemetry-支持的数据类型" class="headerlink" title="OpenTelemetry 支持的数据类型"></a>OpenTelemetry 支持的数据类型</h2><ul>
+<li><p>Metrics<br>Metric 是关于一个服务的度量，在运行时捕获。从逻辑上讲，捕获其中一个量度的时刻称为 Metric event，它不仅包含量度本身，还包括获取它的时间和相关元数据。应用和请求指标是可用性和性能的重要指标。自定义指标可以深入了解可用性如何影响用户体验和业务。自定义 Metrics 可以深入理解可用性 Metrics 是如何影响用户体验或业务的。</p>
+<p> OpenTelemetry 目前定义了三个 Metric 工具：</p>
+<blockquote>
+<p>• counter: 一个随时间求和的值，可以理解成汽车的里程表，它只会上升。<br>• measure: 随时间聚合的值。它表示某个定义范围内的值。<br>• observer: 捕捉特定时间点的一组当前值，如车辆中的燃油表。</p>
+</blockquote>
+</li>
+<li><p>Logs</p>
+<p>日志是带有时间戳的文本记录，可以是带有元数据结构化的，也可以是非结构化的。虽然每个日志都是独立数据源，但可以附加到 Trace 的 Span 中。日常使用调用时，在进行节点分析时出伴随着也可看到日志。<br>在 OpenTelemetry 中，任何不属于分布式 Trace 或 Metrics 的数据都是日志。日志通常用于确定问题根因，通常包含有关谁更改了内容以及更改结果的信息。</p>
+</li>
+<li><p>Traces</p>
+<p>Trace 指单个请求的追踪，请求可以由应用程序发起，也可以由用户发起。分布式 Tracing 是跨网络，跨应用的追踪形式。每个工作单元在 Trace 中被称为 Span，一个 Trace 由一个树形的 Span 组成。Span 表示经过应用程序所设计的服务或组件所做工作的对象，Span 还提供了可用于调试可用性和性能问题的请求、错误和持续时间的 Metrics。Span 包含了一个 Span 上下文，它是一组全局唯一标识符，表示每个 Span 所属的唯一请求。通常我们称之为 TraceID。</p>
+</li>
+<li><p>Baggage</p>
+<p>除了 Trace 的传播，OpenTelemetry 还提供了 Baggage 来传播键值对。Baggage 用于索引一个服务中的可观察事件，该服务包含同一事务中先前的服务提供的属性，有助于在事件之间建立因果关系。虽然 Baggage 可以用作其他横切关注点的原型，但这种机制主要是为了传递 OpenTelemetry 可观测性系统的值。这些值可以从 Baggage 中消费，并作为度量的附加维度，或日志和跟踪的附加上下文使用。</p>
+</li>
+</ul>
+<h2 id="仅仅是第一步，还是一站式？"><a href="#仅仅是第一步，还是一站式？" class="headerlink" title="仅仅是第一步，还是一站式？"></a>仅仅是第一步，还是一站式？</h2><p>&emsp;&emsp;结合上面的内容，我们可以看到 OpenTelemetry 覆盖了各类可观测数据类型的规范定义、API 定义、规范实现以及数据的获取与传输。应用只需要一种 SDK 就可以实现所有类型数据的统一产生；集群只需要部署一个 OpenTelemetry Collector 便可以实现所有类型数据的采集。而且 Metrics、Tracing、Logging 的具有相同的 Meta 信息，可以做无缝关联。</p>
+<p>&emsp;&emsp;OpenTelemetry 要解决的是可观测性数据统一的第一步，通过 API 和 SDK 来标准化可观测数据的采集和传输，OpenTelemetry 并不想对所有组件都进行重写，而是最大程度复用业界在各大领域常用工具，通过提供一个安全、无关平台、无关厂商的协议、组件、标准。其自身定位很明确：数据采集和标准规范的统一，对于数据如何去使用、存储、展示、告警，官方是不涉及的。但就可观测整体方案而言，OpenTelemetry 只完成了数据统一生产部分，后续如何存储、利用这些数据进行分析、告警等并没有明确提供相关方案，但这些问题又非常突出。</p>
+<ul>
+<li><p>各类数据的存储方式</p>
+<p>Metrics 可以存在 Prometheus、InfluxDB 或者各类时序数据库；Tracing 可以对接Jaeger、OpenCensus、Zipkin。但如何进行选型以及后续进行运维这些后端服务是个很难抉择的问题。</p>
+</li>
+<li><p>数据分析（可视化与关联）</p>
+<p>对于所采集的数据如何进行统一分析？不同数据需要不同的数据平台进行处理，想要在统一平台显示 Metrics、Logging、Tracing 并实现三者关联跳转，需要很多定制开发工作。这对于运维而言是个很大的工作量。</p>
+</li>
+<li><p>异常检测与诊断</p>
+<p>除了日常可视化监控之外，对应用异常检测和根因诊断是运维的重要业务需求，这时就需要把 OpenTelemetry 的数据融入到 AIOps 中。但对很多开发及运维团队而言，基础的 DevOps 都尚未完全落地，更何况更进一步的 AIOps。</p>
+</li>
+</ul>
+<hr>
+<p>转载自：</p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/alisystemsoftware/article/details/124164685">https://blog.csdn.net/alisystemsoftware/article/details/124164685</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/06/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%8F%AF%E8%A7%82%E6%B5%8B/%E7%AE%80%E8%BF%B0OpenTracing%E4%B8%8EOpenTelemetry%E7%9A%84%E5%88%86%E5%88%AB/" rel="prev" title="简述OpenTracing与OpenTelemetry的分别">
+      <i class="fa fa-chevron-left"></i> 简述OpenTracing与OpenTelemetry的分别
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/06/07/Spring/spring%20boot/Spring%E4%BD%BF%E7%94%A8TransactionalEventListener%E8%A7%A3%E5%86%B3%E4%BA%8B%E5%8A%A1%E6%9C%AA%E6%8F%90%E4%BA%A4%E8%AF%BB%E5%8F%96%E4%B8%8D%E5%88%B0%E6%95%B0%E6%8D%AE%E9%97%AE%E9%A2%98/" rel="next" title="Spring使用TransactionalEventListener解决事务未提交读取不到数据问题">
+      Spring使用TransactionalEventListener解决事务未提交读取不到数据问题 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%89%8D%E8%A8%80"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#OpenTracing"><span class="nav-number">2.</span> <span class="nav-text">OpenTracing</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BC%98%E5%8A%BF"><span class="nav-number">2.1.</span> <span class="nav-text">优势</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A0%B8%E5%BF%83%E6%9C%AF%E8%AF%AD%E4%BB%8B%E7%BB%8D"><span class="nav-number">2.2.</span> <span class="nav-text">核心术语介绍</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE%E6%A8%A1%E5%9E%8B"><span class="nav-number">2.3.</span> <span class="nav-text">数据模型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%9B%B8%E5%85%B3%E4%BA%A7%E5%93%81"><span class="nav-number">2.4.</span> <span class="nav-text">相关产品</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#OpenCensus"><span class="nav-number">3.</span> <span class="nav-text">OpenCensus</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BC%98%E5%8A%BF-1"><span class="nav-number">3.1.</span> <span class="nav-text">优势</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#OpenCensus%E5%81%9A%E4%BA%86%E4%BB%80%E4%B9%88"><span class="nav-number">3.2.</span> <span class="nav-text">OpenCensus做了什么</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A0%B8%E5%BF%83%E6%9C%AF%E8%AF%AD%E4%BB%8B%E7%BB%8D-1"><span class="nav-number">3.3.</span> <span class="nav-text">核心术语介绍</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%9B%B8%E5%85%B3%E4%BA%A7%E5%93%81-1"><span class="nav-number">3.4.</span> <span class="nav-text">相关产品</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#OpenTelemetry"><span class="nav-number">4.</span> <span class="nav-text">OpenTelemetry</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF-OpenTelemetry"><span class="nav-number">4.1.</span> <span class="nav-text">什么是 OpenTelemetry</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BC%98%E5%8A%BF-2"><span class="nav-number">4.2.</span> <span class="nav-text">优势</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#OpenTelemetry-%E6%94%AF%E6%8C%81%E7%9A%84%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B"><span class="nav-number">4.3.</span> <span class="nav-text">OpenTelemetry 支持的数据类型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%85%E4%BB%85%E6%98%AF%E7%AC%AC%E4%B8%80%E6%AD%A5%EF%BC%8C%E8%BF%98%E6%98%AF%E4%B8%80%E7%AB%99%E5%BC%8F%EF%BC%9F"><span class="nav-number">4.4.</span> <span class="nav-text">仅仅是第一步，还是一站式？</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

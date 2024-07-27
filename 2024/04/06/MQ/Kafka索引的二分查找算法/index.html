@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="[toc] Kafka的底层日志结构基本结构的展示： 每个Topic都包含一个或多个Partition，不同Partition可位于不同节点。同时Partition在物理上对应一个本地文件夹(也就是个日志对象Log)，每个Partition包含一个或多个Segment，每个Segment包含一个数据文件和多个与之对应的索引文件。在逻辑上，可以把一个Partition当作一个非常长的数组，可通过这个">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Kafka索引的二分查找算法">
+<meta property="og:url" content="http://example.com/2024/04/06/MQ/Kafka%E7%B4%A2%E5%BC%95%E7%9A%84%E4%BA%8C%E5%88%86%E6%9F%A5%E6%89%BE%E7%AE%97%E6%B3%95/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="[toc] Kafka的底层日志结构基本结构的展示： 每个Topic都包含一个或多个Partition，不同Partition可位于不同节点。同时Partition在物理上对应一个本地文件夹(也就是个日志对象Log)，每个Partition包含一个或多个Segment，每个Segment包含一个数据文件和多个与之对应的索引文件。在逻辑上，可以把一个Partition当作一个非常长的数组，可通过这个">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407272250173.jpeg">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407272251862.jpeg">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407272252039.jpeg">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407272253311.jpeg">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407272253713.jpeg">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407272259613.jpeg">
+<meta property="article:published_time" content="2024-04-05T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T15:02:33.095Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407272250173.jpeg">
+
+<link rel="canonical" href="http://example.com/2024/04/06/MQ/Kafka%E7%B4%A2%E5%BC%95%E7%9A%84%E4%BA%8C%E5%88%86%E6%9F%A5%E6%89%BE%E7%AE%97%E6%B3%95/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>Kafka索引的二分查找算法 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/06/MQ/Kafka%E7%B4%A2%E5%BC%95%E7%9A%84%E4%BA%8C%E5%88%86%E6%9F%A5%E6%89%BE%E7%AE%97%E6%B3%95/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Kafka索引的二分查找算法
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-06 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-06T00:00:00+08:00">2024-04-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/MQ/" itemprop="url" rel="index"><span itemprop="name">MQ</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>[toc]</p>
+<h2 id="Kafka的底层日志结构"><a href="#Kafka的底层日志结构" class="headerlink" title="Kafka的底层日志结构"></a>Kafka的底层日志结构</h2><p>基本结构的展示：<br><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407272250173.jpeg"></p>
+<p>每个Topic都包含一个或多个Partition，不同Partition可位于不同节点。同时Partition在物理上对应一个本地文件夹(也就是个日志对象Log)，每个Partition包含一个或多个Segment，每个Segment包含一个数据文件和多个与之对应的索引文件。在逻辑上，可以把一个Partition当作一个非常长的数组，可通过这个“数组”的索引（offset）去访问其数据。</p>
+<span id="more"></span>
+
+<p>一个segment包含一个.log后缀的文件和多个index后缀的文件。</p>
+<blockquote>
+<ul>
+<li><p>.log文件：具体存储消息的日志文件</p>
+</li>
+<li><p>.index文件：位移索引文件，可根据消息的位移值快速地从查询到消息的物理文件位置</p>
+</li>
+<li><p>.timeindex文件：时间戳索引文件，可根据时间戳查找到对应的位移信息</p>
+</li>
+<li><p>.txnindex文件：已中止事物索引文件</p>
+</li>
+</ul>
+</blockquote>
+<p>除了.log是实际存储消息的文件以外，其他的几个文件都是索引文件。索引本身设计的原来是一种空间换时间的概念，在这里kafka是为了加速查询所使用。</p>
+<p><strong>kafka索引</strong>不会为每一条消息建立索引关系，这个也很好理解，毕竟对一条消息建立索引的成本还是比较大的，所以它是一种稀疏索引的概念，就好比我们常见的跳表，都是一种稀疏索引。</p>
+<p><strong>kafka日志的文件名</strong>一般都是该segment写入的第一条消息的起始位移值baseOffset，比如000000000123.log，这里面的123就是baseOffset，具体索引文件里面纪录的数据是相对于起始位移的相对位移值relativeOffset，baseOffset与relativeOffse的加和即为实际消息的索引值。假设一个索引文件为：00000000000000000100.index，那么起始位移值即 100，当存储位移为 150 的消息索引时，在索引文件中的相对位移则为 150 - 100 &#x3D; 50，这么做的好处是使用 4 字节保存位移即可，可以节省非常多的磁盘空间。</p>
+<h2 id="kafka索引文件"><a href="#kafka索引文件" class="headerlink" title="kafka索引文件"></a>kafka索引文件</h2><p>每个索引文件包含若干条索引项。不同索引文件的索引项的大小不同，比如offsetIndex索引项大小是8B，timeIndex索引项的大小是12B。<br><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407272251862.jpeg"></p>
+<p>上图是OffsetIndex的结构，位移值用 4 个字节来表示，物理磁盘位置也用 4 个字节来表示。可能会疑问，位移值offset不是长整型吗，应该是 8 个字节才对啊？这是因为offset&#x3D;baseOffset+relativeOffse，使用相对位移值可以节省磁盘空间。<br>注意，relativeOffse是4字节，那么就限定了kafka中的每个日志段文件的大小不会超过2^32&#x3D;4GB。<br>TimeIndex 中的时间戳类型是长整型，占用 8 个字节，位移依然使用相对位移值， 占用 4 个字节，因此总共需要 12 个字节。</p>
+<p>kafka对索引文件的存取用到了零拷贝技术—mmap，<strong>即 Java 中的 MappedByteBuffer</strong>。mmap是一种内存映射文件的方法，即将一个文件或者其它对象映射到进程的地址空间，实现文件磁盘地址和进程虚拟地址空间中一段虚拟地址的一一对映关系。在很多操作系统中(比如 Linux)，这段映射的内存区域实际上就是内核的页缓存 (Page Cache)。这就意味着，里面的数据不需要重复拷贝到用户态空间，避免了很多不 必要的时间、空间消耗。</p>
+<h2 id="kafka的二分查找算法"><a href="#kafka的二分查找算法" class="headerlink" title="kafka的二分查找算法"></a>kafka的二分查找算法</h2><p><strong>1）普通二分查找</strong><br>offsetIndex每个索引项大小是8B，但操作系统访问内存时的最小单元是页，一般是4KB，即4096B，会包含了512个索引项。而<strong>找出在索引中的指定偏移量，对于操作系统访问内存时则变成了找出指定偏移量所在的页</strong>。</p>
+<p>假设索引的大小有13个页，如下图所示：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407272252039.jpeg"></p>
+<p>由于Kafka读取消息，一般都是读取最新的偏移量，所以要查询的页就集中在尾部，即第12号页上。根据二分查找，将依次访问6、9、11、12号页。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407272253311.jpeg"></p>
+<p>当随着Kafka接收消息的增加，索引文件也会增加至第13号页，这时根据二分查找，将依次访问7、10、12、13号页。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407272253713.jpeg"></p>
+<p>可以看出这次访问的页和上一次的页完全不同。</p>
+<p>之前在只有12号页的时候，Kafka读取索引时会频繁访问6、9、11、12号页，而由于Kafka使用了mmap来提高速度，即读写操作都将通过操作系统的page cache，所以6、9、11、12号页会被缓存到page cache中，避免磁盘加载。</p>
+<p>但是当增至13号页时，则需要访问7、10、12、13号页，而由于7、10号页长时间没有被访问（现代操作系统都是使用LRU或其变体来管理page cache），很可能已经不在page cache中了，那么就会造成**缺页中断(Page Fault)**（线程被阻塞等待从磁盘加载没有被缓存到page cache的数据）。在Kafka的官方测试中，这种情况会造成几毫秒至1秒的延迟。</p>
+<p><strong>2）kafka优化的二分查找</strong></p>
+<p>Kafka对二分查找进行了改进。既然一般读取数据集中在索引的尾部。那么将索引中最后的 8192B（8KB）划分为“热区”(刚好缓存两页数据)，其余部分划分为“冷区”，分别进行二分查找。这样做的好处是，在频繁查询尾部的情况下，尾部的页基本都能在page cahce中，从而避免缺页中断。</p>
+<p>下面我们还是用之前的例子来看下。由于每个页最多包含512个索引项，而最后的1024个索引项所在页会被认为是热区。那么当12号页未满时，则10、11、12会被判定是热区；而当12号页刚好满了的时候，则11、12被判定为热区；当增至13号页且未满时，11、12、13被判定为热区。假设我们读取的是最新的消息，则在热区中进行二分查找的情况如下：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407272259613.jpeg"></p>
+<p>当12号页未满时，依次访问11、12号页，当12号页满时，访问页的情况相同。当13号页出现的时候，依次访问12、13号页，不会出现访问长时间未访问的页，则能有效避免缺页中断。</p>
+<hr>
+<p>转载自：<br><a target="_blank" rel="noopener" href="https://baijiahao.baidu.com/s?id=1770010432876434780&wfr=spider&for=pc">https://baijiahao.baidu.com/s?id=1770010432876434780&amp;wfr=spider&amp;for=pc</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/04/06/%E7%9B%AE%E5%BD%95%E5%BE%85%E5%AE%9A/%E8%B0%88%E8%B0%88%E6%88%91%E5%AF%B9%E6%8A%80%E6%9C%AF%E6%9E%B6%E6%9E%84%E7%9A%84%E7%90%86%E8%A7%A3/" rel="prev" title="转载：谈谈我对技术架构的理解">
+      <i class="fa fa-chevron-left"></i> 转载：谈谈我对技术架构的理解
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/MySQL/%E5%8E%9F%E7%90%86/%E9%80%9A%E8%BF%87SQL%E5%88%86%E6%9E%90%E6%95%B0%E6%8D%AE%E5%BA%93%E5%8A%A0%E9%94%81/" rel="next" title="通过SQL分析数据库加锁">
+      通过SQL分析数据库加锁 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Kafka%E7%9A%84%E5%BA%95%E5%B1%82%E6%97%A5%E5%BF%97%E7%BB%93%E6%9E%84"><span class="nav-number">1.</span> <span class="nav-text">Kafka的底层日志结构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#kafka%E7%B4%A2%E5%BC%95%E6%96%87%E4%BB%B6"><span class="nav-number">2.</span> <span class="nav-text">kafka索引文件</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#kafka%E7%9A%84%E4%BA%8C%E5%88%86%E6%9F%A5%E6%89%BE%E7%AE%97%E6%B3%95"><span class="nav-number">3.</span> <span class="nav-text">kafka的二分查找算法</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

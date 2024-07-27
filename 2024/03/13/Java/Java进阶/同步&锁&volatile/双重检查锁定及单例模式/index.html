@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="单例创建要理解双重检查锁定是从哪里起源的，就必须理解通用单例创建，如清单 1： 123456789101112131415161718import java.util.*;class Singleton &#123;  private static Singleton instance;  private Vector v;  private boolean inUse;  private Sin">
+<meta property="og:type" content="article">
+<meta property="og:title" content="双重检查锁定及单例模式">
+<meta property="og:url" content="http://example.com/2024/03/13/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5&%E9%94%81&volatile/%E5%8F%8C%E9%87%8D%E6%A3%80%E6%9F%A5%E9%94%81%E5%AE%9A%E5%8F%8A%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="单例创建要理解双重检查锁定是从哪里起源的，就必须理解通用单例创建，如清单 1： 123456789101112131415161718import java.util.*;class Singleton &#123;  private static Singleton instance;  private Vector v;  private boolean inUse;  private Sin">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2024-03-12T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.492Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2024/03/13/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5&%E9%94%81&volatile/%E5%8F%8C%E9%87%8D%E6%A3%80%E6%9F%A5%E9%94%81%E5%AE%9A%E5%8F%8A%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>双重检查锁定及单例模式 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/13/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5&%E9%94%81&volatile/%E5%8F%8C%E9%87%8D%E6%A3%80%E6%9F%A5%E9%94%81%E5%AE%9A%E5%8F%8A%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          双重检查锁定及单例模式
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-03-13 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-13T00:00:00+08:00">2024-03-13</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/" itemprop="url" rel="index"><span itemprop="name">Java进阶</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5-%E9%94%81-volatile/" itemprop="url" rel="index"><span itemprop="name">同步&锁&volatile</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="单例创建"><a href="#单例创建" class="headerlink" title="单例创建"></a>单例创建</h2><p>要理解双重检查锁定是从哪里起源的，就必须理解通用单例创建，如清单 1：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> java.util.*;</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Singleton</span> &#123;</span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">static</span> Singleton instance;</span><br><span class="line">  <span class="keyword">private</span> Vector v;</span><br><span class="line">  <span class="keyword">private</span> <span class="type">boolean</span> inUse;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">private</span> <span class="title function_">Singleton</span><span class="params">()</span> &#123;</span><br><span class="line">    v = <span class="keyword">new</span> <span class="title class_">Vector</span>();</span><br><span class="line">    v.addElement(<span class="keyword">new</span> <span class="title class_">Object</span>());</span><br><span class="line">    inUse = <span class="literal">true</span>;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> Singleton <span class="title function_">getInstance</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (instance == <span class="literal">null</span>) <span class="comment">//1</span></span><br><span class="line">      instance = <span class="keyword">new</span> <span class="title class_">Singleton</span>(); <span class="comment">//2</span></span><br><span class="line">    <span class="keyword">return</span> instance; <span class="comment">//3</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<span id="more"></span> 
+
+<p>此类的设计确保只创建一个 Singleton 对象。构造函数被声明为 private，getInstance()方法只创建一个对象。这个实现适合于单线程程序。然而，当引入多线程时，就必须通过同步来保护getInstance()方法。如果不保护getInstance() 方法，则可能返回 Singleton对象的两个不同的实例。假设两个线程并发调用 getInstance()方法并且按以下顺序执行调用：</p>
+<ol>
+<li>线程1调用getInstance()方法并判断出instance在&#x2F;&#x2F;1处为 null。</li>
+<li>线程1进入if代码块，但在执行&#x2F;&#x2F;2处的代码行时被线程2预占。 </li>
+<li>线程2调用getInstance()方法并在&#x2F;&#x2F;1处判断出instance为 null。</li>
+<li>线程2进入if代码块并创建一个新的Singleton对象并在&#x2F;&#x2F;2处将变量instance分配给这个新对象。</li>
+<li>线程2 在&#x2F;&#x2F;3处返回Singleton对象引用。</li>
+<li>线程2被线程1预占。 </li>
+<li>线程1在它停止的地方启动，并执行&#x2F;&#x2F;2代码行，这导致创建另一个Singleton对象。 </li>
+<li>线程1在&#x2F;&#x2F;3处返回这个对象。</li>
+</ol>
+<p>结果是getInstance()方法创建了两个Singleton对象，而它本该只创建一个对象。通过同步getInstance()方法从而在同一时间只允许一个线程执行代码，这个问题得以改正，如清单2 所示：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">synchronized</span> Singleton <span class="title function_">getInstance</span><span class="params">()</span> &#123;</span><br><span class="line">  <span class="keyword">if</span> (instance == <span class="literal">null</span>) <span class="comment">//1</span></span><br><span class="line">    instance = <span class="keyword">new</span> <span class="title class_">Singleton</span>(); <span class="comment">//2</span></span><br><span class="line">  <span class="keyword">return</span> instance; <span class="comment">//3</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>清单2中的代码针对多线程访问getInstance()方法运行得很好。然而，其实只有在第一次调用方法时才需要同步。由于只有第一次调用执行了&#x2F;&#x2F;2处的代码，而只有此行代码需要同步，因此就无需对后续调用使用同步。所有其它调用用于判断instance是否为null，并将其返回。多线程能够安全并发地执行除第一次调用外的所有调用。尽管如此，由于该方法是synchronized的，需要为该方法的每一次调用付出同步的代价，即使只有第一次调用需要同步。</p>
+<p>为使此方法更为有效，一个被称为双重检查锁定的习语就应运而生了。这个想法是为了避免对除第一次调用外的所有调用都实行同步的昂贵代价。同步的代价在不同的 JVM 间是不同的。在早期，代价相当高。随着更高级的JVM的出现，同步的代价降低了，但出入synchronized方法或块仍然有性能损失。</p>
+<p>因为只有清单2中的&#x2F;&#x2F;2行需要同步，可以只将其包装到一个同步块中，如清单3所示：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> Singleton <span class="title function_">getInstance</span><span class="params">()</span> &#123;</span><br><span class="line">  <span class="keyword">if</span> (instance == <span class="literal">null</span>) &#123;</span><br><span class="line">    <span class="keyword">synchronized</span>(Singleton.class) &#123;</span><br><span class="line">      instance = <span class="keyword">new</span> <span class="title class_">Singleton</span>();</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> instance;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>清单3中的代码展示了用多线程加以说明的和清单1相同的问题。当<code>instance</code>为<code>null</code>时，两个线程可以并发地进入<code>if</code>语句内部。然后，一个线程进入<code>synchronized</code>块来初始化<code>instance</code>，而另一个线程则被阻断。当第一个线程退出<code>synchronized</code>块时，等待着的线程进入并创建另一个<code>Singleton</code>对象。注意：当第二个线程进入<code>synchronized</code>块时，它并没有检查<code>instance</code>是否为<code>null</code>。</p>
+<h2 id="双重检查锁定"><a href="#双重检查锁定" class="headerlink" title="双重检查锁定"></a>双重检查锁定</h2><p>为处理清单3中的问题，需要对<code>instance</code>进行第二次检查。这就是“双重检查锁定”名称的由来。将双重检查锁定习语应用到清单3的结果就是清单4。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> Singleton <span class="title function_">getInstance</span><span class="params">()</span> &#123;</span><br><span class="line">  <span class="keyword">if</span> (instance == <span class="literal">null</span>) &#123;</span><br><span class="line">    <span class="keyword">synchronized</span>(Singleton.class) &#123;  <span class="comment">//1</span></span><br><span class="line">      <span class="keyword">if</span> (instance == <span class="literal">null</span>)          <span class="comment">//2</span></span><br><span class="line">        instance = <span class="keyword">new</span> <span class="title class_">Singleton</span>();  <span class="comment">//3</span></span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> instance;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>双重检查锁定背后的理论是：在&#x2F;&#x2F;2处的第二次检查使（如清单3中那样）创建两个不同的Singleton对象成为不可能。假设有下列事件序列：</p>
+<ol>
+<li>线程1进入getInstance()方法。 </li>
+<li>由于instance为null，线程1在&#x2F;&#x2F;1处进入synchronized块。 </li>
+<li>线程1被线程2预占。</li>
+<li>线程2进入getInstance()方法。</li>
+<li>由于instance仍旧为null，线程2试图获取&#x2F;&#x2F;1处的锁。然而，由于线程1持有该锁，线程2在&#x2F;&#x2F;1处阻塞。</li>
+<li>线程2被线程1预占。</li>
+<li>线程1执行，由于在&#x2F;&#x2F;2处实例仍旧为null，线程1还创建一个 Singleton对象并将其引用赋值给instance。</li>
+<li>线程1退出synchronized块并从getInstance()方法返回实例。     </li>
+<li>线程1被线程2预占。</li>
+<li>线程2获取&#x2F;&#x2F;1处的锁并检查instance是否为null。 </li>
+<li>由于instance是非null的，并没有创建第二个Singleton 对象，由线程1创建的对象被返回。</li>
+</ol>
+<p>双重检查锁定背后的理论是完美的。但仍存在问题，双重检查锁定的问题是：并不能保证它会在单处理器或多处理器计算机上顺利运行。</p>
+<p>上述清单 4 中的&#x2F;&#x2F;3 行。此行代码创建了一个Singleton对象并初始化变量instance 来引用此对象。这行代码的问题是：在 Singleton构造函数体执行之前，变量instance可能成为非null的。instance &#x3D; new Singleton(); 这一行代码可以分解为如下的三行伪代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">memory = allocate();   <span class="comment">//1：分配对象的内存空间</span></span><br><span class="line">ctorInstance(memory);  <span class="comment">//2：初始化对象</span></span><br><span class="line">instance = memory;     <span class="comment">//3：设置instance指向刚分配的内存地址</span></span><br></pre></td></tr></table></figure>
+
+<p>上面三行伪代码中的2和3之间，可能会被重排序（在一些JIT编译器上，这种重排序是真实发生的）。2和3之间重排序之后的执行时序如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">memory = allocate();   <span class="comment">//1：分配对象的内存空间</span></span><br><span class="line">instance = memory;     <span class="comment">//3：设置instance指向刚分配的内存地址</span></span><br><span class="line">                       <span class="comment">//注意，此时对象还没有被初始化！</span></span><br><span class="line">ctorInstance(memory);  <span class="comment">//2：初始化对象 </span></span><br></pre></td></tr></table></figure>
+
+<p>回到之前的DoubleCheckedLocking示例代码的第7行（instance &#x3D; new Singleton();）如果发生重排序，另一个并发执行的线程B就有可能判断instance不为null。线程B接下来将访问instance所引用的对象，但此时这个对象可能还没有被A线程初始化！</p>
+<p>在知晓了问题发生的根源之后，我们可以想出两个办法来实现线程安全的延迟初始化：1. 不允许2和3重排序；2.允许2和3重排序，但不允许其他线程“看到”这个重排序。</p>
+<p>考虑到当前的双重检查锁定不起作用，加入了另一个版本的代码，如清单 7 所示，从而防止刚才看到的无序写入问题。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> Singleton <span class="title function_">getInstance</span><span class="params">()</span> &#123;</span><br><span class="line">  <span class="keyword">if</span> (instance == <span class="literal">null</span>) &#123;</span><br><span class="line">    <span class="keyword">synchronized</span>(Singleton.class) &#123; <span class="comment">//1</span></span><br><span class="line">      <span class="type">Singleton</span> <span class="variable">inst</span> <span class="operator">=</span> instance; <span class="comment">//2</span></span><br><span class="line">      <span class="keyword">if</span> (inst == <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="keyword">synchronized</span>(Singleton.class) &#123; <span class="comment">//3</span></span><br><span class="line">          inst = <span class="keyword">new</span> <span class="title class_">Singleton</span>(); <span class="comment">//4</span></span><br><span class="line">        &#125;</span><br><span class="line">        instance = inst; <span class="comment">//5</span></span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> instance;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>看着清单7中的代码，此代码试图避免无序写入问题。它试图通过引入局部变量inst和第二个synchronized 块来解决这一问题。由于当前内存模型的定义，清单7中的代码无效。Java语言规范（Java Language Specification，JLS）要求不能将synchronized块中的代码移出来。但是，并没有说不能将 synchronized 块外面的代码移<em>入</em> synchronized 块中。</p>
+<p>JIT 编译器会在这里看到一个优化的机会。此优化会删除&#x2F;&#x2F;4和&#x2F;&#x2F;5处的代码，组合并且生成清单8中所示的代码。 </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> Singleton <span class="title function_">getInstance</span><span class="params">()</span> &#123;</span><br><span class="line">  <span class="keyword">if</span> (instance == <span class="literal">null</span>) &#123;</span><br><span class="line">    <span class="keyword">synchronized</span>(Singleton.class) &#123; <span class="comment">//1</span></span><br><span class="line">      <span class="type">Singleton</span> <span class="variable">inst</span> <span class="operator">=</span> instance; <span class="comment">//2</span></span><br><span class="line">      <span class="keyword">if</span> (inst == <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="keyword">synchronized</span>(Singleton.class) &#123; <span class="comment">//3</span></span><br><span class="line">        <span class="comment">//inst = new Singleton(); //4</span></span><br><span class="line">          instance = <span class="keyword">new</span> <span class="title class_">Singleton</span>();</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">//instance = inst; //5</span></span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> instance;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>如果进行此项优化，将同样遇到我们之前讨论过的无序写入问题。</p>
+<p><strong>基于volatile的双重检查锁定的解决方案</strong></p>
+<p>对于前面的基于双重检查锁定来实现延迟初始化的方案（指DoubleCheckedLocking示例代码），只需要做一点小的修改（把instance声明为volatile型），就可以实现线程安全的延迟初始化。请看下面的示例代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">SafeDoubleCheckedLocking</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">volatile</span> <span class="keyword">static</span> Instance instance;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> Instance <span class="title function_">getInstance</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (instance == <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="keyword">synchronized</span> (SafeDoubleCheckedLocking.class) &#123;</span><br><span class="line">                <span class="keyword">if</span> (instance == <span class="literal">null</span>)</span><br><span class="line">                    instance = <span class="keyword">new</span> <span class="title class_">Instance</span>();<span class="comment">//instance为volatile，现在没问题了</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> instance;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>基于类初始化的解决方案</strong></p>
+<p>JVM在类的初始化阶段（即在Class被加载后，且被线程使用之前），会执行类的初始化。在执行类的初始化期间，JVM会去获取一个锁。这个锁可以同步多个线程对同一个类的初始化。</p>
+<p>基于这个特性，可以实现另一种线程安全的延迟初始化方案（这个方案被称之为Initialization On Demand Holder idiom）：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">InstanceFactory</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">class</span> <span class="title class_">InstanceHolder</span> &#123;</span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">static</span> <span class="type">Instance</span> <span class="variable">instance</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Instance</span>();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> Instance <span class="title function_">getInstance</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> InstanceHolder.instance ;  <span class="comment">//这里将导致InstanceHolder类被初始化</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> Singleton <span class="title function_">getInstance</span><span class="params">()</span> &#123;</span><br><span class="line">  <span class="keyword">if</span> (instance == <span class="literal">null</span>) &#123;</span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment">monitorenter</span></span><br><span class="line"><span class="comment">getstatic #2 &lt;Singleton.instance&gt;</span></span><br><span class="line"><span class="comment">ifnonull </span></span><br><span class="line"><span class="comment">new #3 </span></span><br><span class="line"><span class="comment">dup</span></span><br><span class="line"><span class="comment">invokespecial #4 &lt;Singleton.&lt;init&gt;&gt;</span></span><br><span class="line"><span class="comment">putstatic #2 &lt;Singleton.instance&gt;</span></span><br><span class="line"><span class="comment">aload_0</span></span><br><span class="line"><span class="comment">monitorexist</span></span><br><span class="line"><span class="comment">**/</span></span><br><span class="line">    <span class="keyword">synchronized</span>(Singleton.class) &#123;</span><br><span class="line">      <span class="keyword">if</span> (instance == <span class="literal">null</span>) &#123;</span><br><span class="line">        instance = <span class="keyword">new</span> <span class="title class_">Singleton</span>();</span><br><span class="line">      &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> instance;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+<hr>
+<p>更多参考：<br><a target="_blank" rel="noopener" href="http://blog.csdn.net/zero__007/article/details/45644257">http://blog.csdn.net/zero__007/article/details/45644257</a><br><a target="_blank" rel="noopener" href="http://blog.csdn.net/turkeyzhou/article/details/6179951">http://blog.csdn.net/turkeyzhou/article/details/6179951</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/03/13/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5&%E9%94%81&volatile/%E5%81%8F%E5%90%91%E9%94%81%E4%B8%8E%E8%BD%BB%E9%87%8F%E7%BA%A7%E9%94%81/" rel="prev" title="偏向锁与轻量级锁">
+      <i class="fa fa-chevron-left"></i> 偏向锁与轻量级锁
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/03/13/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5&%E9%94%81&volatile/volatile%E7%B1%BB%E5%9E%8B%E5%8F%98%E9%87%8F%E6%93%8D%E4%BD%9C/" rel="next" title="volatile类型变量操作">
+      volatile类型变量操作 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%95%E4%BE%8B%E5%88%9B%E5%BB%BA"><span class="nav-number">1.</span> <span class="nav-text">单例创建</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%8C%E9%87%8D%E6%A3%80%E6%9F%A5%E9%94%81%E5%AE%9A"><span class="nav-number">2.</span> <span class="nav-text">双重检查锁定</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="笔记库&amp;知识库">
+<meta property="og:type" content="website">
+<meta property="og:title" content="zero&#39;s Blog">
+<meta property="og:url" content="http://example.com/page/2/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="笔记库&amp;知识库">
+<meta property="og:locale" content="en_US">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/page/2/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : true,
+    isPost : false,
+    lang   : 'en'
+  };
+</script>
+
+  <title>zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content index posts-expand">
+            
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/06/11/k8s&docker/Kubernetes%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/06/11/k8s&docker/Kubernetes%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/" class="post-title-link" itemprop="url">Kubernetes快速入门</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-06-11 00:00:00" itemprop="dateCreated datePublished" datetime="2024-06-11T00:00:00+08:00">2024-06-11</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/k8s-docker/" itemprop="url" rel="index"><span itemprop="name">k8s&docker</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>[toc]</p>
+<h1 id="一、Docker"><a href="#一、Docker" class="headerlink" title="一、Docker"></a>一、Docker</h1><p>在介绍docker之前，先简单回顾一下操作系统是如何管理进程的。</p>
+<p>首先，当我们登录到操作系统之后，可以通过 ps 等操作看到各式各样的进程，这些进程包括系统自带的服务和用户的应用进程。那么，这些进程都有什么样的特点？</p>
+<ul>
+<li>第一，这些进程可以相互看到、相互通信；</li>
+<li>第二，它们使用的是同一个文件系统，可以对同一个文件进行读写操作；</li>
+<li>第三，这些进程会使用相同的系统资源。</li>
+</ul>
+<p>这样的三个特点会带来什么问题呢？</p>
+<ul>
+<li>因为这些进程能够相互看到并且进行通信，高级权限的进程可以攻击其他进程；</li>
+<li>因为它们使用的是同一个文件系统，因此会带来两个问题：这些进程可以对于已有的数据进行增删改查，具有高级权限的进程可能会将其他进程的数据删除掉，破坏掉其他进程的正常运行；此外，进程与进程之间的依赖可能会存在冲突，如此一来就会给运维带来很大的压力；</li>
+<li>因为这些进程使用的是同一个宿主机的资源，应用之间可能会存在资源抢占的问题，当一个应用需要消耗大量 CPU 和内存资源的时候，就可能会破坏其他应用的运行，导致其他应用无法正常地提供服务。</li>
+</ul>
+<p>针对上述的三个问题，如何为进程提供一个独立的运行环境呢？</p>
+<ul>
+<li>针对不同进程使用同一个文件系统所造成的问题而言，Linux 和 Unix 操作系统可以通过 chroot 系统调用将子目录变成根目录，达到视图级别的隔离；进程在 chroot 的帮助下可以具有独立的文件系统，对于这样的文件系统进行增删改查不会影响到其他进程；</li>
+<li>因为进程之间相互可见并且可以相互通信，使用 Namespace 技术来实现进程在资源的视图上进行隔离。在 chroot 和 Namespace 的帮助下，进程就能够运行在一个独立的环境下了；</li>
+<li>但在独立的环境下，进程所使用的还是同一个操作系统的资源，一些进程可能会侵蚀掉整个系统的资源。为了减少进程彼此之间的影响，可以通过 Cgroup 来限制其资源使用率，设置其能够使用的 CPU 以及内存量。</li>
+</ul>
+<p><strong>容器就是一个视图隔离、资源可限制、独立文件系统的进程集合。</strong>容器就是一个进程集合，它将系统的其他资源隔离开来，具有自己独立的资源视图。Docker 就是基于上述技术实现的。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/06/11/k8s&docker/Kubernetes%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/06/10/%E7%9B%AE%E5%BD%95%E5%BE%85%E5%AE%9A/leaf%E5%88%86%E5%B8%83%E5%BC%8Fid%E7%94%9F%E6%88%90-%E5%8F%B7%E6%AE%B5%E6%A8%A1%E5%BC%8F%E5%8E%9F%E7%90%86/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/06/10/%E7%9B%AE%E5%BD%95%E5%BE%85%E5%AE%9A/leaf%E5%88%86%E5%B8%83%E5%BC%8Fid%E7%94%9F%E6%88%90-%E5%8F%B7%E6%AE%B5%E6%A8%A1%E5%BC%8F%E5%8E%9F%E7%90%86/" class="post-title-link" itemprop="url">leaf分布式id生成-号段模式原理</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-06-10 00:00:00" itemprop="dateCreated datePublished" datetime="2024-06-10T00:00:00+08:00">2024-06-10</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%9B%AE%E5%BD%95%E5%BE%85%E5%AE%9A/" itemprop="url" rel="index"><span itemprop="name">目录待定</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>[toc]</p>
+<h2 id="基于mysql最简单分布式ID实现"><a href="#基于mysql最简单分布式ID实现" class="headerlink" title="基于mysql最简单分布式ID实现"></a>基于mysql最简单分布式ID实现</h2><p>mysql自带自增主键功能，我们可以建一个表，主键id设置成自增，然后需要获取id，就往该表中插入一条数据，获取一下新增id即可。<br>这种方式优点就是简单。缺点也很明显</p>
+<ul>
+<li>随着时间推移，表中数据越来越多，毕竟获得一个id就要插入一条数据。</li>
+<li>所有获取id的都去请求这个数据库，很显然，高并发场景下单机会很乏力。</li>
+</ul>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/06/10/%E7%9B%AE%E5%BD%95%E5%BE%85%E5%AE%9A/leaf%E5%88%86%E5%B8%83%E5%BC%8Fid%E7%94%9F%E6%88%90-%E5%8F%B7%E6%AE%B5%E6%A8%A1%E5%BC%8F%E5%8E%9F%E7%90%86/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/06/09/Spring/spring%20boot/%E8%87%AA%E5%8A%A8%E9%85%8D%E7%BD%AE%E6%B3%A8%E8%A7%A3@EnableAutoConfiguration%E8%A7%A3%E5%AF%86/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/06/09/Spring/spring%20boot/%E8%87%AA%E5%8A%A8%E9%85%8D%E7%BD%AE%E6%B3%A8%E8%A7%A3@EnableAutoConfiguration%E8%A7%A3%E5%AF%86/" class="post-title-link" itemprop="url">自动配置注解@EnableAutoConfiguration解密</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-06-09 00:00:00" itemprop="dateCreated datePublished" datetime="2024-06-09T00:00:00+08:00">2024-06-09</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/Spring-Boot/" itemprop="url" rel="index"><span itemprop="name">Spring Boot</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>&emsp;&emsp;Spring boot为了自动配置，增加了注解<code>@EnableAutoConfiguration</code>。一般只需要配置<code>@SpringBootApplication</code>即可，为什么呢？</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Target(ElementType.TYPE)</span></span><br><span class="line"><span class="meta">@Retention(RetentionPolicy.RUNTIME)</span></span><br><span class="line"><span class="meta">@Documented</span></span><br><span class="line"><span class="meta">@Inherited</span></span><br><span class="line"><span class="meta">@SpringBootConfiguration</span></span><br><span class="line"><span class="meta">@EnableAutoConfiguration</span></span><br><span class="line"><span class="meta">@ComponentScan(excludeFilters = &#123;</span></span><br><span class="line"><span class="meta">		@Filter(type = FilterType.CUSTOM, classes = TypeExcludeFilter.class),</span></span><br><span class="line"><span class="meta">		@Filter(type = FilterType.CUSTOM, classes = AutoConfigurationExcludeFilter.class) &#125;)</span></span><br><span class="line"><span class="keyword">public</span> <span class="meta">@interface</span> SpringBootApplication &#123;</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;很明显的，这个注解就是三个常用的注解<code>@SpringBootConfiguration</code>，<code>@EnableAutoConfiguration</code>以及<code>@ComponentScan</code>组合在一起。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/06/09/Spring/spring%20boot/%E8%87%AA%E5%8A%A8%E9%85%8D%E7%BD%AE%E6%B3%A8%E8%A7%A3@EnableAutoConfiguration%E8%A7%A3%E5%AF%86/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/06/08/Java/Java%E8%BF%9B%E9%98%B6/%E9%80%9A%E8%BF%87%E6%96%B9%E6%B3%95%E5%BC%95%E7%94%A8%E8%8E%B7%E5%8F%96%E5%B1%9E%E6%80%A7%E5%90%8D%E7%9A%84%E5%BA%95%E5%B1%82%E9%80%BB%E8%BE%91%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/06/08/Java/Java%E8%BF%9B%E9%98%B6/%E9%80%9A%E8%BF%87%E6%96%B9%E6%B3%95%E5%BC%95%E7%94%A8%E8%8E%B7%E5%8F%96%E5%B1%9E%E6%80%A7%E5%90%8D%E7%9A%84%E5%BA%95%E5%B1%82%E9%80%BB%E8%BE%91%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F/" class="post-title-link" itemprop="url">通过方法引用获取属性名的底层逻辑是什么？</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-06-08 00:00:00" itemprop="dateCreated datePublished" datetime="2024-06-08T00:00:00+08:00">2024-06-08</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/" itemprop="url" rel="index"><span itemprop="name">Java进阶</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>在用MyBatis-Plus时，构造 where 条件的时候，可以直接通过方法引用的方式去指定属性名：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">LambdaQueryWrapper&lt;Book&gt; qw = <span class="keyword">new</span> <span class="title class_">LambdaQueryWrapper</span>&lt;&gt;();</span><br><span class="line">qw.eq(Book::getId, <span class="number">2</span>);</span><br><span class="line">List&lt;Book&gt; list = bookMapper.selectList(qw);</span><br><span class="line">System.out.println(<span class="string">&quot;list = &quot;</span> + list);</span><br></pre></td></tr></table></figure>
+
+<p><code>Book::getId</code>这就是方法引用，为什么 MP 通过 <code>Book::getId</code> 就可以识别出来这里的属性名。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/06/08/Java/Java%E8%BF%9B%E9%98%B6/%E9%80%9A%E8%BF%87%E6%96%B9%E6%B3%95%E5%BC%95%E7%94%A8%E8%8E%B7%E5%8F%96%E5%B1%9E%E6%80%A7%E5%90%8D%E7%9A%84%E5%BA%95%E5%B1%82%E9%80%BB%E8%BE%91%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/06/07/Spring/spring%20boot/Spring%E4%BD%BF%E7%94%A8TransactionalEventListener%E8%A7%A3%E5%86%B3%E4%BA%8B%E5%8A%A1%E6%9C%AA%E6%8F%90%E4%BA%A4%E8%AF%BB%E5%8F%96%E4%B8%8D%E5%88%B0%E6%95%B0%E6%8D%AE%E9%97%AE%E9%A2%98/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/06/07/Spring/spring%20boot/Spring%E4%BD%BF%E7%94%A8TransactionalEventListener%E8%A7%A3%E5%86%B3%E4%BA%8B%E5%8A%A1%E6%9C%AA%E6%8F%90%E4%BA%A4%E8%AF%BB%E5%8F%96%E4%B8%8D%E5%88%B0%E6%95%B0%E6%8D%AE%E9%97%AE%E9%A2%98/" class="post-title-link" itemprop="url">Spring使用TransactionalEventListener解决事务未提交读取不到数据问题</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-06-07 00:00:00" itemprop="dateCreated datePublished" datetime="2024-06-07T00:00:00+08:00">2024-06-07</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/Spring-Boot/" itemprop="url" rel="index"><span itemprop="name">Spring Boot</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="1-背景"><a href="#1-背景" class="headerlink" title="1 背景"></a><strong>1 背景</strong></h2><p>业务处理过程，发现了以下问题，代码一是原代码能正常执行，代码二是经过迭代一次非正常执行代码。</p>
+<p>代码一：以下代码开启线程后，代码正常执行：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">ThreadPoolExecutor</span> <span class="variable">executor</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ThreadPoolExecutor</span>(<span class="number">5</span>, <span class="number">10</span>, <span class="number">200</span>, TimeUnit.MILLISECONDS,</span><br><span class="line">                                                     <span class="keyword">new</span> <span class="title class_">ArrayBlockingQueue</span>&lt;Runnable&gt;(<span class="number">5</span>));</span><br><span class="line"></span><br><span class="line"><span class="meta">@Transactional</span></span><br><span class="line"><span class="keyword">public</span> Long <span class="title function_">test</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="comment">// ......</span></span><br><span class="line">    <span class="comment">// 插入记录</span></span><br><span class="line">    <span class="type">Long</span> <span class="variable">studentId</span> <span class="operator">=</span> studentService.insert(student);</span><br><span class="line">    <span class="comment">// 异步线程</span></span><br><span class="line">    writeStatisticsData(studentId);</span><br><span class="line">    <span class="keyword">return</span> studentId;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">writeStatisticsData</span><span class="params">(Long studentId)</span> &#123;</span><br><span class="line">    executor.execute(() -&gt; &#123;</span><br><span class="line">        <span class="type">Student</span> <span class="variable">student</span> <span class="operator">=</span> studentService.findById(studentId);</span><br><span class="line">        <span class="comment">//........</span></span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>代码二：以下代码开启线程后，代码不正常执行（获取不到student对象了）:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Transactional</span></span><br><span class="line"><span class="keyword">public</span> Long <span class="title function_">test</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="comment">// ......</span></span><br><span class="line">    <span class="comment">// 插入记录</span></span><br><span class="line">    <span class="type">Long</span> <span class="variable">studentId</span> <span class="operator">=</span> studentService.insert(student);</span><br><span class="line">    <span class="comment">// 异步线程</span></span><br><span class="line">    writeStatisticsData(studentId);</span><br><span class="line">    <span class="comment">// 插入学生地址记录</span></span><br><span class="line">    <span class="type">Long</span> <span class="variable">addressId</span> <span class="operator">=</span> addressService.insert(address);</span><br><span class="line">    <span class="keyword">return</span> studentId;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">writeStatisticsData</span><span class="params">(Long studentId)</span> &#123;</span><br><span class="line">    executor.execute(() -&gt; &#123;</span><br><span class="line">        <span class="type">Student</span> <span class="variable">student</span> <span class="operator">=</span> studentService.findById(studentId);</span><br><span class="line">        <span class="comment">//........</span></span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/06/07/Spring/spring%20boot/Spring%E4%BD%BF%E7%94%A8TransactionalEventListener%E8%A7%A3%E5%86%B3%E4%BA%8B%E5%8A%A1%E6%9C%AA%E6%8F%90%E4%BA%A4%E8%AF%BB%E5%8F%96%E4%B8%8D%E5%88%B0%E6%95%B0%E6%8D%AE%E9%97%AE%E9%A2%98/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/06/06/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%8F%AF%E8%A7%82%E6%B5%8B/%E4%BB%8EOpentracing%E3%80%81OpenCensus%20%E5%88%B0%20OpenTelemetry%EF%BC%8C%E7%9C%8B%E5%8F%AF%E8%A7%82%E6%B5%8B%E6%95%B0%E6%8D%AE%E6%A0%87%E5%87%86%E6%BC%94%E8%BF%9B%E5%8F%B2/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/06/06/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%8F%AF%E8%A7%82%E6%B5%8B/%E4%BB%8EOpentracing%E3%80%81OpenCensus%20%E5%88%B0%20OpenTelemetry%EF%BC%8C%E7%9C%8B%E5%8F%AF%E8%A7%82%E6%B5%8B%E6%95%B0%E6%8D%AE%E6%A0%87%E5%87%86%E6%BC%94%E8%BF%9B%E5%8F%B2/" class="post-title-link" itemprop="url">从Opentracing、OpenCensus 到 OpenTelemetry，看可观测数据标准演进史</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-06-06 00:00:00" itemprop="dateCreated datePublished" datetime="2024-06-06T00:00:00+08:00">2024-06-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/" itemprop="url" rel="index"><span itemprop="name">分布式与微服务</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%8F%AF%E8%A7%82%E6%B5%8B/" itemprop="url" rel="index"><span itemprop="name">可观测</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>[toc]</p>
+<h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>&emsp;&emsp;伴随着分布式应用、Serverless 应用被越来越多开发者及企业所接受，但其背后所隐藏的运维问题也逐渐凸显出来–微服务架构中请求链路过长从而导致问题定位时间长，运维想要日常监控也非常困难。以一个具体问题举例，在分布式应用中完成一个单一用户请求可能会需要多个不同的微服务处理，这其中任何一个服务失败或性能拉垮，都会对用户请求响应造成极大影响。随着业务不断扩张，这个调用链也越来越复杂。仅凭借打印日志或 APM 性能监控很难做到全景浏览或者一竿到底。对于问题排查或性能分析时，这无异于盲人摸象。</p>
+<p>&emsp;&emsp;面对这样的问题，Google 发表了论文《“Dapper - a Large-Scale Distributed Systems Tracing Infrastructure”》介绍他们的分布式跟踪技术，并认为分布式跟踪系统应该满足以下业务需求：</p>
+<ul>
+<li>性能低损耗： 分布式跟踪系统对服务的性能损耗应尽可能做到忽略不计，尤其是那些对性能敏感的应用。</li>
+<li>低侵入： 尽可能做到业务代码的低侵入或无侵入。</li>
+<li>快速扩展：能够随着业务或微服务规模快速扩大。</li>
+<li>实时展现：低延时采集数据，实时监控系统，对系统的异常状况作出快速的反应。</li>
+</ul>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/06/06/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%8F%AF%E8%A7%82%E6%B5%8B/%E4%BB%8EOpentracing%E3%80%81OpenCensus%20%E5%88%B0%20OpenTelemetry%EF%BC%8C%E7%9C%8B%E5%8F%AF%E8%A7%82%E6%B5%8B%E6%95%B0%E6%8D%AE%E6%A0%87%E5%87%86%E6%BC%94%E8%BF%9B%E5%8F%B2/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/06/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%8F%AF%E8%A7%82%E6%B5%8B/%E7%AE%80%E8%BF%B0OpenTracing%E4%B8%8EOpenTelemetry%E7%9A%84%E5%88%86%E5%88%AB/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/06/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%8F%AF%E8%A7%82%E6%B5%8B/%E7%AE%80%E8%BF%B0OpenTracing%E4%B8%8EOpenTelemetry%E7%9A%84%E5%88%86%E5%88%AB/" class="post-title-link" itemprop="url">简述OpenTracing与OpenTelemetry的分别</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-06-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-06-05T00:00:00+08:00">2024-06-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/" itemprop="url" rel="index"><span itemprop="name">分布式与微服务</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%8F%AF%E8%A7%82%E6%B5%8B/" itemprop="url" rel="index"><span itemprop="name">可观测</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>[toc]</p>
+<p>OpenTracing作为调用链规范标准，在实际使用的过程，也有了一些使用上的痛点，例如：</p>
+<ul>
+<li>光依据调用链无法很好的定位问题；</li>
+<li>调用链与日志系统关联性差，定位具体问题耗时较长；</li>
+<li>切换数据后端成本较高；</li>
+<li>内部团队有些使用的规范不同，需要适配多套规范；</li>
+</ul>
+<p>业界也开始寻找是否有更优的解决方案，OpenTelemetry逐渐突显出来。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/06/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%8F%AF%E8%A7%82%E6%B5%8B/%E7%AE%80%E8%BF%B0OpenTracing%E4%B8%8EOpenTelemetry%E7%9A%84%E5%88%86%E5%88%AB/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/06/01/k8s&docker/%E4%BB%80%E4%B9%88%E6%98%AF%E5%85%83%E5%8E%9F%E7%94%9F/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/06/01/k8s&docker/%E4%BB%80%E4%B9%88%E6%98%AF%E5%85%83%E5%8E%9F%E7%94%9F/" class="post-title-link" itemprop="url">什么是元原生</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-06-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-06-01T00:00:00+08:00">2024-06-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/k8s-docker/" itemprop="url" rel="index"><span itemprop="name">k8s&docker</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>[toc]</p>
+<h1 id="一、云原生是什么"><a href="#一、云原生是什么" class="headerlink" title="一、云原生是什么"></a>一、云原生是什么</h1><p>要理解云原生，可以把云原生拆分为云和原生两部分。<br><strong>云</strong><br>云原生的“云”代表“云计算”，因此在了解云原生之前，需要先了解云计算。</p>
+<p>云计算的字面意义是通过互联网提供计算资源，其中最为基础的计算资源就是服务器、存储、网络资源等，这些资源是互联网世界的基础设施，因此提供这些资源的租用的服务就叫做 IaaS（Infrastructure as a Service）。显而易见，这些基础设施服务供应商都是业界大佬：AWS（亚马逊云）、Azure（微软云）、阿里云、谷歌云、IBM 云、腾讯云、华为云等。</p>
+<p>供应商将大量的基础设施进行统一管理，通过虚拟化等技术手段，形成巨大的可动态分配资源池，大大促进了物理资源的利用率，因此也使得租用成本降低。企业只需要按照使用量进行付费，再不用付出昂贵的设施购买、维护成本。除此之外，云服务还有可随时按需伸缩容量、备份恢复简单、快速部署易于集成等优点。</p>
+<p>云资源不仅包含基础设施，在云上搭建的开发平台、应用等都可以作为一种服务提供给用户，这就是Paas（Platform as a Service）和 SaaS（Software as a Service）。根据云服务的开放范围，又可以分为公有云、私有云、混合云。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/06/01/k8s&docker/%E4%BB%80%E4%B9%88%E6%98%AF%E5%85%83%E5%8E%9F%E7%94%9F/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%B9%B3%E6%BB%91%E6%89%A9%E5%AE%B9%E6%96%B9%E6%A1%88/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%B9%B3%E6%BB%91%E6%89%A9%E5%AE%B9%E6%96%B9%E6%A1%88/" class="post-title-link" itemprop="url">数据库平滑扩容方案</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-06 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-06T00:00:00+08:00">2024-04-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93-%E7%BC%93%E5%AD%98/" itemprop="url" rel="index"><span itemprop="name">数据库&缓存</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>[toc]<br>每一个项目都是由小项目发展而来，从最初的一台数据库，到后面的几千上万台数据库，这发展的过程，都要涉及到一个技术问题：当数据量太大的时候，如何进行扩容？</p>
+<p>现有一个站点，用户数据库有2个，网站用户数据通过<strong>ID取模</strong>，分别存在两台用户数据库中，随着数据增大，两台数据库已经不够用了，现在需要增加数据库进行扩容，应该如何进行扩容？<br><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407141123333.jpg" alt="https://pic3.zhimg.com/80/v2-68ca415a69cbefb1002bf7a08a0c9154_hd.jpg"></p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%B9%B3%E6%BB%91%E6%89%A9%E5%AE%B9%E6%96%B9%E6%A1%88/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8/" class="post-title-link" itemprop="url">数据库分库分表</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-06 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-06T00:00:00+08:00">2024-04-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93-%E7%BC%93%E5%AD%98/" itemprop="url" rel="index"><span itemprop="name">数据库&缓存</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>[toc]</p>
+<h3 id="一、-MySQL扩展具体的实现方式"><a href="#一、-MySQL扩展具体的实现方式" class="headerlink" title="一、 MySQL扩展具体的实现方式"></a>一、 MySQL扩展具体的实现方式</h3><p>&emsp;&emsp;随着业务规模的不断扩大，需要选择合适的方案去应对数据规模的增长，以应对逐渐增长的访问压力和数据量。<br>&emsp;&emsp;关于数据库的扩展主要包括：<strong>业务拆分</strong>、<strong>主从复制</strong>，<strong>数据库分库与分表</strong>。这篇文章主要讲述数据库分库与分表。</p>
+<p>（1）业务拆分<br>&emsp;&emsp;业务起步初始，为了加快应用上线和快速迭代，很多应用都采用集中式的架构。随着业务系统的扩大，系统变得越来越复杂，越来越难以维护，开发效率变得越来越低，并且对资源的消耗也变得越来越大，通过硬件提高系统性能的方式带来的成本也越来越高。<br>&emsp;&emsp;因此，在选型初期，一个优良的架构设计是后期系统进行扩展的重要保障。例如：电商平台，包含了用户、商品、评价、订单等几大模块，最简单的做法就是在一个数据库中分别创建users、shops、comment、order四张表。<br>&emsp;&emsp;但是，随着业务规模的增大，访问量的增大，我们不得不对业务进行拆分。每一个模块都使用单独的数据库来进行存储，不同的业务访问不同的数据库，将原本对一个数据库的依赖拆分为对4个数据库的依赖，这样的话就变成了4个数据库同时承担压力，系统的吞吐量自然就提高了。</p>
+<p>（2）主从复制<br>&emsp;&emsp;MySQL主从复制的原理：数据复制的实际就是Slave从Master获取Binary log文件，然后再本地镜像的执行日志中记录的操作。由于主从复制的过程是异步的，因此Slave和Master之间的数据有可能存在延迟的现象，此时只能保证数据最终的一致性。</p>
+<p>（3）数据库分库与分表<br>&emsp;&emsp;每台机器都有自身的物理上限，所以当应用已经能触及或远远超出单台机器的某个上限的时候，惟有寻找别的机器的帮助或者继续升级硬件，但常见的方案还是通过添加更多的机器来共同承担压力。<br>&emsp;&emsp;还得考虑当业务逻辑不断增长，机器能不能通过线性增长就能满足需求？因此，使用数据库的分库分表，能够立竿见影的提升系统的性能。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+
+  
+  <nav class="pagination">
+    <a class="extend prev" rel="prev" href="/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="page-number current">2</span><a class="page-number" href="/page/3/">3</a><span class="space">&hellip;</span><a class="page-number" href="/page/14/">14</a><a class="extend next" rel="next" href="/page/3/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+  </nav>
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

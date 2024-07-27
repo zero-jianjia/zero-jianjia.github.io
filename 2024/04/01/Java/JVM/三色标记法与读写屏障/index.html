@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="[toc] 1. 垃圾回收的简单回顾关于垃圾回收算法，基本就是那么几种：标记-清除、标记-复制、标记-整理。在此基础上可以增加分代（新生代&#x2F;老年代），每代采取不同的回收算法，以提高整体的分配和回收效率。 无论使用哪种算法，标记总是必要的一步。垃圾回收器的工作流程大体如下：   标记出哪些对象是存活的，哪些是垃圾（可回收）；    进行回收（清除&#x2F;复制&#x2F;整理），如果有移">
+<meta property="og:type" content="article">
+<meta property="og:title" content="三色标记法与读写屏障">
+<meta property="og:url" content="http://example.com/2024/04/01/Java/JVM/%E4%B8%89%E8%89%B2%E6%A0%87%E8%AE%B0%E6%B3%95%E4%B8%8E%E8%AF%BB%E5%86%99%E5%B1%8F%E9%9A%9C/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="[toc] 1. 垃圾回收的简单回顾关于垃圾回收算法，基本就是那么几种：标记-清除、标记-复制、标记-整理。在此基础上可以增加分代（新生代&#x2F;老年代），每代采取不同的回收算法，以提高整体的分配和回收效率。 无论使用哪种算法，标记总是必要的一步。垃圾回收器的工作流程大体如下：   标记出哪些对象是存活的，哪些是垃圾（可回收）；    进行回收（清除&#x2F;复制&#x2F;整理），如果有移">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291128129.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291131390.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291135285.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291137318.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291138538.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291138660.png">
+<meta property="article:published_time" content="2024-03-31T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.346Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291128129.webp">
+
+<link rel="canonical" href="http://example.com/2024/04/01/Java/JVM/%E4%B8%89%E8%89%B2%E6%A0%87%E8%AE%B0%E6%B3%95%E4%B8%8E%E8%AF%BB%E5%86%99%E5%B1%8F%E9%9A%9C/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>三色标记法与读写屏障 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Java/JVM/%E4%B8%89%E8%89%B2%E6%A0%87%E8%AE%B0%E6%B3%95%E4%B8%8E%E8%AF%BB%E5%86%99%E5%B1%8F%E9%9A%9C/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          三色标记法与读写屏障
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/JVM/" itemprop="url" rel="index"><span itemprop="name">JVM</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>[toc]</p>
+<h2 id="1-垃圾回收的简单回顾"><a href="#1-垃圾回收的简单回顾" class="headerlink" title="1. 垃圾回收的简单回顾"></a>1. 垃圾回收的简单回顾</h2><p>关于垃圾回收算法，基本就是那么几种：标记-清除、标记-复制、标记-整理。在此基础上可以增加分代（新生代&#x2F;老年代），每代采取不同的回收算法，以提高整体的分配和回收效率。</p>
+<p>无论使用哪种算法，<strong>标记总是必要的一步</strong>。垃圾回收器的工作流程大体如下：</p>
+<ul>
+<li><ol>
+<li><strong>标记</strong>出哪些对象是存活的，哪些是垃圾（可回收）；</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>进行<strong>回收</strong>（清除&#x2F;复制&#x2F;整理），如果有移动过对象（复制&#x2F;整理），还需要更新引用。</li>
+</ol>
+</li>
+</ul>
+<p>本文着重来看下<strong>标记</strong>的部分的。CMS和G1都使用了三色标记法。</p>
+<span id="more"></span>
+
+<h2 id="2-三色标记法"><a href="#2-三色标记法" class="headerlink" title="2. 三色标记法"></a>2. 三色标记法</h2><h3 id="2-1-基本算法"><a href="#2-1-基本算法" class="headerlink" title="2.1 基本算法"></a>2.1 基本算法</h3><p>要找出存活对象，根据可达性分析，从GC Roots开始进行遍历访问，可达的则为存活对象：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291128129.webp"></p>
+<p>最终结果：A&#x2F;D&#x2F;E&#x2F;F&#x2F;G 可达。</p>
+<p>我们把遍历对象图<strong>过程</strong>中遇到的对象，按“是否访问过”这个条件标记成以下三种颜色：</p>
+<ul>
+<li><strong>白色</strong>：尚未访问过。</li>
+<li><strong>黑色</strong>：本对象已访问过，而且本对象 引用到 的其他对象 也全部访问过了。</li>
+<li><strong>灰色</strong>：本对象已访问过，但是本对象 引用到 的其他对象 尚未全部访问完。全部访问后，会转换为黑色。</li>
+</ul>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291131390.webp"></p>
+<p>&emsp;&emsp;<br><strong>三色标记遍历过程：</strong><br>假设现在有白、灰、黑三个集合（表示当前对象的颜色），其遍历访问过程为：</p>
+<ol>
+<li>初始时，所有对象都在 【白色集合】中；</li>
+<li>将GC Roots 直接引用到的对象 挪到 【灰色集合】中；</li>
+<li>从灰色集合中获取对象：<br> 3.1.  将本对象 引用到的 其他对象 全部挪到 【灰色集合】中；<br> 3.2.  将本对象 挪到 【黑色集合】里面。</li>
+<li>重复步骤3，直至【灰色集合】为空时结束。</li>
+<li>结束后，仍在【白色集合】的对象即为GC Roots 不可达，可以进行回收。</li>
+</ol>
+<blockquote>
+<p>注：如果标记结束后对象仍为白色，意味着已经“找不到”该对象在哪了，不可能会再被重新引用。</p>
+</blockquote>
+<p>当Stop The World （以下简称 STW）时，对象间的引用 是不会发生变化的，可以轻松完成标记。而当需要支持并发标记时，即标记期间应用线程还在继续跑，<strong>对象间的引用可能发生变化</strong>，<strong>多标</strong>和<strong>漏标</strong>的情况就有可能发生。</p>
+<p>&emsp;&emsp;</p>
+<h3 id="2-2-多标-浮动垃圾"><a href="#2-2-多标-浮动垃圾" class="headerlink" title="2.2 多标-浮动垃圾"></a>2.2 多标-浮动垃圾</h3><p>假设已经遍历到E（变为灰色了），此时应用执行了 <code>objD.fieldE = null</code> ：D &gt; E 的引用断开。</p>
+<img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291135285.png" style="zoom:50%;" />
+
+
+
+<p>此刻之后，对象E&#x2F;F&#x2F;G是“应该”被回收的。然而因为<strong>E已经变为灰色</strong>了，其仍会被<strong>当作存活对象</strong>继续遍历下去。最终的结果是：这部分对象仍会被标记为存活，即<strong>本轮GC不会回收这部分内存</strong>。</p>
+<p>这部分本应该回收 但是 没有回收到的内存，被称之为“<strong>浮动垃圾</strong>”。浮动垃圾并不会影响应用程序的正确性，只是需要等到下一轮垃圾回收中才被清除。</p>
+<p>另外，针对并发标记开始后的<strong>新对象</strong>，通常的做法是直接全部<strong>当成黑色</strong>，本轮不会进行清除。这部分对象期间可能会变为垃圾，这也算是浮动垃圾的一部分。</p>
+<p>&emsp;&emsp;</p>
+<h3 id="2-3-漏标-读写屏障"><a href="#2-3-漏标-读写屏障" class="headerlink" title="2.3 漏标-读写屏障"></a>2.3 漏标-读写屏障</h3><p>假设GC线程已经遍历到E（变为灰色了），此时应用线程先执行了：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">var</span> <span class="variable">G</span> <span class="operator">=</span> objE.fieldG; </span><br><span class="line">objE.fieldG = <span class="literal">null</span>;  <span class="comment">// 灰色E 断开引用 白色G </span></span><br><span class="line">objD.fieldG = G;  <span class="comment">// 黑色D 引用 白色G</span></span><br></pre></td></tr></table></figure>
+<p>E &gt; G 断开，D引用 G。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291137318.webp"></p>
+<p>此时切回GC线程继续跑，因为<strong>E已经没有对G的引用了，所以不会将G放到灰色集合</strong>；尽管因为D重新引用了G，但因为<strong>D已经是黑色</strong>了，不会再重新做遍历处理。<br>最终导致的结果是：G会一直停留在白色集合中，<strong>最后被当作垃圾进行清除</strong>。这直接<strong>影响到了应用程序的正确性</strong>，是不可接受的。</p>
+<hr>
+<p>不难分析，漏标只有<strong>同时满足</strong>以下两个条件时才会发生：</p>
+<blockquote>
+<ul>
+<li>条件一：灰色对象 断开了 白色对象的引用（直接或间接的引用）；即灰色对象 原来成员变量的引用 发生了变化。</li>
+<li>条件二：黑色对象 重新引用了 该白色对象；即黑色对象 成员变量增加了 新的引用。</li>
+</ul>
+</blockquote>
+<p>从<strong>代码的角度</strong>看：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">var</span> <span class="variable">G</span> <span class="operator">=</span> objE.fieldG; <span class="comment">// 1.读</span></span><br><span class="line">objE.fieldG = <span class="literal">null</span>;  <span class="comment">// 2.写</span></span><br><span class="line">objD.fieldG = G;     <span class="comment">// 3.写</span></span><br></pre></td></tr></table></figure>
+
+<ol>
+<li><strong>读取</strong> 对象E的成员变量fieldG的引用值，即对象G；</li>
+<li>对象E 往其成员变量fieldG，<strong>写入</strong> null值。</li>
+<li>对象D 往其成员变量fieldG，<strong>写入</strong> 对象G ；</li>
+</ol>
+<p>我们只要在上面这三步中的任意一步中做一些“手脚”，<strong>将对象G记录起来，然后作为灰色对象再进行遍历</strong>即可。比如放到一个特定的集合，等初始的GC Roots遍历完（并发标记），该集合的对象 遍历即可（重新标记）。</p>
+<blockquote>
+<p><strong>重新标记是需要STW的</strong>，因为应用程序一直在跑的话，该集合可能会一直增加新的对象，导致永远都跑不完。当然，并发标记期间也可以将该集合中的大部分先跑了，从而缩短重新标记STW的时间，这个是优化问题了。</p>
+</blockquote>
+<p>写屏障用于拦截第二和第三步；而读屏障则是拦截第一步。它们的拦截的目的很简单：就是在读写前后，将对象G给记录下来。</p>
+<p>&emsp;&emsp;</p>
+<h4 id="2-3-1-写屏障（Store-Barrier）"><a href="#2-3-1-写屏障（Store-Barrier）" class="headerlink" title="2.3.1 写屏障（Store Barrier）"></a>2.3.1 写屏障（Store Barrier）</h4><p>给某个对象的成员变量赋值时，其底层代码大概长这样：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment">* @param field 某对象的成员变量，如 D.fieldG</span></span><br><span class="line"><span class="comment">* @param new_value 新值，如 null</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">oop_field_store</span><span class="params">(oop* field, oop new_value)</span> &#123; </span><br><span class="line">    *field = new_value; <span class="comment">// 赋值操作</span></span><br><span class="line">&#125; </span><br></pre></td></tr></table></figure>
+<p>所谓的写屏障，其实就是指在赋值操作前后，加入一些处理（可以参考AOP的概念）：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">oop_field_store</span><span class="params">(oop* field, oop new_value)</span> &#123;  </span><br><span class="line">    pre_write_barrier(field); <span class="comment">// 写屏障-写前操作</span></span><br><span class="line">    *field = new_value; </span><br><span class="line">    post_write_barrier(field, value);  <span class="comment">// 写屏障-写后操作</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h5 id="1-写屏障-增量更新"><a href="#1-写屏障-增量更新" class="headerlink" title="(1) 写屏障 + 增量更新"></a>(1) 写屏障 + 增量更新</h5><p>当对象D的成员变量的引用发生变化时（<code>objD.fieldG = G;</code>），我们可以利用写屏障，将D<strong>新的成员变量引用</strong>对象G记录下来：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">post_write_barrier</span><span class="params">(oop* field, oop new_value)</span> &#123;  </span><br><span class="line">  <span class="keyword">if</span>($gc_phase == GC_CONCURRENT_MARK &amp;&amp; !isMarkd(field)) &#123;</span><br><span class="line">      remark_set.add(new_value); <span class="comment">// 记录新引用的对象</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>【<strong>当有新引用插入进来时，记录下新的引用对象</strong>】<br>这种做法的思路是：<strong>针对新增的引用</strong>，将其记录下来等待遍历，即增量更新（Incremental Update）。达到的效果是D由黑色变灰色。</p>
+<blockquote>
+<p>增量更新破坏了条件二：【黑色对象 重新引用了 该白色对象】，从而保证了不会漏标。</p>
+</blockquote>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291138538.png"></p>
+<h5 id="2-写屏障-SATB"><a href="#2-写屏障-SATB" class="headerlink" title="(2) 写屏障 + SATB"></a>(2) 写屏障 + SATB</h5><p>当对象E的成员变量的引用发生变化时（<code>objE.fieldG = null;</code>），我们可以利用写屏障，将E<strong>原来成员变量的引用</strong>对象G记录下来：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">pre_write_barrier</span><span class="params">(oop* field)</span> &#123;</span><br><span class="line">    oop old_value = *field; <span class="comment">// 获取旧值</span></span><br><span class="line">    remark_set.add(old_value); <span class="comment">// 记录 原来的引用对象</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>【当<strong>原来成员变量的引用发生变化之前，记录下原来的引用对象</strong>】<br>这种做法的思路是：<strong>尝试保留开始时的对象图，即原始快照（Snapshot At The Beginning，SATB）</strong>，当<strong>某个时刻</strong> 的GC Roots确定后，<strong>当时</strong>的对象图就已经确定了。<br>比如 <strong>当时</strong> D是引用着G的，那后续的标记也应该是按照这个时刻的对象图走（D引用着G）。如果期间发生变化，则可以记录起来，保证标记依然按照原本的视图来。</p>
+<blockquote>
+<p>SATB破坏了条件一：【灰色对象 断开了 白色对象的引用】，从而保证了不会漏标。</p>
+</blockquote>
+<hr>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291138660.png"></p>
+<p>使用SATB的原因：<br>1.因为增量更新会在重新标记的时候将从黑色变成灰色的对象在扫描一遍，会更费时。<br>2.使用SATB就会大大减少扫描对象，原因是只多扫描在GC堆栈中发生改变的引用（和G1的一个RSet进行配合，RSet为每个）</p>
+<h4 id="2-3-2-读屏障（Load-Barrier）"><a href="#2-3-2-读屏障（Load-Barrier）" class="headerlink" title="2.3.2 读屏障（Load Barrier）"></a>2.3.2 读屏障（Load Barrier）</h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">oop <span class="title function_">oop_field_load</span><span class="params">(oop* field)</span> &#123;</span><br><span class="line">    pre_load_barrier(field); <span class="comment">// 读屏障-读取前操作</span></span><br><span class="line">    <span class="keyword">return</span> *field;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>读屏障是直接针对第一步：<code>var G = objE.fieldG;</code>，当读取成员变量时，一律记录下来：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">pre_load_barrier</span><span class="params">(oop* field, oop old_value)</span> &#123;  </span><br><span class="line">  <span class="keyword">if</span>($gc_phase == GC_CONCURRENT_MARK &amp;&amp; !isMarkd(field)) &#123;</span><br><span class="line">      oop old_value = *field;</span><br><span class="line">      remark_set.add(old_value); <span class="comment">// 记录读取到的对象</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这种做法是保守的，但也是安全的。因为条件二中【黑色对象 重新引用了 该白色对象】，重新引用的前提是：得获取到该白色对象，此时已经读屏障就发挥作用了。</p>
+<p>&emsp;&emsp;</p>
+<h3 id="2-4-三色标记法与现代垃圾回收器"><a href="#2-4-三色标记法与现代垃圾回收器" class="headerlink" title="2.4 三色标记法与现代垃圾回收器"></a>2.4 三色标记法与现代垃圾回收器</h3><p>现代追踪式（可达性分析）的垃圾回收器几乎都借鉴了三色标记的算法思想，尽管实现的方式不尽相同：比如白色&#x2F;黑色集合一般都不会出现（但是有其他体现颜色的地方）、灰色集合可以通过栈&#x2F;队列&#x2F;缓存日志等方式进行实现、遍历方式可以是广度&#x2F;深度遍历等等。</p>
+<p>对于读写屏障，以Java HotSpot VM为例，其并发标记时对漏标的处理方案如下：</p>
+<ul>
+<li><strong>CMS：写屏障 + 增量更新</strong></li>
+<li><strong>G1：写屏障 + SATB</strong></li>
+<li><strong>ZGC：读屏障</strong></li>
+</ul>
+<p>工程实现中，读写屏障还有其他功能，比如写屏障可以用于记录跨代&#x2F;区引用的变化，读屏障可以用于支持移动对象的并发执行等。功能之外，还有性能的考虑，所以对于选择哪种，每款垃圾回收器都有自己的想法。</p>
+<blockquote>
+<p>值得注意的是，CMS中使用的增量更新，在重新标记阶段，除了需要遍历 写屏障的记录，还需要重新扫描遍历GC Roots（当然标记过的无需再遍历了），这是由于CMS对于astore_x等指令不添加写屏障的原因，具体可参考<a target="_blank" rel="noopener" href="https://links.jianshu.com/go?to=https://hllvm-group.iteye.com/group/topic/44529">这里</a>。</p>
+</blockquote>
+<hr>
+<p>转载自：<a target="_blank" rel="noopener" href="https://www.jianshu.com/u/b5a7e092f589">https://www.jianshu.com/u/b5a7e092f589</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/04/01/Java/JVM/%E5%86%85%E5%AD%98%E6%BA%A2%E5%87%BA%E7%9A%84%E5%87%A0%E7%A7%8D%E5%8E%9F%E5%9B%A0%E5%92%8C%E8%A7%A3%E5%86%B3%E5%8A%9E%E6%B3%95/" rel="prev" title="内存溢出的几种原因和解决办法">
+      <i class="fa fa-chevron-left"></i> 内存溢出的几种原因和解决办法
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/04/01/Java/JVM/stop%20the%20world%E6%A1%88%E4%BE%8B/" rel="next" title="stop the world案例">
+      stop the world案例 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E7%9A%84%E7%AE%80%E5%8D%95%E5%9B%9E%E9%A1%BE"><span class="nav-number">1.</span> <span class="nav-text">1. 垃圾回收的简单回顾</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E4%B8%89%E8%89%B2%E6%A0%87%E8%AE%B0%E6%B3%95"><span class="nav-number">2.</span> <span class="nav-text">2. 三色标记法</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E5%9F%BA%E6%9C%AC%E7%AE%97%E6%B3%95"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 基本算法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E5%A4%9A%E6%A0%87-%E6%B5%AE%E5%8A%A8%E5%9E%83%E5%9C%BE"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 多标-浮动垃圾</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-%E6%BC%8F%E6%A0%87-%E8%AF%BB%E5%86%99%E5%B1%8F%E9%9A%9C"><span class="nav-number">2.3.</span> <span class="nav-text">2.3 漏标-读写屏障</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-1-%E5%86%99%E5%B1%8F%E9%9A%9C%EF%BC%88Store-Barrier%EF%BC%89"><span class="nav-number">2.3.1.</span> <span class="nav-text">2.3.1 写屏障（Store Barrier）</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#1-%E5%86%99%E5%B1%8F%E9%9A%9C-%E5%A2%9E%E9%87%8F%E6%9B%B4%E6%96%B0"><span class="nav-number">2.3.1.1.</span> <span class="nav-text">(1) 写屏障 + 增量更新</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#2-%E5%86%99%E5%B1%8F%E9%9A%9C-SATB"><span class="nav-number">2.3.1.2.</span> <span class="nav-text">(2) 写屏障 + SATB</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-2-%E8%AF%BB%E5%B1%8F%E9%9A%9C%EF%BC%88Load-Barrier%EF%BC%89"><span class="nav-number">2.3.2.</span> <span class="nav-text">2.3.2 读屏障（Load Barrier）</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-%E4%B8%89%E8%89%B2%E6%A0%87%E8%AE%B0%E6%B3%95%E4%B8%8E%E7%8E%B0%E4%BB%A3%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E5%99%A8"><span class="nav-number">2.4.</span> <span class="nav-text">2.4 三色标记法与现代垃圾回收器</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

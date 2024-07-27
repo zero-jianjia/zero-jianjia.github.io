@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="当单线程应用程序中的主线程抛出一个未捕获的异常时，因为控制台中会打印堆栈跟踪（也因为程序停止），所以很可能注意到。但在多线程应用程序中，尤其是在作为服务器运行并且不与控制台相连的应用程序中，线程死亡可能成为不太引人注目的事件，这会导致局部系统失败，从而产生混乱的应用程序行为。 编写得不正确的线程池会“泄漏”线程，直到最终丢失所有线程。大多数线程池实现通过捕获抛出的异常或重新启动死亡的线程来防止这一">
+<meta property="og:type" content="article">
+<meta property="og:title" content="线程泄漏">
+<meta property="og:url" content="http://example.com/2024/03/11/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B&%E7%BA%BF%E7%A8%8B%E6%B1%A0/%E7%BA%BF%E7%A8%8B%E6%B3%84%E6%BC%8F/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="当单线程应用程序中的主线程抛出一个未捕获的异常时，因为控制台中会打印堆栈跟踪（也因为程序停止），所以很可能注意到。但在多线程应用程序中，尤其是在作为服务器运行并且不与控制台相连的应用程序中，线程死亡可能成为不太引人注目的事件，这会导致局部系统失败，从而产生混乱的应用程序行为。 编写得不正确的线程池会“泄漏”线程，直到最终丢失所有线程。大多数线程池实现通过捕获抛出的异常或重新启动死亡的线程来防止这一">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2024-03-10T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.557Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2024/03/11/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B&%E7%BA%BF%E7%A8%8B%E6%B1%A0/%E7%BA%BF%E7%A8%8B%E6%B3%84%E6%BC%8F/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>线程泄漏 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/11/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B&%E7%BA%BF%E7%A8%8B%E6%B1%A0/%E7%BA%BF%E7%A8%8B%E6%B3%84%E6%BC%8F/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          线程泄漏
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-03-11 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-11T00:00:00+08:00">2024-03-11</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/" itemprop="url" rel="index"><span itemprop="name">Java进阶</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B-%E7%BA%BF%E7%A8%8B%E6%B1%A0/" itemprop="url" rel="index"><span itemprop="name">线程&线程池</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>当单线程应用程序中的主线程抛出一个未捕获的异常时，因为控制台中会打印堆栈跟踪（也因为程序停止），所以很可能注意到。但在多线程应用程序中，尤其是在作为服务器运行并且不与控制台相连的应用程序中，线程死亡可能成为不太引人注目的事件，这会导致局部系统失败，从而产生混乱的应用程序行为。</p>
+<p>编写得不正确的线程池会“泄漏”线程，直到最终丢失所有线程。大多数线程池实现通过捕获抛出的异常或重新启动死亡的线程来防止这一点，但线程泄漏的问题并不仅限于线程池，使用线程来为工作队列提供服务的服务器应用程序也可能具有这种问题。当服务器应用程序丢失了一个工作线程（worker thread）时，在较长时间内应用程序仍可能显得一切正常，这使得该问题的真实原因难以确定。 </p>
+<p>许多应用程序用线程来提供后台服务：处理来自事件队列的任务、从套接字读取命令或执行UI线程以外的长期任务。当由于抛出未捕获的 RuntimeException 或 Error ，或者只是停下来，等待阻塞的 I&#x2F;O 操作（原本未预计到阻塞），从而引起这些线程之一死亡时，会发生什么呢？</p>
+<p>有时，譬如当线程执行由用户启动的长期任务（如拼写检查）时，用户会注意到任务没有进展，他们可能会异常终止操作或程序。但其它时间，后台线程执行“清理维护”任务 ，它们可能消失很长时间而不被察觉。</p>
+  <span id="more"></span>
+
+<p>服务器应用程序中的线程泄漏问题在于不是总是容易从外部检测它。因为大多数线程只处理服务器的部分工作负载，或可能仅处理特定类型的后台任务，所以当程序实际上遭遇严重故障时，在用户看来它仍在正常工作。这一点，再加上引起线程泄漏的因素并不总是留下明显痕迹，就会引起令人惊讶甚或使人迷惑的应用程序行为。</p>
+<p>当线程抛出未捕获的异常或错误时它们可能消失；而当线程等待的 I&#x2F;O 操作永远不会完成，或没人为它们等待的监视器调用 <code>notify() </code>时，它们只是停止工作。意外线程死亡的最常见根源是 <code>RuntimeException</code>（如<code>NullPointerException</code>、 <code>ArrayIndexOutOfBoundsException</code> 等）。在多线程应用程序中，由于未查出的异常，线程会无声无息地死亡，使得用户和开发人员对于发生的问题和为什么发生这些问题毫无头绪。</p>
+<p>所以，对于服务方法，我们应该怀疑，它是不是真好到可以假设它从不抛出未查出异常的程度。如果服务例程抛出 RuntimeException ，则调用线程应该捕获这个异常。</p>
+<p>示例一中的代码是典型的从工作队列处理 Runnable 任务的线程，<code>handleMessage()</code>方法可能抛出 RuntimeException。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">class</span> <span class="title class_">TrustingPoolWorker</span> <span class="keyword">extends</span> <span class="title class_">Thread</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">        IncomingResponse ir;</span><br><span class="line">        <span class="keyword">while</span> (<span class="literal">true</span>) &#123; </span><br><span class="line">            ir = (IncomingResponse) queue.getNext(); </span><br><span class="line">            <span class="type">PlugIn</span> <span class="variable">plugIn</span> <span class="operator">=</span> findPlugIn(ir.getResponseId()); </span><br><span class="line">            <span class="keyword">if</span> (plugIn != <span class="literal">null</span>) </span><br><span class="line">                plugIn.handleMessage(ir.getResponse()); </span><br><span class="line">            <span class="keyword">else</span> </span><br><span class="line">                log(<span class="string">&quot;Unknown plug-in for response &quot;</span> + ir.getResponseId());</span><br><span class="line">        &#125; </span><br><span class="line">    &#125; </span><br><span class="line">&#125; </span><br></pre></td></tr></table></figure>
+
+<p>只要通过捕获RuntimeException ，然后进行纠正操作，就可以防止破坏整个服务器。</p>
+<p>示例二：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">class</span> <span class="title class_">SaferPoolWorker</span> <span class="keyword">extends</span> <span class="title class_">Thread</span> &#123; </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123; </span><br><span class="line">        IncomingResponse ir;</span><br><span class="line">        <span class="keyword">while</span> (<span class="literal">true</span>) &#123; </span><br><span class="line">            ir = (IncomingResponse) queue.getNext(); </span><br><span class="line">            <span class="type">PlugIn</span> <span class="variable">plugIn</span> <span class="operator">=</span> findPlugIn(ir.getResponseId()); </span><br><span class="line">            <span class="keyword">if</span> (plugIn != <span class="literal">null</span>) &#123; </span><br><span class="line">                <span class="keyword">try</span> &#123; </span><br><span class="line">                    plugIn.handleMessage(ir.getResponse()); </span><br><span class="line">                &#125; <span class="keyword">catch</span> (RuntimeException e) &#123; </span><br><span class="line">                    <span class="comment">// Take some sort of action; </span></span><br><span class="line">                    <span class="comment">// - log the exception and move on </span></span><br><span class="line">                    <span class="comment">// - log the exception and restart the worker thread </span></span><br><span class="line">                    <span class="comment">// - log the exception and unload the offending plug-in </span></span><br><span class="line">                &#125; </span><br><span class="line">            &#125; <span class="keyword">else</span> </span><br><span class="line">                log(<span class="string">&quot;Unknown plug-in for response &quot;</span> + ir.getResponseId());</span><br><span class="line">        &#125; </span><br><span class="line">    &#125;</span><br><span class="line">&#125; </span><br></pre></td></tr></table></figure>
+
+<p>除了将外来代码视作较可能抛出 RuntimeException 的方法之外，使用 ThreadGroup 类的uncaughtException 函数也是明智的。如果线程组中的一个线程因抛出一个未捕获的异常而死亡，则调用该线程组的 uncaughtException() 方法，该方法可以向日志写入一条记录、重新启动线程，然后重新启动系统，或采取它认为必要的任何纠正或诊断操作。至少，如果在线程死亡时所有线程都写一条日志消息，将有一个何时、何处出错的记录，而不是只能奇怪处理线程到哪里去了。</p>
+<p>对于使用线程池时，可以使用下面方法来实现。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> ThreadFactoryBuilder <span class="title function_">setUncaughtExceptionHandler</span><span class="params">(UncaughtExceptionHandler uncaughtExceptionHandler)</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>当线程从应用程序中消失时会引起混乱，并且在很多情况下，线程消失时没有（堆栈）跟踪。象对付许多风险一样，防止线程泄漏的最佳方法是预防和检测相结合；注意有可能抛出RuntimeException的地方（如调用外来代码时），并使用ThreadGroup提供的 uncaughtException 处理程序来在线程异常终止时进行检测。</p>
+<hr>
+<p>转载自：<br><a target="_blank" rel="noopener" href="http://blog.csdn.net/huoyunshen88/article/details/8618642">http://blog.csdn.net/huoyunshen88/article/details/8618642</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/03/10/Java/Java%E8%BF%9B%E9%98%B6/ThreadLocal/Netty%E5%85%B3%E4%BA%8EThreadLocal%E7%9A%84%E4%BC%98%E5%8C%96/" rel="prev" title="Netty关于ThreadLocal的优化">
+      <i class="fa fa-chevron-left"></i> Netty关于ThreadLocal的优化
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/03/11/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B&%E7%BA%BF%E7%A8%8B%E6%B1%A0/%E7%BA%BF%E7%A8%8B%E6%B1%A0%E4%BD%BF%E7%94%A8%E6%8B%92%E7%BB%9D%E7%AD%96%E7%95%A5%E6%97%B6%E9%9C%80%E8%A6%81%E6%B3%A8%E6%84%8F%E7%9A%84%E5%9D%91/" rel="next" title="线程池使用拒绝策略时需要注意的坑">
+      线程池使用拒绝策略时需要注意的坑 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

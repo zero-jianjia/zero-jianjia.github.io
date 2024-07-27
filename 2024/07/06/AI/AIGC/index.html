@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="[toc] 一、AIGC是什么？AIGC是一种新的人工智能技术，它的全称是Artificial Intelligence Generative Content，即人工智能生成内容。 AIGC技术的核心思想是利用人工智能算法生成具有一定创意和质量的内容。通过训练模型和大量数据的学习，AIGC可以根据输入的条件或指导，生成与之相关的内容。例如，通过输入关键词、描述或样本，AIGC可以生成与之相匹配的文">
+<meta property="og:type" content="article">
+<meta property="og:title" content="AIGC">
+<meta property="og:url" content="http://example.com/2024/07/06/AI/AIGC/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="[toc] 一、AIGC是什么？AIGC是一种新的人工智能技术，它的全称是Artificial Intelligence Generative Content，即人工智能生成内容。 AIGC技术的核心思想是利用人工智能算法生成具有一定创意和质量的内容。通过训练模型和大量数据的学习，AIGC可以根据输入的条件或指导，生成与之相关的内容。例如，通过输入关键词、描述或样本，AIGC可以生成与之相匹配的文">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407141114694.jpeg">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407141115963.jpeg">
+<meta property="article:published_time" content="2024-07-05T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.273Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407141114694.jpeg">
+
+<link rel="canonical" href="http://example.com/2024/07/06/AI/AIGC/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>AIGC | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/07/06/AI/AIGC/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          AIGC
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-07-06 00:00:00" itemprop="dateCreated datePublished" datetime="2024-07-06T00:00:00+08:00">2024-07-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/AI/" itemprop="url" rel="index"><span itemprop="name">AI</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>[toc]</p>
+<h2 id="一、AIGC是什么？"><a href="#一、AIGC是什么？" class="headerlink" title="一、AIGC是什么？"></a>一、AIGC是什么？</h2><p>AIGC是一种新的人工智能技术，它的全称是Artificial Intelligence Generative Content，即人工智能生成内容。</p>
+<p>AIGC技术的核心思想是利用人工智能算法生成具有一定创意和质量的内容。通过训练模型和大量数据的学习，AIGC可以根据输入的条件或指导，生成与之相关的内容。例如，通过输入关键词、描述或样本，AIGC可以生成与之相匹配的文章、图像、音频等。</p>
+<h2 id="二、AIGC的4个主要特征"><a href="#二、AIGC的4个主要特征" class="headerlink" title="二、AIGC的4个主要特征"></a>二、AIGC的4个主要特征</h2><p>现阶段国内AIGC多以单模型应用的形式出现，主要分为文本生成、图像生成、视频生成、音频生成，其中文本生成成为其他内容生成的基础。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407141114694.jpeg" alt="img"></p>
+<span id="more"></span>
+
+<p><strong>1、文本生成</strong></p>
+<p>文本生成（AI Text Generation），人工智能文本生成是使用人工智能(AI)算法和模型来生成模仿人类书写内容的文本。它涉及在现有文本的大型数据集上训练机器学习模型，以生成在风格、语气和内容上与输入数据相似的新文本。</p>
+<p><strong>2、图像生成</strong></p>
+<p>图像生成（AI Image Generation），人工智能(AI)可用于生成非人类艺术家作品的图像。这种类型的图像被称为“人工智能生成的图像”。人工智能图像可以是现实的或抽象的，也可以传达特定的主题或信息。</p>
+<p><strong>3、语音生成</strong></p>
+<p>语音生成（AI Audio Generation），AIGC的音频生成技术可以分为两类，分别是文本到语音合成和语音克隆。文本到语音合成需要输入文本并输出特定说话者的语音，主要用于机器人和语音播报任务。到目前为止，文本转语音任务已经相对成熟，语音质量已达到自然标准，未来将向更具情感的语音合成和小样本语音学习方向发展；语音克隆以给定的目标语音作为输入，然后将输入语音或文本转换为目标说话人的语音。此类任务用于智能配音等类似场景，合成特定说话人的语音。</p>
+<p><strong>4、视频生成</strong></p>
+<p>视频生成（AI Video Generation），AIGC已被用于视频剪辑处理以生成预告片和宣传视频。工作流程类似于图像生成，视频的每一帧都在帧级别进行处理，然后利用 AI 算法检测视频片段。AIGC生成引人入胜且高效的宣传视频的能力是通过结合不同的AI算法实现的。凭借其先进的功能和日益普及，AIGC可能会继续革新视频内容的创建和营销方式。</p>
+<h2 id="三、AIGC技术的核心支撑"><a href="#三、AIGC技术的核心支撑" class="headerlink" title="三、AIGC技术的核心支撑"></a>三、AIGC技术的核心支撑</h2><p><strong>1. 深度学习技术</strong></p>
+<p>深度学习是AIGC技术的核心。通过构建深度神经网络模型，AIGC能够模拟人类大脑的神经结构，实现对海量数据的学习和理解。深度学习使得AIGC能够自动地提取数据的特征，并根据这些特征生成高质量的内容。</p>
+<p><strong>2. 自然语言处理技术</strong></p>
+<p>自然语言处理（NLP）是AIGC在文本生成领域的重要技术支撑。NLP技术包括文本分词、词性标注、句法分析、语义理解等多个方面，能够帮助AIGC理解和处理人类语言，从而生成符合语法和语义规则的文本内容。</p>
+<p><strong>3. 计算机视觉技术</strong></p>
+<p>计算机视觉技术为AIGC在图像和视频生成领域提供了支持。通过图像识别、目标检测、图像分割等技术，AIGC能够识别和理解图像和视频中的信息，并生成与之相关的内容。同时，计算机视觉技术还能够帮助AIGC模拟各种绘画风格和技巧，生成具有艺术性的图像。</p>
+<p><strong>4. 音频生成技术</strong></p>
+<p>音频生成技术包括音频信号处理、音频合成、语音合成等。这些技术使得AIGC能够生成各种类型的音频内容，如音乐、语音等。音频生成技术通过模拟人类发声器官的工作原理，实现将文本转换为语音的功能，为AIGC提供了更加丰富的应用场景。</p>
+<p><strong>5. 大数据技术</strong></p>
+<p>大数据技术是AIGC技术发展的重要基础。通过大数据技术，AIGC能够处理和分析海量的数据，提取出有价值的信息，并基于这些信息生成高质量的内容。同时，大数据技术还能够帮助AIGC实现个性化推荐和精准营销等功能，提升用户体验和商业价值。</p>
+<h2 id="四、AIGC如何运作？"><a href="#四、AIGC如何运作？" class="headerlink" title="四、AIGC如何运作？"></a>四、AIGC如何运作？</h2><p>通过单个大规模数据的学习训练，令AI具备了多个不同领域的知识，只需要对模型进行适当的调整修正，就能完成真实场景的任务。AIGC的工作原理可以分为以下几个步骤：</p>
+<p><strong>步骤1：收集数据</strong></p>
+<p>AIGC 需要大量的数据来学习和理解人类创作的内容。这些数据可以包括书籍、文章、图片、音频和视频等各种形式的媒体。</p>
+<p><strong>步骤2：模型训练</strong></p>
+<p>基于收集的数据，AIGC利用深度学习模型进行训练。这些模型通常是神经网络，它们通过学习文本、图像或音频的模式和语法规则来生成新内容。</p>
+<p><strong>步骤3：内容生成</strong></p>
+<p>一旦模型训练好，它就可以开始生成内容。用户可以输入一些基本的信息或要求，然后AIGC会根据这些信息生成相应的内容。这可以是新闻文章、小说、音乐、绘画等各种类型的作品。</p>
+<p><strong>步骤4：反馈和改进</strong></p>
+<p>AIGC通常会用户的反馈，用于改进接收的内容。这有助于模型不断学习并提高生成质量。</p>
+<h2 id="五、AIGC产业结构"><a href="#五、AIGC产业结构" class="headerlink" title="五、AIGC产业结构"></a>五、AIGC产业结构</h2><p>AI产业链主要由基础层、技术层、应用层三大层构成。其中基础层侧重于基础支撑平台的搭建，包含传感器、AI芯片、数据服务和计算平台；技术层侧重核心技术的研发，主要包括算法模型、基础框架、通用技术；应用层注重产业应用发展主要包含行业解决方案服务、硬件产品和软件产品。</p>
+<p>调研归纳发现，国内AIGC产业链结构主要由<strong>基础大模型、行业&#x2F;场景中模型、业务&#x2F;领域小模型，AI基础设施、AIGC配套服务五部分构成</strong>，并且已经形成了丰富的产业链。</p>
+<p><a target="_blank" rel="noopener" href="https://baike.baidu.com/pic/AIGC/59988381/0/18d8bc3eb13533fa828bf32ee984ea1f4134970aed2e?fr=lemma&fromModule=lemma_content-image"><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407141115963.jpeg" alt="img"></a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/07/06/Java/Java%E6%8F%90%E9%AB%98/Java%20Parser%E4%BB%8B%E7%BB%8D/" rel="prev" title="Java Parser介绍">
+      <i class="fa fa-chevron-left"></i> Java Parser介绍
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/07/13/Dubbo/dubbo%E6%B3%9B%E5%8C%96%E8%B0%83%E7%94%A8%E4%BD%BF%E7%94%A8%E5%8F%8A%E5%8E%9F%E7%90%86/" rel="next" title="dubbo泛化调用使用及原理">
+      dubbo泛化调用使用及原理 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81AIGC%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-number">1.</span> <span class="nav-text">一、AIGC是什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81AIGC%E7%9A%844%E4%B8%AA%E4%B8%BB%E8%A6%81%E7%89%B9%E5%BE%81"><span class="nav-number">2.</span> <span class="nav-text">二、AIGC的4个主要特征</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%89%E3%80%81AIGC%E6%8A%80%E6%9C%AF%E7%9A%84%E6%A0%B8%E5%BF%83%E6%94%AF%E6%92%91"><span class="nav-number">3.</span> <span class="nav-text">三、AIGC技术的核心支撑</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9B%9B%E3%80%81AIGC%E5%A6%82%E4%BD%95%E8%BF%90%E4%BD%9C%EF%BC%9F"><span class="nav-number">4.</span> <span class="nav-text">四、AIGC如何运作？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%94%E3%80%81AIGC%E4%BA%A7%E4%B8%9A%E7%BB%93%E6%9E%84"><span class="nav-number">5.</span> <span class="nav-text">五、AIGC产业结构</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

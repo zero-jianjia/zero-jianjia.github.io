@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="[toc] ArchetypeArchetype设计模式的目的是将业务处理逻辑和具体实现分离，所以至少需要两个参与者：Decorator和Delegate，它们都实现同一个接口，Decorator负责处理业务逻辑，而Delegate负责具体的实现，在Decorator的通用业务逻辑处理过程中，会把具体实现委派给Delegate。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Archetype&amp;Specification&amp;Publish-Subscribe">
+<meta property="og:url" content="http://example.com/2015/09/23/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/Archetype&Specification&Publish-Subscribe/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="[toc] ArchetypeArchetype设计模式的目的是将业务处理逻辑和具体实现分离，所以至少需要两个参与者：Decorator和Delegate，它们都实现同一个接口，Decorator负责处理业务逻辑，而Delegate负责具体的实现，在Decorator的通用业务逻辑处理过程中，会把具体实现委派给Delegate。">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240606170453.png">
+<meta property="article:published_time" content="2015-09-22T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.829Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240606170453.png">
+
+<link rel="canonical" href="http://example.com/2015/09/23/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/Archetype&Specification&Publish-Subscribe/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>Archetype&Specification&Publish-Subscribe | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2015/09/23/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/Archetype&Specification&Publish-Subscribe/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Archetype&Specification&Publish-Subscribe
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2015-09-23 00:00:00" itemprop="dateCreated datePublished" datetime="2015-09-23T00:00:00+08:00">2015-09-23</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" itemprop="url" rel="index"><span itemprop="name">设计模式</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>[toc]</p>
+<h2 id="Archetype"><a href="#Archetype" class="headerlink" title="Archetype"></a>Archetype</h2><p>Archetype设计模式的目的是将业务处理逻辑和具体实现分离，所以至少需要两个参与者：Decorator和Delegate，它们都实现同一个接口，Decorator负责处理业务逻辑，而Delegate负责具体的实现，在Decorator的通用业务逻辑处理过程中，会把具体实现委派给Delegate。</p>
+ <span id="more"></span>
+
+<p>假设系统中有一个记录各种事件的接口：</p>
+<p>EventRecorder.java</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">EventRecorder</span> &#123;</span><br><span class="line">	<span class="comment">// 记录事件的内容</span></span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">record</span><span class="params">(String event)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>引入两个抽象类来达到处理逻辑和具体实现分离的目的：</p>
+<p>EventRecorderDelegate.java</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">class</span> <span class="title class_">EventRecorderDelegate</span> <span class="keyword">implements</span> <span class="title class_">EventRecorder</span> &#123;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>EventRecorderDecorator.java</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span>  <span class="keyword">class</span> <span class="title class_">EventRecorderDecorator</span> <span class="keyword">implements</span> <span class="title class_">EventRecorder</span> &#123;</span><br><span class="line">	<span class="keyword">protected</span> EventRecorderDelegate delegate;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setDelegate</span><span class="params">(EventRecorderDelegate delegate)</span> &#123;</span><br><span class="line">		<span class="built_in">this</span>.delegate = delegate;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>下面是两个简单的逻辑处理（Decorator）类：</p>
+<p>ComplicateEventRecorder.java</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ComplicateEventRecorder</span> <span class="keyword">extends</span> <span class="title class_">EventRecorderDecorator</span>&#123;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">record</span><span class="params">(String event)</span>&#123;</span><br><span class="line">        <span class="comment">// 附加当前的日期到事件的内容中</span></span><br><span class="line">        event = System.currentTimeMillis() + event;</span><br><span class="line">        <span class="comment">// 附加当前异常信息到事件的内容中</span></span><br><span class="line">  </span><br><span class="line">        <span class="comment">// 附加当前的env</span></span><br><span class="line">        event = event+System.getenv();</span><br><span class="line">        </span><br><span class="line">        <span class="comment">// 记录事件的内容</span></span><br><span class="line">        delegate.record(event);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>SimpleEventRecorder.java</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">SimpleEventRecorder</span> <span class="keyword">extends</span> <span class="title class_">EventRecorderDecorator</span> &#123;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">record</span><span class="params">(String event)</span> &#123;</span><br><span class="line">		<span class="comment">// 附加当前的日期到事件的内容中</span></span><br><span class="line">		event = System.currentTimeMillis() + event;</span><br><span class="line">		<span class="comment">// 记录事件的内容</span></span><br><span class="line">		delegate.record(event);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>最后一步都交给了EventRecorderDelegate对象，这一步就是之前所说的“具体实现”:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">RecordEventToDatabase</span> <span class="keyword">extends</span> <span class="title class_">EventRecorderDelegate</span> &#123;</span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">record</span><span class="params">(String event)</span> &#123;</span><br><span class="line">		<span class="comment">// 将记录写入到数据库中</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">RecordEventToFile</span> <span class="keyword">extends</span> <span class="title class_">EventRecorderDelegate</span> &#123;</span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">record</span><span class="params">(String event)</span> &#123;</span><br><span class="line">		<span class="comment">// 将记录写入到文件中</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>下面是一个生成事件记录对象的工厂：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">EventRecorderFactory</span> &#123;</span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">static</span> EventRecorder <span class="title function_">create</span><span class="params">(<span class="type">int</span> type, <span class="type">int</span> flag)</span> &#123;</span><br><span class="line">		<span class="type">EventRecorderDelegate</span> <span class="variable">delegate</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">		<span class="type">EventRecorderDecorator</span> <span class="variable">decorator</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (type == <span class="number">0</span>)</span><br><span class="line">			decorator = <span class="keyword">new</span> <span class="title class_">SimpleEventRecorder</span>();</span><br><span class="line">		<span class="keyword">if</span> (type == <span class="number">1</span>)</span><br><span class="line">			decorator = <span class="keyword">new</span> <span class="title class_">ComplicateEventRecorder</span>();</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (flag == <span class="number">0</span>)</span><br><span class="line">			delegate = <span class="keyword">new</span> <span class="title class_">RecordEventToDatabase</span>();</span><br><span class="line">		<span class="keyword">if</span> (flag == <span class="number">1</span>)</span><br><span class="line">			delegate = <span class="keyword">new</span> <span class="title class_">RecordEventToFile</span>();</span><br><span class="line">		<span class="comment">// 设置代理</span></span><br><span class="line">		decorator.setDelegate(delegate);</span><br><span class="line">		<span class="keyword">return</span> decorator;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>从举的例子中可以看到，有2种业务处理逻辑，有2个具体实现，它们组成了4种事件记录方式。</p>
+<h2 id="Specification"><a href="#Specification" class="headerlink" title="Specification"></a>Specification</h2><p>在一个较为复杂的业务流程中，某些条件的满足与否决定了业务逻辑的走向，可以把这些条件抽离出来，使得任意个条件以某种关系进行组合，从而灵活地对业务逻辑进行定制。另外，在查询、过滤等应用场合中，也可以预定义多个条件，使用这些条件的组合来处理查询逻辑，而不是使用逻辑判断语句来处理，那样只会让代码变得复杂。</p>
+<p> 在Specification设计模式中，一个条件就是一个specification，多个specification通过串联的方式以某种逻辑关系形成一个组合式的specification。首先看一下整体的UML图：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240606170453.png" alt="image-20240323232946144"></p>
+<p>下面是Specification接口的声明：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">Specification</span> &#123;</span><br><span class="line"></span><br><span class="line">	<span class="type">boolean</span> <span class="title function_">isSatisfiedBy</span><span class="params">(Object params)</span>;</span><br><span class="line"></span><br><span class="line">	Specification <span class="title function_">and</span><span class="params">(Specification other)</span>;</span><br><span class="line"></span><br><span class="line">	Specification <span class="title function_">or</span><span class="params">(Specification other)</span>;</span><br><span class="line"></span><br><span class="line">	Specification <span class="title function_">not</span><span class="params">()</span>;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>它定义了各个条件间可用的关系：与、或、非，这三个关系所对应方法的返回值都是Specification自身，目的是为了实现 Specification之间的串联（chaining），从而形成一个关系表达式。isSatisfiedBy就是判定方法， 参数是一个Object，支持任意类型。</p>
+<p>下面来看CompositSpecification的声明：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">class</span> <span class="title class_">CompositeSpecification</span> <span class="keyword">implements</span> <span class="title class_">Specification</span> &#123;</span><br><span class="line"></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="keyword">public</span> Specification <span class="title function_">and</span><span class="params">(Specification other)</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">AndSpecification</span>(<span class="built_in">this</span>, other);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="keyword">public</span> Specification <span class="title function_">not</span><span class="params">()</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">NotSpecification</span>(<span class="built_in">this</span>);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="keyword">public</span> Specification <span class="title function_">or</span><span class="params">(Specification other)</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">OrSpecification</span>(<span class="built_in">this</span>, other);</span><br><span class="line">	&#125;</span><br><span class="line">	</span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">abstract</span> <span class="type">boolean</span> <span class="title function_">isSatisfiedBy</span><span class="params">(Object params)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>它实现了Specification接口的关系判定方法，而isSatisfiedBy则仍是抽象方法，需要派生类来具体实现。下面是三个分别实现了与、或、非关系判定的派生类的声明：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">AndSpecification</span> <span class="keyword">extends</span> <span class="title class_">CompositeSpecification</span> &#123;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">final</span> Specification b;</span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">final</span> Specification a;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">public</span> <span class="title function_">AndSpecification</span><span class="params">(Specification a, Specification b)</span> &#123;</span><br><span class="line">		<span class="built_in">this</span>.a = a;</span><br><span class="line">		<span class="built_in">this</span>.b = b;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">isSatisfiedBy</span><span class="params">(Object params)</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> a.isSatisfiedBy(params) &amp;&amp; b.isSatisfiedBy(params);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">NotSpecification</span> <span class="keyword">extends</span> <span class="title class_">CompositeSpecification</span> &#123;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">final</span> Specification a;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">public</span> <span class="title function_">NotSpecification</span><span class="params">(Specification a)</span> &#123;</span><br><span class="line">		<span class="built_in">this</span>.a = a;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">isSatisfiedBy</span><span class="params">(Object params)</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> !a.isSatisfiedBy(params);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">OrSpecification</span> <span class="keyword">extends</span> <span class="title class_">CompositeSpecification</span> &#123;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">final</span> Specification b;</span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">final</span> Specification a;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">public</span> <span class="title function_">OrSpecification</span><span class="params">(Specification a, Specification b)</span> &#123;</span><br><span class="line">		<span class="built_in">this</span>.a = a;</span><br><span class="line">		<span class="built_in">this</span>.b = b;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">isSatisfiedBy</span><span class="params">(Object params)</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> a.isSatisfiedBy(params) || b.isSatisfiedBy(params);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>这些类就构成了Specification模式的核心部分，下面来看一个例子：</p>
+<p>先定义一个男人：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Men</span> &#123;</span><br><span class="line">	<span class="keyword">public</span> String name; <span class="comment">// 姓名</span></span><br><span class="line">	<span class="keyword">public</span> <span class="type">boolean</span> married; <span class="comment">// 是否已婚</span></span><br><span class="line">	<span class="keyword">public</span> <span class="type">int</span> cars; <span class="comment">// 拥有车的数量</span></span><br><span class="line">	<span class="keyword">public</span> <span class="type">int</span> houses; <span class="comment">// 拥有房子的数量</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">public</span> <span class="title function_">Men</span><span class="params">(String name, <span class="type">int</span> cars, <span class="type">int</span> houses, <span class="type">boolean</span> married)</span> &#123;</span><br><span class="line">		<span class="built_in">this</span>.name = name;</span><br><span class="line">		<span class="built_in">this</span>.cars = cars;</span><br><span class="line">		<span class="built_in">this</span>.houses = houses;</span><br><span class="line">		<span class="built_in">this</span>.married = married;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>然后定义选男人的几个条件:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">HasCarsSpecification</span> <span class="keyword">extends</span> <span class="title class_">CompositeSpecification</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">isSatisfiedBy</span><span class="params">(Object params)</span> &#123;</span><br><span class="line">          <span class="type">Men</span> <span class="variable">m</span> <span class="operator">=</span> (Men)params;</span><br><span class="line">          <span class="keyword">return</span> m.cars &gt; <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">HasHousesSpecification</span> <span class="keyword">extends</span> <span class="title class_">CompositeSpecification</span> &#123;</span><br><span class="line"></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">isSatisfiedBy</span><span class="params">(Object params)</span> &#123;</span><br><span class="line">		<span class="type">Men</span> <span class="variable">m</span> <span class="operator">=</span> (Men) params;</span><br><span class="line">		<span class="keyword">return</span> m.houses &gt; <span class="number">0</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">MarriedSpecification</span> <span class="keyword">extends</span> <span class="title class_">CompositeSpecification</span> &#123;</span><br><span class="line"></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">isSatisfiedBy</span><span class="params">(Object params)</span> &#123;</span><br><span class="line">		<span class="type">Men</span> <span class="variable">m</span> <span class="operator">=</span> (Men) params;</span><br><span class="line">		<span class="keyword">return</span> m.married;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+<p>好，下面有位女嘉宾开始选它心目中的男人了：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Main</span> &#123;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">		<span class="comment">// TODO Auto-generated method stub</span></span><br><span class="line"></span><br><span class="line">		Men[] candidates = &#123; <span class="keyword">new</span> <span class="title class_">Men</span>(<span class="string">&quot;李精英&quot;</span>, <span class="number">1</span>, <span class="number">1</span>, <span class="literal">false</span>),</span><br><span class="line">				<span class="keyword">new</span> <span class="title class_">Men</span>(<span class="string">&quot;王老五&quot;</span>, <span class="number">5</span>, <span class="number">3</span>, <span class="literal">true</span>), <span class="keyword">new</span> <span class="title class_">Men</span>(<span class="string">&quot;赵白领&quot;</span>, <span class="number">0</span>, <span class="number">1</span>, <span class="literal">false</span>),</span><br><span class="line">				<span class="keyword">new</span> <span class="title class_">Men</span>(<span class="string">&quot;West_Link&quot;</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="literal">false</span>) &#125;;</span><br><span class="line"></span><br><span class="line">		<span class="type">HasHousesSpecification</span> <span class="variable">hasHouse</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">HasHousesSpecification</span>();</span><br><span class="line">		<span class="type">HasCarsSpecification</span> <span class="variable">hasCar</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">HasCarsSpecification</span>();</span><br><span class="line">		<span class="type">MarriedSpecification</span> <span class="variable">married</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">MarriedSpecification</span>();</span><br><span class="line"></span><br><span class="line">		<span class="type">Specification</span> <span class="variable">spec</span> <span class="operator">=</span> hasHouse.and(hasCar).and(married.not());</span><br><span class="line">		<span class="keyword">for</span> (Men men : candidates) &#123;</span><br><span class="line">			<span class="keyword">if</span> (spec.isSatisfiedBy(men))</span><br><span class="line">				System.out.println(men.name);</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>从Specification spec &#x3D; hasHouse.and(hasCar).and(married.not())这行代码可以看出这位女嘉宾选择了有车并且有房的未婚男子，所以打印结果为：李精英。</p>
+<h2 id="Publish-Subscribe"><a href="#Publish-Subscribe" class="headerlink" title="Publish-Subscribe"></a>Publish-Subscribe</h2><p>很多项目中都有消息分发或者事件通知机制，尤其是模块化程度高的项目。例如在办公自动化系统 中，有些子系统对于新建用户这一事件很感兴趣，权限模块希望为这个新用户设置默认的权限，报表模块希望重新生成当月的报表，诸如此类的代码都写到新建用户 的业务逻辑后面，会加大耦合度，可维护性降低，并且对于每个模块都是一个独立工程的情况，这种方式更是不可取。</p>
+<p>对于简单的情形，观察者模式就适用了，如果系统中有很多地方都需要收发消息，那么它就不适用了，否则会造成类数量的膨胀，增加类的复杂性，这时候就需要一种更集中的机制，Publish- Subscribe机制是个不错的选择，它的耦合性低，各个参与者之间毫无关联。每 一个消息都有一个唯一标识，一般都用字符串来描述，比如用户管理模块中新添加了一个用户，于是它发送了一个消息：&#x2F;UserManagment&#x2F;User&#x2F;Add，消息的其他信息可以放置到一个Map中。下面是一个最简单的消息订阅接口：</p>
+ <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">MessageSubscriber</span> &#123;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">onRecived</span><span class="params">(String message, Map params)</span>;</span><br><span class="line">	</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>当订阅的消息发出后，MessageSubscriber的onRecived方法就会被调 用，消息相关的特定信息存储在参数params中。 一个消息可以被多个对象订阅，一个对象可以订阅多个消息，所以onRecived的第一个参数是消息的名称，如果对象订阅了多个消息，可能需要根据消息类 型来进行具体的操作。</p>
+<p>下面消息发送的实现类：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">MessagePublisher</span> &#123;</span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">static</span> MessagePublisher singleton;</span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">static</span> Map&lt;String, ArrayList&lt;MessageSubscriber&gt;&gt; subscribers;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">private</span> <span class="title function_">MessagePublisher</span><span class="params">()</span> &#123;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">static</span> MessagePublisher <span class="title function_">instance</span><span class="params">()</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> (singleton == <span class="literal">null</span>)</span><br><span class="line">			singleton = <span class="keyword">new</span> <span class="title class_">MessagePublisher</span>();</span><br><span class="line">		<span class="keyword">return</span> singleton;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">register</span><span class="params">(String message, MessageSubscriber subscriber)</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> (subscriber == <span class="literal">null</span>)</span><br><span class="line">			<span class="keyword">return</span>;</span><br><span class="line">		</span><br><span class="line">		<span class="keyword">if</span> (subscribers == <span class="literal">null</span>)</span><br><span class="line">			subscribers = <span class="keyword">new</span> <span class="title class_">LinkedHashMap</span>&lt;String, ArrayList&lt;MessageSubscriber&gt;&gt;();</span><br><span class="line">		</span><br><span class="line">		ArrayList&lt;MessageSubscriber&gt; subscriberList = subscribers.get(message);</span><br><span class="line">		</span><br><span class="line">		<span class="keyword">if</span> (subscriberList == <span class="literal">null</span>) &#123;</span><br><span class="line">			subscriberList = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;MessageSubscriber&gt;();</span><br><span class="line">			subscribers.put(message, subscriberList);</span><br><span class="line">		&#125;</span><br><span class="line">		</span><br><span class="line">		subscriberList.add(subscriber);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">publish</span><span class="params">(String message, Map params)</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> (subscribers == <span class="literal">null</span>)</span><br><span class="line">			<span class="keyword">return</span>;</span><br><span class="line">		ArrayList&lt;MessageSubscriber&gt; subscriberList = subscribers.get(message);</span><br><span class="line">		</span><br><span class="line">		<span class="keyword">if</span> (subscriberList == <span class="literal">null</span> || subscriberList.isEmpty())</span><br><span class="line">			<span class="keyword">return</span>;</span><br><span class="line">		</span><br><span class="line">		<span class="keyword">for</span> (MessageSubscriber topicSubscriber : subscriberList)</span><br><span class="line">			topicSubscriber.onRecived(message, params);</span><br><span class="line">		</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+<p>该类中主要包含两个方 法：register用来注册消息订阅者，publish用来发送消息。这样，对某个事件感兴趣的模块就可以通过MessagePublisher来订阅 这个相关的消息，而产生事件的模块就可以通过MessagePublisher将其发布出去。</p>
+<p>测试示例：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> test.publishsubscribe;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.util.HashMap;</span><br><span class="line"><span class="keyword">import</span> java.util.Map;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Test</span> &#123;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">		<span class="comment">// TODO Auto-generated method stub</span></span><br><span class="line">		<span class="type">MessagePublisher</span> <span class="variable">messagePublisher</span> <span class="operator">=</span> MessagePublisher.instance();</span><br><span class="line">		messagePublisher.register(<span class="string">&quot;/User/Add&quot;</span>, <span class="keyword">new</span> <span class="title class_">ASubscriber</span>());</span><br><span class="line">		messagePublisher.register(<span class="string">&quot;/User/Del&quot;</span>, <span class="keyword">new</span> <span class="title class_">BSubscriber</span>());</span><br><span class="line">		Map&lt;String, String&gt; params = <span class="keyword">new</span> <span class="title class_">HashMap</span>();</span><br><span class="line">		params.put(<span class="string">&quot;id&quot;</span>, <span class="string">&quot;001&quot;</span>);</span><br><span class="line">		params.put(<span class="string">&quot;name&quot;</span>, <span class="string">&quot;zero&quot;</span>);</span><br><span class="line">		messagePublisher.publish(<span class="string">&quot;/User/Add&quot;</span>, params);</span><br><span class="line">		messagePublisher.publish(<span class="string">&quot;/User/Del&quot;</span>, params);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">ASubscriber</span> <span class="keyword">implements</span> <span class="title class_">MessageSubscriber</span> &#123;</span><br><span class="line"></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">onRecived</span><span class="params">(String message, Map params)</span> &#123;</span><br><span class="line">		<span class="comment">// TODO Auto-generated method stub</span></span><br><span class="line">		System.out.println(<span class="string">&quot;ASubscriber : message=&quot;</span> + message + <span class="string">&quot;, content = &quot;</span></span><br><span class="line">				+ params);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">BSubscriber</span> <span class="keyword">implements</span> <span class="title class_">MessageSubscriber</span> &#123;</span><br><span class="line"></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">onRecived</span><span class="params">(String message, Map params)</span> &#123;</span><br><span class="line">		<span class="comment">// TODO Auto-generated method stub</span></span><br><span class="line">		System.out.println(<span class="string">&quot;BSubscriber : message=&quot;</span> + message + <span class="string">&quot;, content = &quot;</span></span><br><span class="line">				+ params);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>ASubscriber订阅“&#x2F;User&#x2F;Add”的内容，BSubscriber订阅“&#x2F;User&#x2F;Del”的内容。当messagePublisher发布时消息时，订阅该消息的将会执行onRecived()方法。</p>
+<hr>
+<p>转载自：</p>
+<p><a target="_blank" rel="noopener" href="http://blog.csdn.net/m13666368773/article/details/7472126">http://blog.csdn.net/m13666368773/article/details/7472126</a><br><a target="_blank" rel="noopener" href="http://blog.csdn.net/m13666368773/article/details/7472140">http://blog.csdn.net/m13666368773/article/details/7472140</a><br><a target="_blank" rel="noopener" href="http://blog.csdn.net/m13666368773/article/details/7472157">http://blog.csdn.net/m13666368773/article/details/7472157</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item"></div>
+      <div class="post-nav-item">
+    <a href="/2024/03/01/Java/JVM/Reference/ReferenceQueue%E3%80%81Reference%E8%AF%A6%E8%A7%A3/" rel="next" title="ReferenceQueue、Reference详解">
+      ReferenceQueue、Reference详解 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Archetype"><span class="nav-number">1.</span> <span class="nav-text">Archetype</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Specification"><span class="nav-number">2.</span> <span class="nav-text">Specification</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Publish-Subscribe"><span class="nav-number">3.</span> <span class="nav-text">Publish-Subscribe</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

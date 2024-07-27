@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="[toc] ReferenceQueue引用队列，在检测到适当的可到达性更改后，垃圾回收器将已注册的引用对象添加到该队列中，ReferenceQueue实现了入队（enqueue）和出队（poll），还有remove)操作，内部元素head就是泛型的Reference： 1private volatile Reference&lt;? extends T&gt; head &#x3D; null;  Ref">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ReferenceQueue、Reference详解">
+<meta property="og:url" content="http://example.com/2024/03/01/Java/JVM/Reference/ReferenceQueue%E3%80%81Reference%E8%AF%A6%E8%A7%A3/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="[toc] ReferenceQueue引用队列，在检测到适当的可到达性更改后，垃圾回收器将已注册的引用对象添加到该队列中，ReferenceQueue实现了入队（enqueue）和出队（poll），还有remove)操作，内部元素head就是泛型的Reference： 1private volatile Reference&lt;? extends T&gt; head &#x3D; null;  Ref">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2024-02-29T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-07-27T02:20:41.330Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2024/03/01/Java/JVM/Reference/ReferenceQueue%E3%80%81Reference%E8%AF%A6%E8%A7%A3/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>ReferenceQueue、Reference详解 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/01/Java/JVM/Reference/ReferenceQueue%E3%80%81Reference%E8%AF%A6%E8%A7%A3/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          ReferenceQueue、Reference详解
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-03-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-01T00:00:00+08:00">2024-03-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/JVM/" itemprop="url" rel="index"><span itemprop="name">JVM</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/JVM/Reference/" itemprop="url" rel="index"><span itemprop="name">Reference</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>[toc]</p>
+<h3 id="ReferenceQueue"><a href="#ReferenceQueue" class="headerlink" title="ReferenceQueue"></a>ReferenceQueue</h3><p>引用队列，在检测到适当的可到达性更改后，垃圾回收器将已注册的引用对象添加到该队列中，ReferenceQueue实现了入队（enqueue）和出队（poll），还有remove)操作，内部元素head就是泛型的Reference：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">volatile</span> Reference&lt;? <span class="keyword">extends</span> <span class="title class_">T</span>&gt; head = <span class="literal">null</span>;</span><br></pre></td></tr></table></figure>
+
+<p>ReferenceQueue的实现是由Reference自身的链表结构（单向循环链表）所实现的。所以说ReferenceQueue名义上是一个队列，但实际内部并非有实际的存储结构，它的存储是依赖于内部节点之间的关系来表达。来看下它的入队方法：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">boolean</span> <span class="title function_">enqueue</span><span class="params">(Reference&lt;? extends T&gt; r)</span> &#123; <span class="comment">/* Called only by Reference class */</span></span><br><span class="line">    <span class="keyword">synchronized</span> (lock) &#123;</span><br><span class="line">        <span class="comment">// Check that since getting the lock this reference hasn&#x27;t already been</span></span><br><span class="line">        <span class="comment">// enqueued (and even then removed)</span></span><br><span class="line">        ReferenceQueue&lt;?&gt; queue = r.queue;</span><br><span class="line">        <span class="keyword">if</span> ((queue == NULL) || (queue == ENQUEUED)) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">assert</span> queue == <span class="built_in">this</span>;</span><br><span class="line">        r.queue = ENQUEUED;</span><br><span class="line">        r.next = (head == <span class="literal">null</span>) ? r : head;</span><br><span class="line">        head = r;</span><br><span class="line">        queueLength++;</span><br><span class="line">        <span class="keyword">if</span> (r <span class="keyword">instanceof</span> FinalReference) &#123;</span><br><span class="line">            sun.misc.VM.addFinalRefCount(<span class="number">1</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        lock.notifyAll();</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>​    从enqueue()代码可以看出来，queue仅存储当前的head节点，而后面的节点由每个reference节点通过自己的next来保持的。而且queue是一个后进先出的队列。当新的节点进入时成为了head，然后出队时也是先出的head。</p>
+ <span id="more"></span> 
+
+<h3 id="Reference"><a href="#Reference" class="headerlink" title="Reference"></a>Reference</h3><p>​    java.lang.ref.Reference是SoftReference、WeakReference、PhantomReference的基类。Reference对象是和垃圾回收密切配合实现，Reference的直接子类都是由JVM定制化处理的，因此在代码中直接继承于Reference类型没有任何作用。但可以继承JVM定制的Reference的子类。例如：Cleaner就继承了PhantomReference。</p>
+<h4 id="构造函数"><a href="#构造函数" class="headerlink" title="构造函数"></a>构造函数</h4><p>Reference内部提供2个构造函数，一个带queue，一个不带queue。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">Reference(T referent) &#123;</span><br><span class="line">    <span class="built_in">this</span>(referent, <span class="literal">null</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">Reference(T referent, ReferenceQueue&lt;? <span class="built_in">super</span> T&gt; queue) &#123;</span><br><span class="line">    <span class="built_in">this</span>.referent = referent;</span><br><span class="line">    <span class="built_in">this</span>.queue = (queue == <span class="literal">null</span>) ? ReferenceQueue.NULL : queue;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>​        其中queue的意义在于可以在外部对这个queue进行监控。如果有对象即将被回收，那么相应的reference对象就会被放到这个queue里，我们就拿到reference再作一些事情。而如果不带的话，就只有不断地轮询reference对象，通过判断里面的get是否返回null，来判断是否被回收。phantomReference对象不能这样作，其get始终返回null，因此它只有带queue的构造函数。queue的默认值是ReferenceQueue.NULL。</p>
+<p>​        以上这两种构造方法均有相应的使用场景，取决于实际的应用。如WeakHashMap中就选择去查询queue的数据，来判定是否有对象将被回收。而ThreadLocalMap则采用判断get()是否为null来作处理。</p>
+<p>​        如果在创建一个引用对象时，指定了ReferenceQueue，那么当引用对象指向的对象达到合适的状态（根据引用类型不同而不同）时，GC会把引用对象本身添加到这个队列中，方便我们处理它，因为“引用对象指向的对象GC会自动清理，但是引用对象本身也是对象（是对象就占用一定资源），所以需要我们自己清理。”</p>
+<h4 id="Reference内部主要的成员"><a href="#Reference内部主要的成员" class="headerlink" title="Reference内部主要的成员"></a>Reference内部主要的成员</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> T referent;         <span class="comment">/* Treated specially by GC */</span></span><br><span class="line"><span class="keyword">volatile</span> ReferenceQueue&lt;? <span class="built_in">super</span> T&gt; queue;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* When active:   NULL</span></span><br><span class="line"><span class="comment">     *     pending:   this</span></span><br><span class="line"><span class="comment">     *    Enqueued:   next reference in queue (or this if last)</span></span><br><span class="line"><span class="comment">     *    Inactive:   this</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@SuppressWarnings(&quot;rawtypes&quot;)</span></span><br><span class="line">    Reference next;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* When active:   next element in a discovered reference list maintained by GC (or this if last)</span></span><br><span class="line"><span class="comment">     *     pending:   next element in the pending list (or null if last)</span></span><br><span class="line"><span class="comment">     *   otherwise:   NULL</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">transient</span> <span class="keyword">private</span> Reference&lt;T&gt; discovered;  <span class="comment">/* used by VM */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* List of References waiting to be enqueued.  The collector adds</span></span><br><span class="line"><span class="comment">     * References to this list, while the Reference-handler thread removes</span></span><br><span class="line"><span class="comment">     * them.  This list is protected by the above lock object. The</span></span><br><span class="line"><span class="comment">     * list uses the discovered field to link its elements.</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> Reference&lt;Object&gt; pending = <span class="literal">null</span>;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>​        referent表示其引用的对象，即在构造的时候需要被包装在其中的对象。</p>
+<p>​        queue是对象即将被回收时所要通知的队列。当对象即将被回收时，整个reference对象，而不仅仅是被回收的对象，会被放到queue里面，然后外部程序即可通过监控这个queue拿到相应的数据了。</p>
+<p>​        next即当前引用节点所存储的下一个即将被处理的节点。但next仅在放到queue中才会有意义，因为只有在enqueue的时候，会将next设置为下一个要处理的Reference对象。为了描述相应的状态值，在放到队列当中后，其queue就不会再引用这个队列了。而是引用一个特殊的ENQUEUED（内部定义的一个空队列）。因为已经放到队列当中，并且不会再次放到队列当中。</p>
+<p>​        discovered表示要处理的对象的下一个对象。即可以理解要处理的对象也是一个链表，通过discovered进行排队，这边只需要不停地拿到pending，然后再通过discovered不断地拿到下一个对象赋值给pending即可，直到取到了最有一个。它是被JVM使用的。</p>
+<p>​        pending是等待被入队的引用列表。JVM收集器会添加引用到这个列表，直到Reference-handler线程移除了它们。这个列表使用discovered字段来连接它下一个元素（即pending的下一个元素就是discovered对象。<code>r = pending; pending = r.discovered</code>）。</p>
+<h4 id="Reference状态值"><a href="#Reference状态值" class="headerlink" title="Reference状态值"></a>Reference状态值</h4><p>​        每个引用对象都有相应的状态描述，即描述自己以及其包装的对象当前处于一个什么样的状态，以方便进行查询，定位或处理。Reference有4种状态。四种状态用Reference的成员变量queue与next来标示。</p>
+<p>​        Active：活动状态，新创建的引用对象都是这个状态，即相应的对象为强引用状态。在这个状态下next &#x3D;&#x3D; null，queue为构造Reference对象时传入的ReferenceQueue对象，默认是ReferenceQueue.NULL。在GC检测到引用对象的可达性发生变化之后，它的状态将变化为Pending或Inactive（如果引用对象在构造时指定了ReferenceQueue，那么转移到Pending；如果没指定，转移到Inactive）。</p>
+<p>​        Pending：准备放入queue当中的引用对象，在这个状态的对象将挨个地排队放到queue当中。在这个时间窗口期，相应的对象为Pending状态，都在pending列表中。此状态的下，next &#x3D;&#x3D; this（由JVM设置），queue为定义时所引用的queue。这里需要注意的是，queue如果指定了，那么引用对象能转移到Pending，如果没指定，直接转移到Inactive，因为此时next &#x3D;&#x3D; this，queue &#x3D;&#x3D; ReferenceQueue.NULL。</p>
+<p>​        Enqueued：引用对象已经放到queue当中了。准备由外部线程来询循queue获取相应的数据。调用ReferenceQueue.enqueued()后的reference就会处于这个状态中。此状态中next 为该queue中的下一个引用，如果是该队列中的最后一个，那么为this，queue &#x3D; ReferenceQueue.ENQUEUED。当reference实例从它的ReferenceQueue移除后，它将成为Inactive。没有注册queue的实例不会进入这个状态。</p>
+<p>​        Inactive：即此对象已经由外部从queue中获取到，并且已经处理掉了，此时next &#x3D;&#x3D; this，queue &#x3D;&#x3D; ReferenceQueue.NULL。即意味着此引用对象可以被回收，并且对内部封装的对象也可以被回收掉了。但实际的回收运行取决于clear()方法是否被调用（clear()方法会设置this.referent &#x3D; null）。</p>
+<p>Reference类加载后，就会启动Reference Handler线程:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> &#123;</span><br><span class="line">    <span class="type">ThreadGroup</span> <span class="variable">tg</span> <span class="operator">=</span> Thread.currentThread().getThreadGroup();</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">ThreadGroup</span> <span class="variable">tgn</span> <span class="operator">=</span> tg;</span><br><span class="line">         tgn != <span class="literal">null</span>;</span><br><span class="line">         tg = tgn, tgn = tg.getParent());</span><br><span class="line">    <span class="type">Thread</span> <span class="variable">handler</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ReferenceHandler</span>(tg, <span class="string">&quot;Reference Handler&quot;</span>);</span><br><span class="line">    <span class="comment">/* If there were a special system-only priority greater than</span></span><br><span class="line"><span class="comment">     * MAX_PRIORITY, it would be used here</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    handler.setPriority(Thread.MAX_PRIORITY);</span><br><span class="line">    handler.setDaemon(<span class="literal">true</span>);</span><br><span class="line">    handler.start();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>从源码可以看出，这个线程在Reference类的static构造块中启动，并且被设置为最高优先级MAX_PRIORITY和daemon状态，并随即启动该线程。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">class</span> <span class="title class_">ReferenceHandler</span> <span class="keyword">extends</span> <span class="title class_">Thread</span> &#123;</span><br><span class="line"></span><br><span class="line">    ReferenceHandler(ThreadGroup g, String name) &#123;</span><br><span class="line">        <span class="built_in">super</span>(g, name);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">            Reference&lt;Object&gt; r;</span><br><span class="line">            <span class="keyword">synchronized</span> (lock) &#123;</span><br><span class="line">                <span class="keyword">if</span> (pending != <span class="literal">null</span>) &#123;</span><br><span class="line">                    r = pending;</span><br><span class="line">                    pending = r.discovered;</span><br><span class="line">                    r.discovered = <span class="literal">null</span>;</span><br><span class="line">                &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                    <span class="keyword">try</span> &#123;</span><br><span class="line">                        <span class="keyword">try</span> &#123;</span><br><span class="line">                            lock.wait();</span><br><span class="line">                        &#125; <span class="keyword">catch</span> (OutOfMemoryError x) &#123; &#125;</span><br><span class="line">                    &#125; <span class="keyword">catch</span> (InterruptedException x) &#123; &#125;</span><br><span class="line">                    <span class="keyword">continue</span>;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// Fast path for cleaners</span></span><br><span class="line">            <span class="keyword">if</span> (r <span class="keyword">instanceof</span> Cleaner) &#123;</span><br><span class="line">                ((Cleaner)r).clean();</span><br><span class="line">                <span class="keyword">continue</span>;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            ReferenceQueue&lt;Object&gt; q = r.queue;</span><br><span class="line">            <span class="keyword">if</span> (q != ReferenceQueue.NULL) q.enqueue(r);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>此线程要做的事情就是不断的检查pending是否为null，如果pending不为null，则将pending进行enqueue，否则线程进入wait状态。</p>
+<p>当Reference内部的referent对象的可达状态改变时，JVM会将该Reference对象放入pending链表，注意这时JVM会设置referent对象的next &#x3D; this。并且这里enqueue的队列是在初始化Reference对象时传进来的queue，如果传入了null（实际使用的是ReferenceQueue.NULL），则ReferenceHandler则不进行enqueue操作，这时referent对象的状态已经是Inactive了。只有非RefernceQueue.NULL的queue才会将Reference进行enqueue。</p>
+<p>​    在enqueue()中，当reference实例的<code>queue!=null &amp;&amp; queue != ENQUEUED</code>时；设置queue为ENQUEUED，next为下一个要处理的reference对象，或者若为最后一个则next&#x3D;&#x3D;this。这时referent对象是Enqueue。</p>
+<p>​    当调用queue的remove或者poll方法时，就会将要处理的reference实例的queue设置为<code>ReferenceQueue.NULL，next = this</code>，此时reference实例就进入了Inactive状态，等待JVM回收。</p>
+<p>具体执行过程：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 创建一个引用队列</span></span><br><span class="line"><span class="type">ReferenceQueue</span> <span class="variable">queue</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ReferenceQueue</span>();</span><br><span class="line"></span><br><span class="line"><span class="comment">// 创建虚引用，此时状态为Active，并且Reference.pending为空，当前Reference.queue = 上面创建的queue，并且next=null</span></span><br><span class="line"><span class="type">WeakReference</span> <span class="variable">reference</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">WeakReference</span>(<span class="keyword">new</span> <span class="title class_">Object</span>(), queue);</span><br><span class="line">System.out.println(reference);</span><br><span class="line"><span class="comment">// 当GC执行后，由于是虚引用，所以回收该object对象，并且置于pending上，此时reference的状态为PENDING</span></span><br><span class="line">System.gc();</span><br><span class="line"></span><br><span class="line"><span class="comment">/* ReferenceHandler从pending中取下该元素，并且将该元素放入到queue中，此时Reference状态为ENQUEUED，Reference.queue = ReferenceENQUEUED */</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 当从queue里面取出该元素，则变为INACTIVE，Reference.queue = Reference.NULL */</span></span><br><span class="line"><span class="type">Reference</span> <span class="variable">reference1</span> <span class="operator">=</span> queue.remove();</span><br><span class="line">System.out.println(reference1);</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+<hr>
+<p>转载自：<br><a target="_blank" rel="noopener" href="http://www.jianshu.com/p/f86d3a43eec5">http://www.jianshu.com/p/f86d3a43eec5</a><br><a target="_blank" rel="noopener" href="http://www.cnblogs.com/jabnih/p/6580665.html">http://www.cnblogs.com/jabnih/p/6580665.html</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2015/09/23/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/Archetype&Specification&Publish-Subscribe/" rel="prev" title="Archetype&Specification&Publish-Subscribe">
+      <i class="fa fa-chevron-left"></i> Archetype&Specification&Publish-Subscribe
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/03/01/Java/JVM/Reference/FinalReference%E5%AE%8C%E5%85%A8%E8%A7%A3%E8%AF%BB/" rel="next" title="FinalReference完全解读">
+      FinalReference完全解读 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#ReferenceQueue"><span class="nav-number">1.</span> <span class="nav-text">ReferenceQueue</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Reference"><span class="nav-number">2.</span> <span class="nav-text">Reference</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0"><span class="nav-number">2.1.</span> <span class="nav-text">构造函数</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Reference%E5%86%85%E9%83%A8%E4%B8%BB%E8%A6%81%E7%9A%84%E6%88%90%E5%91%98"><span class="nav-number">2.2.</span> <span class="nav-text">Reference内部主要的成员</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Reference%E7%8A%B6%E6%80%81%E5%80%BC"><span class="nav-number">2.3.</span> <span class="nav-text">Reference状态值</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
