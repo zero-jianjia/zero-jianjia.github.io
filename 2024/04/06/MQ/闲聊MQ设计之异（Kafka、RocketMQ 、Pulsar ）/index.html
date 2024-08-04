@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="[toc] Kafka Kafka 架构中，服务节点没有主从之分，主从概念是针对某个 topic 下的分区。  存储单位为分区，通过不同方式分散在各个节点，形成各种架构图。 生产者数量为 1，消费者数量为 1，分区数为 2，副本数为 3，服务节点数为 3。 图中有两块绿色图案，分别为 topic1-partition1 分区和 topic1-partition2 分区，浅绿色方块为它们的副本。 对">
+<meta property="og:type" content="article">
+<meta property="og:title" content="闲聊MQ设计之异（Kafka、RocketMQ 、Pulsar ）">
+<meta property="og:url" content="http://example.com/2024/04/06/MQ/%E9%97%B2%E8%81%8AMQ%E8%AE%BE%E8%AE%A1%E4%B9%8B%E5%BC%82%EF%BC%88Kafka%E3%80%81RocketMQ%20%E3%80%81Pulsar%20%EF%BC%89/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="[toc] Kafka Kafka 架构中，服务节点没有主从之分，主从概念是针对某个 topic 下的分区。  存储单位为分区，通过不同方式分散在各个节点，形成各种架构图。 生产者数量为 1，消费者数量为 1，分区数为 2，副本数为 3，服务节点数为 3。 图中有两块绿色图案，分别为 topic1-partition1 分区和 topic1-partition2 分区，浅绿色方块为它们的副本。 对">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408031504810.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408031504701.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408031506211.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408031508637.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408031508624.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408031509926.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408031510962.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408031511575.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408031512780.png">
+<meta property="article:published_time" content="2024-04-05T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-08-03T07:14:49.553Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408031504810.png">
+
+<link rel="canonical" href="http://example.com/2024/04/06/MQ/%E9%97%B2%E8%81%8AMQ%E8%AE%BE%E8%AE%A1%E4%B9%8B%E5%BC%82%EF%BC%88Kafka%E3%80%81RocketMQ%20%E3%80%81Pulsar%20%EF%BC%89/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>闲聊MQ设计之异（Kafka、RocketMQ 、Pulsar ） | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/06/MQ/%E9%97%B2%E8%81%8AMQ%E8%AE%BE%E8%AE%A1%E4%B9%8B%E5%BC%82%EF%BC%88Kafka%E3%80%81RocketMQ%20%E3%80%81Pulsar%20%EF%BC%89/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          闲聊MQ设计之异（Kafka、RocketMQ 、Pulsar ）
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-06 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-06T00:00:00+08:00">2024-04-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/MQ/" itemprop="url" rel="index"><span itemprop="name">MQ</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>[toc]</p>
+<h1 id="Kafka"><a href="#Kafka" class="headerlink" title="Kafka"></a>Kafka</h1><ol>
+<li>Kafka 架构中，服务节点没有主从之分，主从概念是针对某个 topic 下的分区。 </li>
+<li>存储单位为分区，通过不同方式分散在各个节点，形成各种架构图。</li>
+<li>生产者数量为 1，消费者数量为 1，分区数为 2，副本数为 3，服务节点数为 3。</li>
+<li>图中有两块绿色图案，分别为 topic1-partition1 分区和 topic1-partition2 分区，浅绿色方块为它们的副本。</li>
+<li>对于服务节点 1，topic1-partition1 是主节点；对于服务节点 2，topic1-partition2 是主节点。</li>
+</ol>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408031504810.png" alt="在这里插入图片描述"></p>
+<span id="more"></span>
+
+<p>消息队列的大致工作流程如下：</p>
+<ol>
+<li><p>生产者、消费者与元数据中心建立连接，并保持心跳，获取服务的实况和路由信息。</p>
+</li>
+<li><p>生产者将消息发送到 topic 下的任一分区中，通过算法保证每个 topic 下的分区尽可能均匀。</p>
+</li>
+<li><p>信息需要落盘才可以给上游返回 ack，以保证宕机后的信息的完整性。</p>
+</li>
+<li><p>在信息写成功主分区后，系统会根据策略选择同步复制还是异步复制，以保证单节点故障时的信息完整性。</p>
+</li>
+<li><p>消费者开始工作，拉取响应的信息，并返回 ack。</p>
+</li>
+<li><p>消费者在获取消息时，会根据偏移量 (offset) 进行拉取，每次拉取后偏移量加 1。</p>
+</li>
+</ol>
+<h2 id="Good-Design-—-磁盘顺序写盘"><a href="#Good-Design-—-磁盘顺序写盘" class="headerlink" title="Good Design —&gt; 磁盘顺序写盘"></a>Good Design —&gt; 磁盘顺序写盘</h2><p>Kafka 在底层设计上强依赖于文件系统（一个分区对应一个文件系统），本质上是基于磁盘存储的消息队列，在我们固有印象中磁盘的读写速度是非常慢的，慢的原因是因为在读写的过程中所有的进程都在抢占“磁头”这把锁，磁头在读写之前需要将其移动到合适的位置，这个“移动”极其耗费时间，这也就是磁盘慢的原因，但是如何不用移动磁头呢，顺序写盘就诞生了。</p>
+<p>Kafka 消息存储在分区中，每个分区对应一组连续的物理空间。新消息追加到磁盘文件末尾。消费者按顺序拉取分区数据消费。Kafka 的读写是顺序的，可以高效地利用 PageCache，解决磁盘读写的性能问题。</p>
+<p>这一特性非常重要，很多组件的底层存储设计都会用到这点，理解好这点对理解消息队列尤为重要。</p>
+<h2 id="Poor-Impact—-topic-数量不能过大"><a href="#Poor-Impact—-topic-数量不能过大" class="headerlink" title="Poor Impact—&gt; topic 数量不能过大"></a>Poor Impact—&gt; topic 数量不能过大</h2><p>kafka 的整体性能受 topic 数量的限制，这和底层的存储有密不可分的关系，我们上面讲过，当消息来的时候，底层数据使用追加写入的方式，顺序写盘，使得整体的写性能大大提高，但这并不能代表所有情况，当我们 topic 数量从几个变成上千个的时候，情况就有所不同了</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408031504701.png" alt="在这里插入图片描述"></p>
+<ul>
+<li>左图代表了，队列中从头到尾的信息为：topic1、topic1、topic1、topic2，在这种情况下，很好地运用了顺序写盘的特性，磁头不用去移动；</li>
+<li>右边图的情况，队列中从头到尾的信息为：topic1、topic2、topic3、topic4，当队列中的信息变的很分散的时候，这个时候我们会发现，似乎没有办法利用磁盘的顺序写盘的特性，因为每次写完一种信息，磁头都需要进行移动。</li>
+</ul>
+<p>就很好理解，为什么当 topic 数量很大时，kafka 的性能会急剧下降了。当然没有其他办法了吗，当然有。我们可以把存储换成速度更快 ssd 或者针对每一个分区都搞一块磁盘，当然这都是钱！ 这也是架构设计中的一种 trade off</p>
+<h1 id="RocketMQ"><a href="#RocketMQ" class="headerlink" title="RocketMQ"></a>RocketMQ</h1><p>对比 kafka，rocketmq 有两点很大的不同：</p>
+<ul>
+<li>元数据管理系统，从 zookeeper 变成了轻量级的独立服务集群。</li>
+<li>服务节点变为 多主多从架构</li>
+</ul>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408031506211.png" alt="在这里插入图片描述"></p>
+<h2 id="zookeeper-vs-namesrv"><a href="#zookeeper-vs-namesrv" class="headerlink" title="zookeeper vs namesrv"></a>zookeeper vs namesrv</h2><p>zookeeper 是 cp 强一致架构的一种，其内部使用 zab 算法，进行信息同步和容灾，在信息量较小的情况下，性能较好，当信息交互变多，因为同步带来的性能损耗加大，性能和吞吐量降低。如果 zookeeper 宕机，会导致整个集群的不可用，对于一些交易场景，这是不可接受的</p>
+<ul>
+<li><p>相比 Zookeeper，RocketMQ 选择了轻量级的独立服务器 NameSRV。</p>
+</li>
+<li><p>NameSRV 使用简单的 K&#x2F;V 结构保存信息。</p>
+</li>
+<li><p>NameSRV 支持集群模式，每个 NameSRV 相互独立，不进行任何通信。</p>
+</li>
+<li><p>Data 都保存在内存当中，Broker 的注册过程通过循环遍历所有 NameSRV 进行注册。</p>
+</li>
+</ul>
+<h2 id="局部顺序写（kafka）-与-完全顺序写（rocketmq）"><a href="#局部顺序写（kafka）-与-完全顺序写（rocketmq）" class="headerlink" title="局部顺序写（kafka） 与 完全顺序写（rocketmq）"></a>局部顺序写（kafka） 与 完全顺序写（rocketmq）</h2><ul>
+<li>Kafka 将不同分区写入对应的文件系统中，保证了优秀的水平扩容能力。</li>
+<li>RocketMQ 追求极致的消息写，将所有 topic 消息存储在同一个文件中，确保消息发送时按顺序写文件，提高可用性和吞吐量。</li>
+<li>RocketMQ 的设计使得其不支持删除指定 topic 功能，因为 topic 信息在磁盘上是一段非连续的区域，不像 Kafka 一个 topic 是一段连续的区域。</li>
+</ul>
+<h2 id="Rocketmq-存储结构"><a href="#Rocketmq-存储结构" class="headerlink" title="Rocketmq 存储结构"></a>Rocketmq 存储结构</h2><p>RocketMQ 的存储结构设计是为了追求极致的消息写性能，它采用了混合存储的方式，将多个 Topic 的消息实体内容都存储于一个 CommitLog 中。在 RocketMQ 的存储架构中，有三个重要的存储文件，分别是 CommitLog、ConsumeQueue 和 IndexFile。</p>
+<ol>
+<li><p>CommitLog<br>CommitLog 是存储消息的主体。Producer 发送的消息都会顺序写入 commitLog 文件，所以随着写入的消息增多，文件也会随之变大。单个文件大小默认 1G，文件名长度为 20 位，左边补零，剩余为起始偏移量。例如，00000000000000000000 代表了第一个文件，起始偏移量为 0，文件大小为 1G。当第一个文件写满了，第二个文件为 00000000001073741824，起始偏移量为 1073741824，以此类推。存储路径为 <code>HOME/store/commitLog</code>。     </p>
+</li>
+<li><p>ConsumeQueue<br>ConsumeQueue(逻辑消费队列) 可以看成基于 topic 的 commitLog 的索引文件。因为 CommitLog 是按照顺序写入的，不同的 topic 消息都会混淆在一起，而 Consumer 又是按照 topic 来消费消息的，这样的话势必会去遍历 commitLog 文件来过滤 topic，这样性能肯定会非常差，所以 rocketMq 采用 ConsumeQueue 来提高消费性能。即每个 Topic 下的每个 queueId 对应一个 Consumequeue，其中存储了单条消息对应在 commitLog 文件中的物理偏移量 offset，消息大小 size，消息 Tag 的 hash 值。存储路径为 <code>HOME/store/consumequeue/topic/queueId/fileName</code>。</p>
+</li>
+<li><p>IndexFile<br>IndexFile 提供了一种可以通过 key(topicmsgId) 或时间区间来查询消息的方法。他的存在主要是针对在客户端 (生产者和消费者) 和控制台接口提供了根据 key 查询消息的实现。为了方便用户查询具体某条消息。IndexFile 的存储结构可以认为是一个 hashmap。存储路径为 <code>HOME/store/index/. HOME/store/index/fileName</code> 文件名 fileName 是以创建时的时间戳命名的。</p>
+</li>
+</ol>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408031508637.png" alt="在这里插入图片描述"></p>
+<p>总结起来，RocketMQ 的存储结构设计非常复杂，但它通过合理的设计实现了高效的消息写入和读取性能。同时，RocketMQ 也支持多种存储方式，如本地存储、分布式存储和云存储等，可以满足不同场景下的需求。</p>
+<h1 id="Pulsar"><a href="#Pulsar" class="headerlink" title="Pulsar"></a>Pulsar</h1><p>架构图（分层+分片）</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408031508624.png" alt="在这里插入图片描述"></p>
+<p>pulsar 相比与 kafka 与 rocketmq 最大的特点则是使用了分层和分片的架构，回想一下 kafka 与 rocketmq，一个服务节点即是计算节点也是服务节点，节点有状态使得平台化、容器化困难、数据迁移、数据扩缩容等运维工作都变的复杂且困难。</p>
+<ul>
+<li><p>分层：Pulsar 分离出了 Broker（服务层）和 Bookie（存储层）架构，Broker 为无状态服务，用于发布和消费消息，而 BookKeeper 专注于存储。</p>
+</li>
+<li><p>分片 : 这种将存储从消息服务中抽离出来，使用更细粒度的分片（Segment）替代粗粒度的分区（Partition），为 Pulsar 提供了更高的可用性，更灵活的扩展能力</p>
+</li>
+</ul>
+<h2 id="服务层设计"><a href="#服务层设计" class="headerlink" title="服务层设计"></a>服务层设计</h2><p>Broker 集群在 Pulsar 中形成无状态服务层。服务层是“无状态的”，所有的数据信息都存储在了 BookKeeper 上，所有的元信息都存储在了 zookeeper 上，这样使得一个 broker 节点没有任何的负担，这里的负担有几层含义：</p>
+<ul>
+<li>容器化没负担，broker 节点不用考虑任何数据状态带来的麻烦。</li>
+<li>扩容、缩容没负担，当请求量级突增或者降低的同时，可以随时的添加节点或者减少节点以动态的调整资源，使得整体在一种“合适”的状态。</li>
+<li>故障转移没负担，当一个节点宕机、服务不可用时，可以通快速地转移所负责的 topic 信息到别的基节点上，可以很好做到故障对外无感知。</li>
+</ul>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408031509926.png" alt="在这里插入图片描述"></p>
+<h2 id="存储层设计"><a href="#存储层设计" class="headerlink" title="存储层设计"></a>存储层设计</h2><p>pulsar 使用了类似于 raft 的存储方案，数据会并发的写入多个存储节点上，下图为四存储节点、三副本架构。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408031510962.png" alt="在这里插入图片描述"></p>
+<p>broker2 节点当前需要写入 segment1 到 segment4 数据，流程为： segment1 并发写入 b1、b2、b3 数据节点、segment2 并发写入 b2、b3、b4 数据节点、segment3 并发写入 b3、b4、b1 数据节点、segment4 并发写入 b1、b2、b4 数据节点。这种写入方式称为条带化的写入方式。</p>
+<p>这种方式潜在的决定了数据的分布方式、通过路由算法，可以很快的找到对应数据的位置信息，在数据迁移与恢复中起到重要的作用。</p>
+<h2 id="扩容"><a href="#扩容" class="headerlink" title="扩容"></a>扩容</h2><p>当存储节点资源不足的时候，常规的运维操作就是动态扩容，相比 kafka 与 rocketmq、pulsar 不用考虑原数据的”人为”搬移工作，而是动态新增一个或者多个节点，broker 在写入数据时通过路有算法优先写入资源充足的节点，使得整体的资源利用力达到一个平衡的状态，如图所示。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408031511575.png" alt="在这里插入图片描述"></p>
+<h2 id="容灾"><a href="#容灾" class="headerlink" title="容灾"></a>容灾</h2><p>当 bookie4 存储节点宕机不可用时，如何恢复节点数据？这里只需要增加新的存储节点，并且拷贝 bookie2 与 bookie3 上的数据即可，这个过程对外是无感知的，实现了平滑切换，如图所示</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408031512780.png" alt="在这里插入图片描述"></p>
+<hr>
+<p>转载自：<br><a target="_blank" rel="noopener" href="https://artisan.blog.csdn.net/article/details/131903082?spm=1001.2014.3001.5502">https://artisan.blog.csdn.net/article/details/131903082?spm=1001.2014.3001.5502</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/04/05/Dubbo/%E5%A6%82%E4%BD%95%E8%AE%BE%E8%AE%A1RPC%E6%A1%86%E6%9E%B6/" rel="prev" title="如何设计RPC框架">
+      <i class="fa fa-chevron-left"></i> 如何设计RPC框架
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/04/06/MQ/RocketMQ%20NameServer%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81%E6%95%B0%E6%8D%AE%E6%9C%80%E7%BB%88%E4%B8%80%E8%87%B4/" rel="next" title="RocketMQ NameServer如何保证数据最终一致">
+      RocketMQ NameServer如何保证数据最终一致 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Kafka"><span class="nav-number">1.</span> <span class="nav-text">Kafka</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Good-Design-%E2%80%94-%E7%A3%81%E7%9B%98%E9%A1%BA%E5%BA%8F%E5%86%99%E7%9B%98"><span class="nav-number">1.1.</span> <span class="nav-text">Good Design —&gt; 磁盘顺序写盘</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Poor-Impact%E2%80%94-topic-%E6%95%B0%E9%87%8F%E4%B8%8D%E8%83%BD%E8%BF%87%E5%A4%A7"><span class="nav-number">1.2.</span> <span class="nav-text">Poor Impact—&gt; topic 数量不能过大</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#RocketMQ"><span class="nav-number">2.</span> <span class="nav-text">RocketMQ</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#zookeeper-vs-namesrv"><span class="nav-number">2.1.</span> <span class="nav-text">zookeeper vs namesrv</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B1%80%E9%83%A8%E9%A1%BA%E5%BA%8F%E5%86%99%EF%BC%88kafka%EF%BC%89-%E4%B8%8E-%E5%AE%8C%E5%85%A8%E9%A1%BA%E5%BA%8F%E5%86%99%EF%BC%88rocketmq%EF%BC%89"><span class="nav-number">2.2.</span> <span class="nav-text">局部顺序写（kafka） 与 完全顺序写（rocketmq）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Rocketmq-%E5%AD%98%E5%82%A8%E7%BB%93%E6%9E%84"><span class="nav-number">2.3.</span> <span class="nav-text">Rocketmq 存储结构</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Pulsar"><span class="nav-number">3.</span> <span class="nav-text">Pulsar</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9C%8D%E5%8A%A1%E5%B1%82%E8%AE%BE%E8%AE%A1"><span class="nav-number">3.1.</span> <span class="nav-text">服务层设计</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AD%98%E5%82%A8%E5%B1%82%E8%AE%BE%E8%AE%A1"><span class="nav-number">3.2.</span> <span class="nav-text">存储层设计</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%89%A9%E5%AE%B9"><span class="nav-number">3.3.</span> <span class="nav-text">扩容</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%B9%E7%81%BE"><span class="nav-number">3.4.</span> <span class="nav-text">容灾</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">138</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

@@ -187,6 +187,333 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/06/MQ/RocketMQ%20NameServer%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81%E6%95%B0%E6%8D%AE%E6%9C%80%E7%BB%88%E4%B8%80%E8%87%B4/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/06/MQ/RocketMQ%20NameServer%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81%E6%95%B0%E6%8D%AE%E6%9C%80%E7%BB%88%E4%B8%80%E8%87%B4/" class="post-title-link" itemprop="url">RocketMQ NameServer如何保证数据最终一致</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-06 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-06T00:00:00+08:00">2024-04-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/MQ/" itemprop="url" rel="index"><span itemprop="name">MQ</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>[toc]<br>NameServer是RocketMQ的命名服务（路由中心、注册中心），提供更新和发现Broker服务的功能，是几乎无状态节点，可集群部署。NameServer节点之间互不通信，路由变化也不会马上通知客户端（生产者和消费者）。</p>
+<p>既然NameServer的节点之间互不通信，变更也不发送通知，那又是如何保证数据最终一致的呢？</p>
+<h2 id="路由更新"><a href="#路由更新" class="headerlink" title="路由更新"></a>路由更新</h2><ol>
+<li><p>Broker节点在启动时，轮询NameServer集群，与每个NameServer节点建立长连接，发起注册请求。</p>
+</li>
+<li><p>Broker节点注册成功后，每隔30s定期向NameServer上报Topic路由信息，NameServer收到心跳包后记录Broker的最新时间戳。</p>
+</li>
+<li><p>Broker节点正常下线时，会与NameServer断开长连接，Netty的通道关闭，监听器会监听到连接断开事件，然后将这个Broker剔除掉。</p>
+</li>
+<li><p>NameServer中有一个定时任务，每隔10s扫描Broker列表，如果Broker的最新时间戳距离当前时间超过120s，会判定Broker失效并将其剔除掉。</p>
+</li>
+</ol>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/04/06/MQ/RocketMQ%20NameServer%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81%E6%95%B0%E6%8D%AE%E6%9C%80%E7%BB%88%E4%B8%80%E8%87%B4/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/06/MQ/%E9%97%B2%E8%81%8AMQ%E8%AE%BE%E8%AE%A1%E4%B9%8B%E5%BC%82%EF%BC%88Kafka%E3%80%81RocketMQ%20%E3%80%81Pulsar%20%EF%BC%89/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/06/MQ/%E9%97%B2%E8%81%8AMQ%E8%AE%BE%E8%AE%A1%E4%B9%8B%E5%BC%82%EF%BC%88Kafka%E3%80%81RocketMQ%20%E3%80%81Pulsar%20%EF%BC%89/" class="post-title-link" itemprop="url">闲聊MQ设计之异（Kafka、RocketMQ 、Pulsar ）</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-06 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-06T00:00:00+08:00">2024-04-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/MQ/" itemprop="url" rel="index"><span itemprop="name">MQ</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>[toc]</p>
+<h1 id="Kafka"><a href="#Kafka" class="headerlink" title="Kafka"></a>Kafka</h1><ol>
+<li>Kafka 架构中，服务节点没有主从之分，主从概念是针对某个 topic 下的分区。 </li>
+<li>存储单位为分区，通过不同方式分散在各个节点，形成各种架构图。</li>
+<li>生产者数量为 1，消费者数量为 1，分区数为 2，副本数为 3，服务节点数为 3。</li>
+<li>图中有两块绿色图案，分别为 topic1-partition1 分区和 topic1-partition2 分区，浅绿色方块为它们的副本。</li>
+<li>对于服务节点 1，topic1-partition1 是主节点；对于服务节点 2，topic1-partition2 是主节点。</li>
+</ol>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408031504810.png" alt="在这里插入图片描述"></p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/04/06/MQ/%E9%97%B2%E8%81%8AMQ%E8%AE%BE%E8%AE%A1%E4%B9%8B%E5%BC%82%EF%BC%88Kafka%E3%80%81RocketMQ%20%E3%80%81Pulsar%20%EF%BC%89/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/05/Dubbo/%E5%A6%82%E4%BD%95%E8%AE%BE%E8%AE%A1RPC%E6%A1%86%E6%9E%B6/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/05/Dubbo/%E5%A6%82%E4%BD%95%E8%AE%BE%E8%AE%A1RPC%E6%A1%86%E6%9E%B6/" class="post-title-link" itemprop="url">如何设计RPC框架</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-05T00:00:00+08:00">2024-04-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Dubbo/" itemprop="url" rel="index"><span itemprop="name">Dubbo</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>&emsp;&emsp;RPC框架的核心目标是解决分布式系统中服务之间的调用问题。</p>
+<h3 id="RPC框架三个核心角色"><a href="#RPC框架三个核心角色" class="headerlink" title="RPC框架三个核心角色"></a>RPC框架三个核心角色</h3><p>&emsp;&emsp;1)服务提供者（Server）对外提供后台服务，将自己的服务信息，注册到注册中心</p>
+<p>&emsp;&emsp;2)注册中心（Registry）用于服务端注册远程服务以及客户端发现服务。</p>
+<p>&emsp;&emsp;3)服务消费者（Client） 从注册中心获取远程服务的注册信息，然后进行远程过程调用。</p>
+<p>&emsp;&emsp;</p>
+<h3 id="RPC远程调用过程"><a href="#RPC远程调用过程" class="headerlink" title="RPC远程调用过程"></a>RPC远程调用过程</h3><p>&emsp;&emsp;1）服务调用方（client）调用以本地调用方式调用服务；<br>&emsp;&emsp;2）client stub接收到调用后负责将方法、参数等组装成能够进行网络传输的消息体；在Java里就是序列化的过程；<br>&emsp;&emsp;3）client stub找到服务地址，并将消息通过网络发送到服务端；<br>&emsp;&emsp;4）server stub收到消息后进行解码,在Java里就是反序列化的过程；<br>&emsp;&emsp;5）server stub根据解码结果调用本地的服务；<br>&emsp;&emsp;6）本地服务执行处理逻辑；<br>&emsp;&emsp;7）本地服务将结果返回给server stub；<br>&emsp;&emsp;8）server stub将返回结果打包成消息，Java里的序列化；<br>&emsp;&emsp;9）server stub将打包后的消息通过网络并发送至消费方；<br>&emsp;&emsp;10）client stub接收到消息，并进行解码, Java里的反序列化；<br>&emsp;&emsp;11）服务调用方（client）得到最终结果。</p>
+<p>&emsp;&emsp;RPC框架的目标就是要2~10这些步骤都封装起来。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/04/05/Dubbo/%E5%A6%82%E4%BD%95%E8%AE%BE%E8%AE%A1RPC%E6%A1%86%E6%9E%B6/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/Raft%E7%AE%97%E6%B3%95/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/Raft%E7%AE%97%E6%B3%95/" class="post-title-link" itemprop="url">Raft算法</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-05T00:00:00+08:00">2024-04-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/" itemprop="url" rel="index"><span itemprop="name">分布式与微服务</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>[toc]<br>  首先介绍下<strong>分布式共识算法。分布式共识算法是指：多个参与者</strong> 针对 <strong>某一件事</strong> 达成完全 <strong>一致</strong> ：一件事，一个结论；已达成一致的结论，不可推翻。</p>
+<p>  <strong>目前分布式共识算法有如下：</strong></p>
+<ul>
+<li>Paxos：被认为是分布式共识算法的根本，其他都是其变种，但是 Paxos 论文中只给出了单个提案的过程，并没有给出复制状态机中需要的 multi-paxos 的相关细节的描述，实现 Paxos 具有很高的工程复杂度（如多点可写，允许日志空洞等）。</li>
+<li>Zab：被应用在 Zookeeper 中，业界使用广泛，但没有抽象成通用的 library。</li>
+<li>Raft：以容易理解著称，业界也涌现出很多 Raft 实现，比如大名鼎鼎的 etcd, braft, tikv 等。</li>
+</ul>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/Raft%E7%AE%97%E6%B3%95/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
     <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F%E7%9A%84SLA/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -646,345 +973,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E8%81%8A%E8%81%8A%E5%BE%AE%E6%9C%8D%E5%8A%A1%E7%9A%84%E6%9C%8D%E5%8A%A1%E6%B3%A8%E5%86%8C%E4%B8%8E%E5%8F%91%E7%8E%B0/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E8%81%8A%E8%81%8A%E5%BE%AE%E6%9C%8D%E5%8A%A1%E7%9A%84%E6%9C%8D%E5%8A%A1%E6%B3%A8%E5%86%8C%E4%B8%8E%E5%8F%91%E7%8E%B0/" class="post-title-link" itemprop="url">聊聊微服务的服务注册与发现</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-04-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-05T00:00:00+08:00">2024-04-05</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/" itemprop="url" rel="index"><span itemprop="name">分布式与微服务</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>[toc]</p>
-<h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><p>聊起微服务的服务注册与发现，很多人立马就会脱口而出 zk、etcd、consul、eureka 这些组件，进而聊到 CAP 如何取舍，性能如何，高可用和容灾是怎么实现的。</p>
-<p>在这之前，站在组件使用者的角度，我想先问这么几个问题：</p>
-<ul>
-<li>注册的 IP 和端口怎么确定 ？</li>
-<li>实现服务治理还需要注册哪些信息     ？</li>
-<li>如何进行优雅的服务注册与服务下线     ？</li>
-<li>注册服务的健康检查是如何做的     ？</li>
-<li>当服务有节点退出或新的节点加入时，订阅者能不能及时收到通知 ?</li>
-<li>我能方便地查看某个应用发布和订阅了哪些服务，以及所订阅的服务有哪些节点吗     ？</li>
-</ul>
-<p>看完这些问题后，您也许会发现，对于服务注册与发现，首先应该关注的是服务注册发现本身的功能，然后才是性能和高可用。</p>
-<p>一个好的服务注册发现中间件，应该是能完整地满足服务开发和治理的基础功能，然后才是性能和高可用。如果没有想清楚前面的功能，再高的可用性和性能都是浮云。最后，安全也同样重要。</p>
-<ul>
-<li>服务端的性能如何     ？</li>
-<li>服务发现的容灾策略是怎样的     ？</li>
-<li>当我的应用和服务发现中心的网络连接出现问题时，会对我的调用产生什么影响     ？</li>
-<li>服务注册中心某台机器宕机或者全部宕机时，会对我的调用产生什么影响     ？</li>
-<li>服务注册和发现的链路安全吗，有没有做好权限控制     ？</li>
-</ul>
-<p>下面将从 服务注册、服务发现、容灾和高可用三个大方面来回答这些问题的主流做法。</p>
-<p>最后会介绍一下 ANS(Alibaba Naming Service) ， ANS 综合了这些解决方案中的优点，并在 EDAS(阿里巴巴企业级分布式应用服务) 中输出，目前完全免费！</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E8%81%8A%E8%81%8A%E5%BE%AE%E6%9C%8D%E5%8A%A1%E7%9A%84%E6%9C%8D%E5%8A%A1%E6%B3%A8%E5%86%8C%E4%B8%8E%E5%8F%91%E7%8E%B0/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E9%99%90%E6%B5%81/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E9%99%90%E6%B5%81/" class="post-title-link" itemprop="url">高并发系统限流</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-04-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-05T00:00:00+08:00">2024-04-05</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/" itemprop="url" rel="index"><span itemprop="name">分布式与微服务</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>[toc]</p>
-<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>在高并发系统时有三把利器用来保护系统：<strong>缓存</strong>、<strong>降级</strong>和<strong>限流</strong>。</p>
-<p>缓存的目的是提升系统访问速度和增大系统能处理的容量，可谓是抗高并发流量的银弹；</p>
-<p>而降级是当服务出问题或者影响到核心流程的性能则需要暂时屏蔽掉，待高峰或者问题解决后再打开；</p>
-<p>而有些场景并不能用缓存和降级来解决，比如稀缺资源（秒杀、抢购）、写服务（如评论、下单）、频繁的复杂查询（评论的最后几页），因此需有一种手段来限制这些场景的并发 &#x2F; 请求量，即限流。</p>
-<p>  限流的目的是通过对并发访问 &#x2F; 请求进行限速或者一个时间窗口内的的请求进行限速来保护系统，一旦达到限制速率则可以拒绝服务（定向到错误页或告知资源没有了）、排队或等待（比如秒杀、评论、下单）、降级（返回兜底数据或默认数据，如商品详情页库存默认有货）。</p>
-<p>一般开发高并发系统常见的限流有：限制总并发数（比如数据库连接池、线程池）、限制瞬时并发数（如 nginx 的 limit_conn 模块，用来限制瞬时并发连接数）、限制时间窗口内的平均速率（如 Guava 的 RateLimiter 、 nginx 的 limit_req 模块，限制每秒的平均速率）；其他还有如限制远程接口调用速率、限制 MQ 的消费速率。另外还可以根据网络连接数、网络流量、 CPU 或内存负载等来限流。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E9%99%90%E6%B5%81/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/05/%E7%9B%AE%E5%BD%95%E5%BE%85%E5%AE%9A/%E5%81%9A%E7%B3%BB%E7%BB%9F%E6%9E%B6%E6%9E%84%E7%9A%84%E4%B8%80%E4%BA%9B%E5%8E%9F%E5%88%99/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/04/05/%E7%9B%AE%E5%BD%95%E5%BE%85%E5%AE%9A/%E5%81%9A%E7%B3%BB%E7%BB%9F%E6%9E%B6%E6%9E%84%E7%9A%84%E4%B8%80%E4%BA%9B%E5%8E%9F%E5%88%99/" class="post-title-link" itemprop="url">做系统架构的一些原则</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-04-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-05T00:00:00+08:00">2024-04-05</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E7%9B%AE%E5%BD%95%E5%BE%85%E5%AE%9A/" itemprop="url" rel="index"><span itemprop="name">目录待定</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>[toc]</p>
-<h2 id="原则一：关注于真正的收益而不是技术本身"><a href="#原则一：关注于真正的收益而不是技术本身" class="headerlink" title="原则一：关注于真正的收益而不是技术本身"></a>原则一：关注于真正的收益而不是技术本身</h2><p>对于软件架构来说，我觉得第一重要的是架构的收益，如果不说收益，只是为了技术而技术，而没有任何意义。对于技术收益来说，我觉得下面这几个收益是非常重要的：</p>
-<ul>
-<li><strong>是否可以降低技术门槛加快整个团队的开发流程</strong>。能够加快整个团队的工程流程，快速发布，是软件工程一直在解决的问题，所以，系统架构需要能够进行并行开发，并行上线和并行运维，而不会让某个团队成为瓶颈点。（注：就算拖累团队的原因是组织构架，也不妨碍我们做出并行的系统架构设计）；</li>
-<li><strong>是否可以让整个系统可以运行的更稳定</strong>。要让整个系统可以运行的更为的稳定，提升整个系统的 SLA，就需要对有计划和无计划的停机做相应的解决方案；</li>
-<li><strong>是否可以通过简化和自动化降低成本</strong>。最高优化的成本是人力成本，人的成本除了慢和贵，还有经常不断的 human error。如果不能降低人力成本，反而需要更多的人，那么这个架构设计一定是失败的。除此之外，是时间成本，资金成本。</li>
-</ul>
-<p>如果一个系统架构不能在上面三个事上起到作用，那就没有意义了。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/04/05/%E7%9B%AE%E5%BD%95%E5%BE%85%E5%AE%9A/%E5%81%9A%E7%B3%BB%E7%BB%9F%E6%9E%B6%E6%9E%84%E7%9A%84%E4%B8%80%E4%BA%9B%E5%8E%9F%E5%88%99/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/TCC%E6%9C%8D%E5%8A%A1%E8%AE%BE%E8%AE%A1%E5%92%8C%E5%AE%9E%E7%8E%B0%E6%B3%A8%E6%84%8F%E4%BA%8B%E9%A1%B9/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/TCC%E6%9C%8D%E5%8A%A1%E8%AE%BE%E8%AE%A1%E5%92%8C%E5%AE%9E%E7%8E%B0%E6%B3%A8%E6%84%8F%E4%BA%8B%E9%A1%B9/" class="post-title-link" itemprop="url">TCC服务设计和实现注意事项</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-04-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-05T00:00:00+08:00">2024-04-05</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/" itemprop="url" rel="index"><span itemprop="name">分布式与微服务</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/" itemprop="url" rel="index"><span itemprop="name">分布式事务</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>[toc]</p>
-<h1 id="一、TCC简介"><a href="#一、TCC简介" class="headerlink" title="一、TCC简介"></a>一、TCC简介</h1><p>&emsp;&emsp;TCC是一种比较成熟的分布式事务解决方案，可用于解决跨库操作的数据一致性问题；</p>
-<p>​      TCC是服务化的两阶段编程模型，其Try、Confirm、Cancel 3个方法均由<strong>业务编码实现</strong>；<br>&emsp;&emsp;其中Try操作作为一阶段，负责资源的检查和预留，Confirm操作作为二阶段提交操作，执行真正的业务，Cancel是预留资源的取消；</p>
-<p>&emsp;&emsp;如下图所示，业务实现TCC服务之后，该TCC服务将作为分布式事务的其中一个资源，参与到整个分布式事务中；事务管理器分2阶段协调TCC服务，在第一阶段调用所有TCC服务的Try方法，在第二阶段执行所有TCC服务的Confirm或者Cancel方法；</p>
-<p><a target="_blank" rel="noopener" href="https://img-blog.csdnimg.cn/img_convert/ffca7453c12adde5080518b45fd730c9.png">https://img-blog.csdnimg.cn/img_convert/ffca7453c12adde5080518b45fd730c9.png</a></p>
-<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291814296.jpeg"></p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/TCC%E6%9C%8D%E5%8A%A1%E8%AE%BE%E8%AE%A1%E5%92%8C%E5%AE%9E%E7%8E%B0%E6%B3%A8%E6%84%8F%E4%BA%8B%E9%A1%B9/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -1054,7 +1042,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-count">138</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>

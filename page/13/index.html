@@ -187,6 +187,348 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/05/Java/Java%E8%BF%9B%E9%98%B6/Java8%20Lambdas%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/03/05/Java/Java%E8%BF%9B%E9%98%B6/Java8%20Lambdas%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/" class="post-title-link" itemprop="url">Java8 Lambdas实现原理</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-03-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-05T00:00:00+08:00">2024-03-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/" itemprop="url" rel="index"><span itemprop="name">Java进阶</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>Lambda表达式到底被编译成了什么，JVM会在编译时和运行时对Lambda表达式动手脚。</p>
+<ul>
+<li><p>编译时：Lambda 表达式会生成一个方法， 方法实现了表达式的代码逻辑；生成invokedynamic指令，调用bootstrap方法，由<code>java.lang.invoke.LambdaMetafactory.metafactory</code>方法实现。</p>
+</li>
+<li><p>运行时：invokedynamic指令调用metafactory方法。 它会返回一个CallSite, 此CallSite返回目标类型的一个匿名实现类， 此类关联编译时产生的方法；lambda表达式调用时会调用匿名实现类关联的方法。</p>
+</li>
+</ul>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/03/05/Java/Java%E8%BF%9B%E9%98%B6/Java8%20Lambdas%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/05/Java/Java%E8%BF%9B%E9%98%B6/MemorySafeLinkedBlockingQueue/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/03/05/Java/Java%E8%BF%9B%E9%98%B6/MemorySafeLinkedBlockingQueue/" class="post-title-link" itemprop="url">MemorySafeLinkedBlockingQueue</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-03-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-05T00:00:00+08:00">2024-03-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/" itemprop="url" rel="index"><span itemprop="name">Java进阶</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>前几天在一个开源项目的 github 里面看到这样的一个 pr：<br><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291654875.png" alt="500efdf515ee1c0dfca67a7544aeb993.png"></p>
+<p>光是看这个名字，里面有个 MemorySafe，我就有点陷进去了。我先给你看看这个东西：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291654870.png" alt="64726d0b970a92e9d5033b1c1c85a441.png"></p>
+<p>这是阿里巴巴开发规范中截的图。为什么不建议使用  FixedThreadPool 和 SingleThreadPool 呢？</p>
+<p>因为队列太长了，请求会堆积，请求一堆积，容易造成 OOM。前面提到的线程池用的队列，使用 LinkedBlockingQueue 是可能会导致 OOM 的。</p>
+<p>如果想避免这个 OOM 就需要在初始化的时候指定一个合理的值。“合理的值”，听起来轻描淡写的四个字，但是这个值到底是多少呢，基本上说不准。</p>
+<p>所以，当我看到 pr 上的 MemorySafeLinkedBlockingQueue 这个名字的时候，我就陷进去了。在 LinkedBlockingQueue 前面加上了 MemorySafe 这个限定词。表示这是一个内存安全的 LinkedBlockingQueue。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/03/05/Java/Java%E8%BF%9B%E9%98%B6/MemorySafeLinkedBlockingQueue/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/05/Java/Java%E8%BF%9B%E9%98%B6/Java%E9%9B%86%E5%90%88/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/03/05/Java/Java%E8%BF%9B%E9%98%B6/Java%E9%9B%86%E5%90%88/" class="post-title-link" itemprop="url">Java集合</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-03-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-05T00:00:00+08:00">2024-03-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/" itemprop="url" rel="index"><span itemprop="name">Java进阶</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>[toc]</p>
+<h1 id="数据结构"><a href="#数据结构" class="headerlink" title="数据结构"></a>数据结构</h1><h2 id="ConcurrentSkipListMap"><a href="#ConcurrentSkipListMap" class="headerlink" title="ConcurrentSkipListMap"></a>ConcurrentSkipListMap</h2><p><code>ConcurrentSkipListMap</code>类实现了一个基于跳表（Skip List）算法的并发有序映射，在并发环境中非常有用，尤其是当需要保持键值对的排序顺序，并且多个线程可能同时读写映射时。</p>
+<p>假如，有一个在线购物平台，其中有一个功能是根据商品的评分对商品进行排序，用户可以看到按评分从高到低排列的商品列表，并且这个列表需要实时更新，因为其他用户可能正在对商品进行评分。在这个场景中，可以使用ConcurrentSkipListMap来存储商品ID和对应的评分，可以将评分作为键（因为需要根据评分进行排序），将商品ID作为值，每当有新评分时，可以安全地更新映射，而不需要担心并发问题，由于ConcurrentSkipListMap支持多个线程可以同时读写映射，而不会导致数据不一致或需要额外的同步措施。</p>
+<p>ConcurrentSkipListMap类实现了SortedMap接口，提供了基于跳表算法的有序键值对存储，其优点在于高效的并发访问性能，能够在多线程环境下保持良好的读写吞吐量，特别适合需要高并发的场景，此外，ConcurrentSkipListMap的插入、删除和查找操作都具有对数级别的平均时间复杂度，使得它在处理大量数据时依然能够保持较快的响应速度。</p>
+<p>相较于其他数据结构，如ConcurrentHashMap，ConcurrentSkipListMap的内存占用通常更高，因为它需要维护跳表的多层结构，此外，在高并发写入的场景下，ConcurrentSkipListMap的性能可能会略逊于专门优化过的哈希表实现。</p>
+<p>在技术方案选型上，如果应用程序需要维护一个有序的键值对集合，并且这个集合会被多个线程并发访问，那么ConcurrentSkipListMap是一个很好的选择。但如果对内存占用有严格要求，或者写入操作远多于读取操作，那么可能需要考虑其他更适合的数据结构。</p>
+<h2 id="ConcurrentSkipListSet"><a href="#ConcurrentSkipListSet" class="headerlink" title="ConcurrentSkipListSet"></a>ConcurrentSkipListSet</h2><p><code>ConcurrentSkipListSet</code>类在多线程环境下，它能够轻松应对大量的插入、删除和查找操作，同时保持数据的完整性和一致性，其内部基于跳表数据结构的实现，确保了即使在处理大规模数据时，也能具有出色的性能表现。</p>
+<p><code>ConcurrentSkipListSet</code>类实现了一个基于<code>SkipList</code>（跳表）算法的可排序的并发集合，<code>SkipList</code>是一种可以在对数预期时间内完成搜索、插入、删除等操作的数据结构，通过维护多个指向其他元素的“跳跃”链接来实现高效查找。</p>
+<p><code>ConcurrentSkipListSet</code> 类实现了 <code>SortedSet</code> 接口，内部基于 Skip List（跳表）数据结构，并提供了高效的并发访问，这个类能够保证元素的有序性，并且允许并发修改。</p>
+<h2 id="ConcurrentLinkedQueue"><a href="#ConcurrentLinkedQueue" class="headerlink" title="ConcurrentLinkedQueue"></a>ConcurrentLinkedQueue</h2><p><code>ConcurrentLinkedQueue</code>类它利用无锁算法，确保在多线程环境下元素的快速入队和出队，且不会因队列满而阻塞生产者，无界设计让数据流动更自由，非常适合高并发、大数据量的处理场景，是构建响应迅速、可扩展并发系统的理想选择。</p>
+<p><code>ConcurrentLinkedQueue</code>类主要用来解决在多线程环境下对队列进行安全并发访问的问题。它采用了一种不同的策略，基于无锁<code>（lock-free）</code>算法实现，通过原子操作和<code>CAS（Compare-and-Swap）</code>等机制来保证线程安全，这种策略允许多个线程同时访问队列，而不需要进行加锁和等待，从而大大提高了并发性能。</p>
+<h2 id="ConcurrentLinkedDeque"><a href="#ConcurrentLinkedDeque" class="headerlink" title="ConcurrentLinkedDeque"></a>ConcurrentLinkedDeque</h2><p><code>ConcurrentLinkedDeque</code>类提供了线程安全的双端队列操作，支持高效的并发访问，因此在多线程环境下，可以放心地在队列的两端添加或移除元素，而不用担心数据的一致性问题。同时，它的内部实现采用了无锁算法，从而避免了传统锁带来的性能开销。</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/HashMap/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/HashMap/" class="post-title-link" itemprop="url">HashMap</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-03-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-05T00:00:00+08:00">2024-03-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E6%8F%90%E9%AB%98/" itemprop="url" rel="index"><span itemprop="name">Java提高</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>Map是映射表，基本思想是键-值(对)关联，可以使用键来查找值。一般常见的Map有HashMap,LinkedHashMap,TreeMap,WeakHashMap,ConcurrentHashMap,IdentityHashMap。</p>
+<ul>
+<li><p>HashMap不多说，最常见，非线程安全的。</p>
+</li>
+<li><p>LinkedHashMap取得“键值对”的顺序是其插入次序，或者是最近最少使用(LRU)的次序。只比HashMap慢一点；而在迭代访问时反应更快，因为它使用的链表维护内部次序。</p>
+</li>
+<li><p>TreeMap基于红黑树的实现。查看“键”或“键值对”时，它们会被排序(次序由Comparable或者Comparator决定)。</p>
+</li>
+<li><p>WeakHashMap弱键(weak key)映射，允许释放映射所指向的对象。如果映射之外没有引用指向某个“键”，则此“键”对应的值可以被垃圾回收器回收。</p>
+</li>
+<li><p>ConcurrentHashMap一种线程安全的Map。</p>
+</li>
+<li><p>IdentityHashMap使用&#x3D;&#x3D;代替equals()对“键”进行比较的散列映射。意思是key在逻辑上可以相等，但是物理地址不能相等。</p>
+</li>
+</ul>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/HashMap/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
     <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/ASM/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -702,374 +1044,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/%E5%AF%B9%E8%B1%A1%E5%B1%9E%E6%80%A7copy/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/%E5%AF%B9%E8%B1%A1%E5%B1%9E%E6%80%A7copy/" class="post-title-link" itemprop="url">对象属性copy</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-03-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-05T00:00:00+08:00">2024-03-05</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/Java%E6%8F%90%E9%AB%98/" itemprop="url" rel="index"><span itemprop="name">Java提高</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h3 id="1-对象属性拷贝的常见方式及其性能"><a href="#1-对象属性拷贝的常见方式及其性能" class="headerlink" title="1.对象属性拷贝的常见方式及其性能"></a>1.对象属性拷贝的常见方式及其性能</h3><p>&emsp;&emsp;在日常编码中，经常会遇到DO、DTO对象之间的转换，如果对象本身的属性比较少的时候，那么采用Hard Code工作量也不大，但如果对象的属性比较多的情况下，Hard Code效率就比较低。这时候就要使用其它工具类来进行对象属性的拷贝。<br>&emsp;&emsp;常用的对象属性拷贝的方式和性能测试如下：</p>
-<table>
-<thead>
-<tr>
-<th align="left">拷贝方式</th>
-<th>copy次数1000</th>
-<th>copy次数100000</th>
-<th>copy次数1000000</th>
-</tr>
-</thead>
-<tbody><tr>
-<td align="left">Hard Code</td>
-<td>1 ms</td>
-<td>18 ms</td>
-<td>43 ms</td>
-</tr>
-<tr>
-<td align="left">net.sf.cglib.beans.BeanCopier#copy</td>
-<td>117 ms</td>
-<td>107 ms</td>
-<td>110 ms</td>
-</tr>
-<tr>
-<td align="left">org.springframework.beans.BeanUtils#copyProperties</td>
-<td>137 ms</td>
-<td>246 ms</td>
-<td>895 ms</td>
-</tr>
-<tr>
-<td align="left">org.apache.commons.beanutils.PropertyUtils#copyProperties</td>
-<td>212 ms</td>
-<td>601 ms</td>
-<td>7869 ms</td>
-</tr>
-<tr>
-<td align="left">org.apache.commons.beanutils.BeanUtils#copyProperties</td>
-<td>275 ms</td>
-<td>1732 ms</td>
-<td>12380 ms</td>
-</tr>
-</tbody></table>
-<p>&emsp;&emsp;结论：采用Hard Code方式进行对象属性Copy性能最佳；采用<code>net.sf.cglib.beans.BeanCopier#copy</code>方式进行对象属性copy性能最稳定；而<code>org.apache.commons.beanutils.BeanUtils.copyProperties</code> 方式在数据量大时性能下降最厉害。所以在日常编程中遇到具有较多属性的对象进行属性复制时优先考虑采用<code>net.sf.cglib.beans.BeanCopier#copy</code>。</p>
-<p>&emsp;&emsp;以上的数据之所以产生巨大差距的原因在于其实现原理与方式的不同而导致的，Hard Code直接调用getter &amp; setter方法值，cglib采用的是字节码技术，而后三种均采用反射的方式。前两者性能优异众所周知，但为何同样采用反射的方式进行属性Copy时产生的差异如此巨大呢？ </p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/%E5%AF%B9%E8%B1%A1%E5%B1%9E%E6%80%A7copy/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/%E5%89%8D%E7%BC%80%E5%8C%B9%E9%85%8D%E7%9A%84%E5%B7%A5%E5%85%B7%E7%B1%BB/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/%E5%89%8D%E7%BC%80%E5%8C%B9%E9%85%8D%E7%9A%84%E5%B7%A5%E5%85%B7%E7%B1%BB/" class="post-title-link" itemprop="url">前缀匹配的工具类</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-03-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-05T00:00:00+08:00">2024-03-05</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/Java%E6%8F%90%E9%AB%98/" itemprop="url" rel="index"><span itemprop="name">Java提高</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>转载自：<a target="_blank" rel="noopener" href="https://blog.csdn.net/bohu83/article/details/126427401">https://blog.csdn.net/bohu83/article/details/126427401</a></p>
-<p>有这样业务场景：对于一个主题subject，想看有哪些group订阅了。而对于消费者来说，订阅的时候就是需要支持前缀匹配的，比如XXX.order.pay,支持订阅XXX.order 就能获取消息。通常这就需要使用前缀匹配，可以使用Java库：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&lt;dependency&gt;</span><br><span class="line">  &lt;groupId&gt;com.googlecode.concurrent-trees&lt;/groupId&gt;</span><br><span class="line">  &lt;artifactId&gt;concurrent-trees&lt;/artifactId&gt;</span><br><span class="line">  &lt;version&gt;2.6.1&lt;/version&gt;</span><br><span class="line">&lt;/dependency&gt;</span><br></pre></td></tr></table></figure>
-
-<p>使用的数据结构是基数树，而不是以为的字典树，基数树与字典树的区别在于基数树将单词压缩了, 节点变得更少，解决了字典树高度问题。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/%E5%89%8D%E7%BC%80%E5%8C%B9%E9%85%8D%E7%9A%84%E5%B7%A5%E5%85%B7%E7%B1%BB/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/%E8%87%AA%E5%AE%9A%E4%B9%89ClassLoader%E5%AE%9E%E7%8E%B0%E9%9A%94%E7%A6%BB%E8%BF%90%E8%A1%8C%E4%B8%8D%E5%90%8C%E7%89%88%E6%9C%ACjar%E5%8C%85/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/%E8%87%AA%E5%AE%9A%E4%B9%89ClassLoader%E5%AE%9E%E7%8E%B0%E9%9A%94%E7%A6%BB%E8%BF%90%E8%A1%8C%E4%B8%8D%E5%90%8C%E7%89%88%E6%9C%ACjar%E5%8C%85/" class="post-title-link" itemprop="url">自定义ClassLoader实现隔离运行不同版本jar包</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-03-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-05T00:00:00+08:00">2024-03-05</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/Java%E6%8F%90%E9%AB%98/" itemprop="url" rel="index"><span itemprop="name">Java提高</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>现在假定有这样一个需求，实现针对集群（比如 Hadoop 集群）版本为 V1 与 V2 的对应的执行程序，那么假定有如下项目：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Executor-Parent: 提供基础的 Maven 引用，可利用 Maven 一键打包所有的子模块/项目</span><br><span class="line">Executor-Common: 提供基础的接口，已经有公有的实现等</span><br><span class="line">Executor-Proxy: 执行不同版本程序的代理程序</span><br><span class="line">Executor-V1: 版本为V1的执行程序</span><br><span class="line">Executor-V2: 版本为V2的执行程序</span><br></pre></td></tr></table></figure>
-<p>这里为了更凸显 ClassLoader 的实现，不做 Executor-Parent 的实现，同时为了简便，也没有设置包名。</p>
-<ol>
-<li>Executor-Common<br>在 Executor-Common 中提供一个接口，声明执行的具体方法：<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">public interface Executor &#123;</span><br><span class="line">    void execute(final String name);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
-</ol>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/%E8%87%AA%E5%AE%9A%E4%B9%89ClassLoader%E5%AE%9E%E7%8E%B0%E9%9A%94%E7%A6%BB%E8%BF%90%E8%A1%8C%E4%B8%8D%E5%90%8C%E7%89%88%E6%9C%ACjar%E5%8C%85/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/%E9%9B%86%E5%90%88%E9%97%B4%E4%BA%92%E7%9B%B8%E8%BD%AC%E5%8C%96/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/%E9%9B%86%E5%90%88%E9%97%B4%E4%BA%92%E7%9B%B8%E8%BD%AC%E5%8C%96/" class="post-title-link" itemprop="url">集合间互相转化</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-03-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-05T00:00:00+08:00">2024-03-05</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/Java%E6%8F%90%E9%AB%98/" itemprop="url" rel="index"><span itemprop="name">Java提高</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>[toc]<br>Java8之前集合之间互相转化，例如List -&gt; Map需要写许多代码，但是Java8之后可以使用Lambda表达式简化代码。<br>示例：</p>
-<h1 id="1-List-Map"><a href="#1-List-Map" class="headerlink" title="1.List&lt;T&gt; ---&gt; Map&lt;K, V&gt;"></a>1.<code>List&lt;T&gt; ---&gt; Map&lt;K, V&gt;</code></h1><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">List&lt;String&gt; list = Arrays.asList(<span class="string">&quot;zero&quot;</span>);</span><br><span class="line">Map&lt;String, Integer&gt; map = list.stream().collect(</span><br><span class="line">        Collectors.toMap(<span class="keyword">new</span> <span class="title class_">Function</span>&lt;String, String&gt;() &#123;</span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="keyword">public</span> String <span class="title function_">apply</span><span class="params">(String e)</span> &#123;</span><br><span class="line">                <span class="keyword">return</span> e;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;, <span class="keyword">new</span> <span class="title class_">Function</span>&lt;String, Integer&gt;() &#123;</span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="keyword">public</span> Integer <span class="title function_">apply</span><span class="params">(String e)</span> &#123;</span><br><span class="line">                <span class="keyword">return</span> e.hashCode();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;));</span><br><span class="line">System.out.println(map);</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>示例中，Collectors.toMap接收两个Function参数，第一个Function是生成key，第二个Function是生成value，两个Function&lt;T，X&gt;的第一个泛型参数类型是对应的list的类型，这里即是String。</p>
-<p>使用Lambda表达式简化后：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">List&lt;String&gt; list = Arrays.asList(<span class="string">&quot;zero&quot;</span>);</span><br><span class="line">Map&lt;String, Integer&gt; map = list.stream().collect(</span><br><span class="line">        Collectors.toMap(e -&gt; e, e -&gt; e.hashCode())); </span><br></pre></td></tr></table></figure>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/%E9%9B%86%E5%90%88%E9%97%B4%E4%BA%92%E7%9B%B8%E8%BD%AC%E5%8C%96/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -1139,7 +1113,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-count">138</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>

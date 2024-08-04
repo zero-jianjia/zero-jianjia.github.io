@@ -187,6 +187,374 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/%E5%AF%B9%E8%B1%A1%E5%B1%9E%E6%80%A7copy/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/%E5%AF%B9%E8%B1%A1%E5%B1%9E%E6%80%A7copy/" class="post-title-link" itemprop="url">对象属性copy</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-03-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-05T00:00:00+08:00">2024-03-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E6%8F%90%E9%AB%98/" itemprop="url" rel="index"><span itemprop="name">Java提高</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h3 id="1-对象属性拷贝的常见方式及其性能"><a href="#1-对象属性拷贝的常见方式及其性能" class="headerlink" title="1.对象属性拷贝的常见方式及其性能"></a>1.对象属性拷贝的常见方式及其性能</h3><p>&emsp;&emsp;在日常编码中，经常会遇到DO、DTO对象之间的转换，如果对象本身的属性比较少的时候，那么采用Hard Code工作量也不大，但如果对象的属性比较多的情况下，Hard Code效率就比较低。这时候就要使用其它工具类来进行对象属性的拷贝。<br>&emsp;&emsp;常用的对象属性拷贝的方式和性能测试如下：</p>
+<table>
+<thead>
+<tr>
+<th align="left">拷贝方式</th>
+<th>copy次数1000</th>
+<th>copy次数100000</th>
+<th>copy次数1000000</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Hard Code</td>
+<td>1 ms</td>
+<td>18 ms</td>
+<td>43 ms</td>
+</tr>
+<tr>
+<td align="left">net.sf.cglib.beans.BeanCopier#copy</td>
+<td>117 ms</td>
+<td>107 ms</td>
+<td>110 ms</td>
+</tr>
+<tr>
+<td align="left">org.springframework.beans.BeanUtils#copyProperties</td>
+<td>137 ms</td>
+<td>246 ms</td>
+<td>895 ms</td>
+</tr>
+<tr>
+<td align="left">org.apache.commons.beanutils.PropertyUtils#copyProperties</td>
+<td>212 ms</td>
+<td>601 ms</td>
+<td>7869 ms</td>
+</tr>
+<tr>
+<td align="left">org.apache.commons.beanutils.BeanUtils#copyProperties</td>
+<td>275 ms</td>
+<td>1732 ms</td>
+<td>12380 ms</td>
+</tr>
+</tbody></table>
+<p>&emsp;&emsp;结论：采用Hard Code方式进行对象属性Copy性能最佳；采用<code>net.sf.cglib.beans.BeanCopier#copy</code>方式进行对象属性copy性能最稳定；而<code>org.apache.commons.beanutils.BeanUtils.copyProperties</code> 方式在数据量大时性能下降最厉害。所以在日常编程中遇到具有较多属性的对象进行属性复制时优先考虑采用<code>net.sf.cglib.beans.BeanCopier#copy</code>。</p>
+<p>&emsp;&emsp;以上的数据之所以产生巨大差距的原因在于其实现原理与方式的不同而导致的，Hard Code直接调用getter &amp; setter方法值，cglib采用的是字节码技术，而后三种均采用反射的方式。前两者性能优异众所周知，但为何同样采用反射的方式进行属性Copy时产生的差异如此巨大呢？ </p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/%E5%AF%B9%E8%B1%A1%E5%B1%9E%E6%80%A7copy/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/%E5%89%8D%E7%BC%80%E5%8C%B9%E9%85%8D%E7%9A%84%E5%B7%A5%E5%85%B7%E7%B1%BB/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/%E5%89%8D%E7%BC%80%E5%8C%B9%E9%85%8D%E7%9A%84%E5%B7%A5%E5%85%B7%E7%B1%BB/" class="post-title-link" itemprop="url">前缀匹配的工具类</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-03-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-05T00:00:00+08:00">2024-03-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E6%8F%90%E9%AB%98/" itemprop="url" rel="index"><span itemprop="name">Java提高</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>转载自：<a target="_blank" rel="noopener" href="https://blog.csdn.net/bohu83/article/details/126427401">https://blog.csdn.net/bohu83/article/details/126427401</a></p>
+<p>有这样业务场景：对于一个主题subject，想看有哪些group订阅了。而对于消费者来说，订阅的时候就是需要支持前缀匹配的，比如XXX.order.pay,支持订阅XXX.order 就能获取消息。通常这就需要使用前缀匹配，可以使用Java库：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&lt;dependency&gt;</span><br><span class="line">  &lt;groupId&gt;com.googlecode.concurrent-trees&lt;/groupId&gt;</span><br><span class="line">  &lt;artifactId&gt;concurrent-trees&lt;/artifactId&gt;</span><br><span class="line">  &lt;version&gt;2.6.1&lt;/version&gt;</span><br><span class="line">&lt;/dependency&gt;</span><br></pre></td></tr></table></figure>
+
+<p>使用的数据结构是基数树，而不是以为的字典树，基数树与字典树的区别在于基数树将单词压缩了, 节点变得更少，解决了字典树高度问题。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/%E5%89%8D%E7%BC%80%E5%8C%B9%E9%85%8D%E7%9A%84%E5%B7%A5%E5%85%B7%E7%B1%BB/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/%E8%87%AA%E5%AE%9A%E4%B9%89ClassLoader%E5%AE%9E%E7%8E%B0%E9%9A%94%E7%A6%BB%E8%BF%90%E8%A1%8C%E4%B8%8D%E5%90%8C%E7%89%88%E6%9C%ACjar%E5%8C%85/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/%E8%87%AA%E5%AE%9A%E4%B9%89ClassLoader%E5%AE%9E%E7%8E%B0%E9%9A%94%E7%A6%BB%E8%BF%90%E8%A1%8C%E4%B8%8D%E5%90%8C%E7%89%88%E6%9C%ACjar%E5%8C%85/" class="post-title-link" itemprop="url">自定义ClassLoader实现隔离运行不同版本jar包</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-03-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-05T00:00:00+08:00">2024-03-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E6%8F%90%E9%AB%98/" itemprop="url" rel="index"><span itemprop="name">Java提高</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>现在假定有这样一个需求，实现针对集群（比如 Hadoop 集群）版本为 V1 与 V2 的对应的执行程序，那么假定有如下项目：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Executor-Parent: 提供基础的 Maven 引用，可利用 Maven 一键打包所有的子模块/项目</span><br><span class="line">Executor-Common: 提供基础的接口，已经有公有的实现等</span><br><span class="line">Executor-Proxy: 执行不同版本程序的代理程序</span><br><span class="line">Executor-V1: 版本为V1的执行程序</span><br><span class="line">Executor-V2: 版本为V2的执行程序</span><br></pre></td></tr></table></figure>
+<p>这里为了更凸显 ClassLoader 的实现，不做 Executor-Parent 的实现，同时为了简便，也没有设置包名。</p>
+<ol>
+<li>Executor-Common<br>在 Executor-Common 中提供一个接口，声明执行的具体方法：<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">public interface Executor &#123;</span><br><span class="line">    void execute(final String name);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ol>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/%E8%87%AA%E5%AE%9A%E4%B9%89ClassLoader%E5%AE%9E%E7%8E%B0%E9%9A%94%E7%A6%BB%E8%BF%90%E8%A1%8C%E4%B8%8D%E5%90%8C%E7%89%88%E6%9C%ACjar%E5%8C%85/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/%E9%9B%86%E5%90%88%E9%97%B4%E4%BA%92%E7%9B%B8%E8%BD%AC%E5%8C%96/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/%E9%9B%86%E5%90%88%E9%97%B4%E4%BA%92%E7%9B%B8%E8%BD%AC%E5%8C%96/" class="post-title-link" itemprop="url">集合间互相转化</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-03-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-05T00:00:00+08:00">2024-03-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E6%8F%90%E9%AB%98/" itemprop="url" rel="index"><span itemprop="name">Java提高</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>[toc]<br>Java8之前集合之间互相转化，例如List -&gt; Map需要写许多代码，但是Java8之后可以使用Lambda表达式简化代码。<br>示例：</p>
+<h1 id="1-List-Map"><a href="#1-List-Map" class="headerlink" title="1.List&lt;T&gt; ---&gt; Map&lt;K, V&gt;"></a>1.<code>List&lt;T&gt; ---&gt; Map&lt;K, V&gt;</code></h1><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">List&lt;String&gt; list = Arrays.asList(<span class="string">&quot;zero&quot;</span>);</span><br><span class="line">Map&lt;String, Integer&gt; map = list.stream().collect(</span><br><span class="line">        Collectors.toMap(<span class="keyword">new</span> <span class="title class_">Function</span>&lt;String, String&gt;() &#123;</span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="keyword">public</span> String <span class="title function_">apply</span><span class="params">(String e)</span> &#123;</span><br><span class="line">                <span class="keyword">return</span> e;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;, <span class="keyword">new</span> <span class="title class_">Function</span>&lt;String, Integer&gt;() &#123;</span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="keyword">public</span> Integer <span class="title function_">apply</span><span class="params">(String e)</span> &#123;</span><br><span class="line">                <span class="keyword">return</span> e.hashCode();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;));</span><br><span class="line">System.out.println(map);</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>示例中，Collectors.toMap接收两个Function参数，第一个Function是生成key，第二个Function是生成value，两个Function&lt;T，X&gt;的第一个泛型参数类型是对应的list的类型，这里即是String。</p>
+<p>使用Lambda表达式简化后：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">List&lt;String&gt; list = Arrays.asList(<span class="string">&quot;zero&quot;</span>);</span><br><span class="line">Map&lt;String, Integer&gt; map = list.stream().collect(</span><br><span class="line">        Collectors.toMap(e -&gt; e, e -&gt; e.hashCode())); </span><br></pre></td></tr></table></figure>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/%E9%9B%86%E5%90%88%E9%97%B4%E4%BA%92%E7%9B%B8%E8%BD%AC%E5%8C%96/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
     <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/01/Java/JVM/Reference/Java%E5%BC%95%E7%94%A8/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -587,7 +955,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">134</span>
+          <span class="site-state-item-count">138</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
