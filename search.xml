@@ -10272,7 +10272,7 @@
       </categories>
   </entry>
   <entry>
-    <title>常见的Socket网络异常场景分析</title>
+    <title>深入剖析socket的timeout</title>
     <url>/2024/04/06/%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1/%E6%B7%B1%E5%85%A5%E5%89%96%E6%9E%90socket%E7%9A%84timeout/</url>
     <content><![CDATA[<p>[toc]</p>
 <h2 id="1-socket超时分类"><a href="#1-socket超时分类" class="headerlink" title="1. socket超时分类"></a>1. socket超时分类</h2><p>socket设置为阻塞模式时，就需要考虑处理socket操作超时的问题。</p>

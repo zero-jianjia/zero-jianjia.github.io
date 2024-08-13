@@ -22,7 +22,7 @@
 
   <meta name="description" content="[toc] 1. socket超时分类socket设置为阻塞模式时，就需要考虑处理socket操作超时的问题。 所谓阻塞模式，是指其完成指定的操作之前阻塞当前的进程或线程，直到操作有结果返回。 简单分类的话，可以将超时处理分成两类：  连接(connect)超时; 发送(send), 接收(recv)超时;">
 <meta property="og:type" content="article">
-<meta property="og:title" content="常见的Socket网络异常场景分析">
+<meta property="og:title" content="深入剖析socket的timeout">
 <meta property="og:url" content="http://example.com/2024/04/06/%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1/%E6%B7%B1%E5%85%A5%E5%89%96%E6%9E%90socket%E7%9A%84timeout/index.html">
 <meta property="og:site_name" content="zero&#39;s Blog">
 <meta property="og:description" content="[toc] 1. socket超时分类socket设置为阻塞模式时，就需要考虑处理socket操作超时的问题。 所谓阻塞模式，是指其完成指定的操作之前阻塞当前的进程或线程，直到操作有结果返回。 简单分类的话，可以将超时处理分成两类：  连接(connect)超时; 发送(send), 接收(recv)超时;">
@@ -30,7 +30,7 @@
 <meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408132321009.png">
 <meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408132321893.jpeg">
 <meta property="article:published_time" content="2024-04-05T16:00:00.000Z">
-<meta property="article:modified_time" content="2024-08-13T15:22:35.737Z">
+<meta property="article:modified_time" content="2024-08-13T16:14:20.117Z">
 <meta property="article:author" content="jianjia">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408132321009.png">
@@ -48,7 +48,7 @@
   };
 </script>
 
-  <title>常见的Socket网络异常场景分析 | zero's Blog</title>
+  <title>深入剖析socket的timeout | zero's Blog</title>
   
 
 
@@ -206,7 +206,7 @@
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          常见的Socket网络异常场景分析
+          深入剖析socket的timeout
         </h1>
 
         <div class="post-meta">
