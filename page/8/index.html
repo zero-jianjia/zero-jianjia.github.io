@@ -187,6 +187,423 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/G1%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E5%99%A8/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/G1%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E5%99%A8/" class="post-title-link" itemprop="url">G1垃圾收集器</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/JVM/" itemprop="url" rel="index"><span itemprop="name">JVM</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/JVM/GC%E7%9B%B8%E5%85%B3/" itemprop="url" rel="index"><span itemprop="name">GC相关</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>[toc]</p>
+<h1 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h1><p>&emsp;&emsp;G1垃圾收集器（Garbage First）是一个并行的、并发的、面向服务器的垃圾收集器的垃圾收集器。G1在Oracle JDK 7 update 4 及以上版本中得到完全支持，它的长远目标时代替CMS收集器。相较于CMS，G1是一款压缩型的收集器，不会产生内存碎片；可以极高概率满足GC停顿时间，实现低停顿垃圾回收。G1优先回收存活数据较少的区域。存活数据少就表示里面的垃圾对象多，这也是名字 Garbage First 的由来。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/G1%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E5%99%A8/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/GC%E4%BC%98%E5%8C%96%E6%A1%88%E4%BE%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/GC%E4%BC%98%E5%8C%96%E6%A1%88%E4%BE%8B/" class="post-title-link" itemprop="url">GC优化案例</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/JVM/" itemprop="url" rel="index"><span itemprop="name">JVM</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/JVM/GC%E7%9B%B8%E5%85%B3/" itemprop="url" rel="index"><span itemprop="name">GC相关</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="案例一-Major-GC和Minor-GC频繁"><a href="#案例一-Major-GC和Minor-GC频繁" class="headerlink" title="案例一 Major GC和Minor GC频繁"></a><strong>案例一 Major GC和Minor GC频繁</strong></h2><p>服务情况：Minor GC每分钟100次 ，Major GC每4分钟一次，单次Minor GC耗时25ms，单次Major GC耗时200ms，接口响应时间50ms。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/GC%E4%BC%98%E5%8C%96%E6%A1%88%E4%BE%8B/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/G1%E5%AF%B9%E6%AF%94CMS/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/G1%E5%AF%B9%E6%AF%94CMS/" class="post-title-link" itemprop="url">G1对比CMS</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/JVM/" itemprop="url" rel="index"><span itemprop="name">JVM</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/JVM/GC%E7%9B%B8%E5%85%B3/" itemprop="url" rel="index"><span itemprop="name">GC相关</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>[toc]</p>
+<h2 id="如何处理跨代引用"><a href="#如何处理跨代引用" class="headerlink" title="如何处理跨代引用"></a>如何处理跨代引用</h2><p>​        在垃圾回收的时候都是从Root开始搜索，这会先经过年轻代再到老年代，对于年轻代引用老年代的这种跨代不需要单独处理。但是老年代引用年轻代的会影响young gc，这种跨代需要处理。<br>​        为了避免在回收年轻代的时候扫描整个老年代，需要记录老年代对年轻代的引用，young gc的时候只要扫描这个记录。</p>
+<p>​        CMS和G1都用到了<strong>Card Table</strong>，但是用法不太一样。JVM将内存分成一个个固定大小的card，然后有一个专门的数据结构(即这里的Card Table)维护每个Card的状态，一个字节对应一个Card，有点像内存page的概念，只是page是硬件上的，Card Table是软件上的。当一个Card上的对象的引用发生变化的时候，就将这个Card对应的Card Table上的状态置为dirty，young gc的时候扫描状态是dirty的Card即可。这是基本的用法，CMS基本上就是这么使用。<br>​        G1在Card Table的基础上引入的Remembered Set(下面简称RSet)。每个region都会维护一个RSet，记录着引用到本region中的对象的其他region的Card。比如A对象在regionA，B对象在regionB，且B.f &#x3D; A，则在regionA的RSet中需要记录B所在的Card的地址。这样的好处是可以对region进行单独回收，这要求RSet不只是维护老年代到年轻代的引用，也要维护这老年代到老年代的引用，对于跨代引用的每次只要扫描这个region的RSet上的Card即可。<br>​       上面说过年轻代到老年代的引用不需要单独处理，这带来了很大的性能上的提升，因为年轻代的对象引用变化很大，如果都需要记录下来成本会很高。同时也说明只需要在老年代维护Card Table。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/G1%E5%AF%B9%E6%AF%94CMS/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Spring/spring%20boot/@Configuration%E5%92%8C@Component%E5%8C%BA%E5%88%AB/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/01/Spring/spring%20boot/@Configuration%E5%92%8C@Component%E5%8C%BA%E5%88%AB/" class="post-title-link" itemprop="url">注解@Configuration和@Component区别</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/Spring-Boot/" itemprop="url" rel="index"><span itemprop="name">Spring Boot</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <ol>
+<li>@Configuration 注解是 Spring 组件注解的一种，通过普通的 Bean 扫描也可以扫描到 @Configuration。</li>
+<li>@Configuration 注解注册到 Spring 中的 Bean 是一个 CGLIB 代理的 Bean，而不是原始 Bean，这一点和 @Component 不一样，@Component 注册到 Spring 容器中的还是原始 Bean。</li>
+</ol>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/04/01/Spring/spring%20boot/@Configuration%E5%92%8C@Component%E5%8C%BA%E5%88%AB/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Spring/spring%20boot/@ControllerAdvice%E6%B3%A8%E8%A7%A3/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/01/Spring/spring%20boot/@ControllerAdvice%E6%B3%A8%E8%A7%A3/" class="post-title-link" itemprop="url">注解@ControllerAdvice</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/Spring-Boot/" itemprop="url" rel="index"><span itemprop="name">Spring Boot</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>@ControllerAdvice ，很多初学者可能都没有听说过这个注解，实际上，这是一个非常有用的注解，顾名思义，这是一个增强的 Controller。使用这个 Controller ，可以实现三个方面的功能：</p>
+<ul>
+<li>全局异常处理</li>
+<li>全局数据绑定</li>
+<li>全局数据预处理</li>
+</ul>
+<p>全局异常处理<br>使用 @ControllerAdvice 实现全局异常处理，只需要定义类，添加该注解即可定义方式如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">@ControllerAdvice</span><br><span class="line">public class MyGlobalExceptionHandler &#123;</span><br><span class="line">    @ExceptionHandler(Exception.class)</span><br><span class="line">    public ModelAndView customException(Exception e) &#123;</span><br><span class="line">        ModelAndView mv = new ModelAndView();</span><br><span class="line">        mv.addObject(&quot;message&quot;, e.getMessage());</span><br><span class="line">        mv.setViewName(&quot;myerror&quot;);</span><br><span class="line">        return mv;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在该类中，可以定义多个方法，不同的方法处理不同的异常，例如专门处理空指针的方法、专门处理数组越界的方法…，也可以直接向上面代码一样，在一个方法中处理所有的异常信息。</p>
+<p>@ExceptionHandler 注解用来指明异常的处理类型，即如果这里指定为 NullpointerException，则数组越界异常就不会进到这个方法中来。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/04/01/Spring/spring%20boot/@ControllerAdvice%E6%B3%A8%E8%A7%A3/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
     <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Spring/spring%20boot/@Async%E7%9A%84%E4%BD%BF%E7%94%A8%E4%BB%A5%E5%8F%8A%E5%8E%9F%E7%90%86%E3%80%81%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -593,414 +1010,10 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Spring/spring%20boot/Spring%20Boot%20%E4%B8%AD%E8%87%AA%E5%AE%9A%E4%B9%89%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/04/01/Spring/spring%20boot/Spring%20Boot%20%E4%B8%AD%E8%87%AA%E5%AE%9A%E4%B9%89%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86/" class="post-title-link" itemprop="url">Spring Boot中自定义异常处理</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Spring/Spring-Boot/" itemprop="url" rel="index"><span itemprop="name">Spring Boot</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>Spring Boot 中提供了默认的异常处理，但是对于应用来说，这些信息并不应该直接返回或者不够明确，需要结合自己的情况进行定制。</p>
-<p>自定义处理异常有两种方式:</p>
-<ul>
-<li>org.springframework.web.servlet.HandlerExceptionResolver#resolveException</li>
-<li>org.springframework.web.bind.annotation.RestControllerAdvice或org.springframework.web.bind.annotation.ControllerAdvice和org.springframework.web.bind.annotation.ExceptionHandler注解来实现</li>
-</ul>
-<p>当两种方式都实现时，HandlerExceptionResolver要先于ControllerAdvice执行</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/04/01/Spring/spring%20boot/Spring%20Boot%20%E4%B8%AD%E8%87%AA%E5%AE%9A%E4%B9%89%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Spring/spring%20boot/%E4%BD%A0%E7%9A%84Spring%20Boot%E5%BA%94%E7%94%A8%E5%90%AF%E5%8A%A8%E5%BE%88%E6%85%A2%EF%BC%9F%E4%B8%8D%E5%A6%A8%E8%AF%95%E8%AF%95%E8%BF%99%E4%B8%AA%E5%B7%A5%E5%85%B7%EF%BC%81/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/04/01/Spring/spring%20boot/%E4%BD%A0%E7%9A%84Spring%20Boot%E5%BA%94%E7%94%A8%E5%90%AF%E5%8A%A8%E5%BE%88%E6%85%A2%EF%BC%9F%E4%B8%8D%E5%A6%A8%E8%AF%95%E8%AF%95%E8%BF%99%E4%B8%AA%E5%B7%A5%E5%85%B7%EF%BC%81/" class="post-title-link" itemprop="url">你的Spring Boot应用启动很慢？不妨试试这个工具！</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Spring/Spring-Boot/" itemprop="url" rel="index"><span itemprop="name">Spring Boot</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>在GitHub上看到一个不错的开源项目：<strong>Spring Startup Analyzer</strong>。</p>
-<p>从项目名称中就大概能猜到，这是一个分析Spring应用启动过程的工具。Spring Startup Analyzer通过采集Spring应用启动过程的数据，进而生成一个交互式的分析报告，帮助用户发现Spring应用启动慢的位置。同时，Spring Startup Analyzer还提供了Spring Bean异步初始化的工具，来帮助开发者加快Spring应用的启动时间。</p>
-<p>下面一起来看看其提供的强大功能。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/04/01/Spring/spring%20boot/%E4%BD%A0%E7%9A%84Spring%20Boot%E5%BA%94%E7%94%A8%E5%90%AF%E5%8A%A8%E5%BE%88%E6%85%A2%EF%BC%9F%E4%B8%8D%E5%A6%A8%E8%AF%95%E8%AF%95%E8%BF%99%E4%B8%AA%E5%B7%A5%E5%85%B7%EF%BC%81/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Spring/spring%20boot/%E6%B3%A8%E5%86%8Cbean%E5%88%B0IOC%E5%AE%B9%E5%99%A8/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/04/01/Spring/spring%20boot/%E6%B3%A8%E5%86%8Cbean%E5%88%B0IOC%E5%AE%B9%E5%99%A8/" class="post-title-link" itemprop="url">注册bean到IOC容器</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Spring/Spring-Boot/" itemprop="url" rel="index"><span itemprop="name">Spring Boot</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>[toc]</p>
-<h2 id="1-使用BeanFactoryPostProcessor"><a href="#1-使用BeanFactoryPostProcessor" class="headerlink" title="1.使用BeanFactoryPostProcessor"></a>1.使用BeanFactoryPostProcessor</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">@Component</span><br><span class="line">public class ConstomBeadFactoryPostProcessor implements BeanFactoryPostProcessor &#123;</span><br><span class="line"></span><br><span class="line">    private Logger log = LoggerFactory.getLogger(ConstomBeadFactoryPostProcessor.class);</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) &#123;</span><br><span class="line"></span><br><span class="line">        GenericBeanDefinition genericBeanDefinition = (GenericBeanDefinition) beanFactory.getBeanDefinition(&quot;demonBean&quot;);</span><br><span class="line"></span><br><span class="line">        /**</span><br><span class="line">         * 属性注入方式，</span><br><span class="line">         * 	 * @see #AUTOWIRE_NO   0，默认 @Autowired</span><br><span class="line">         * 	 * @see #AUTOWIRE_BY_NAME  setter方法</span><br><span class="line">         * 	 * @see #AUTOWIRE_BY_TYPE</span><br><span class="line">         * 	 * @see #AUTOWIRE_CONSTRUCTOR  构造方法注入</span><br><span class="line">         * 	 * @see #AUTOWIRE_AUTODETECT</span><br><span class="line">         */</span><br><span class="line">        int autowireMode = genericBeanDefinition.getAutowireMode();</span><br><span class="line">        log.debug(&quot;&#123;&#125;, autowireMode=&#123;&#125;&quot;, genericBeanDefinition.getBeanClassName(), autowireMode);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">        /**</span><br><span class="line">         * 修改 bean的 构造方式</span><br><span class="line">         */</span><br><span class="line">        GenericBeanDefinition personBeanDefinition = (GenericBeanDefinition) beanFactory.getBeanDefinition(&quot;person&quot;);</span><br><span class="line">        ConstructorArgumentValues constructorArgumentValues = new ConstructorArgumentValues();</span><br><span class="line">        constructorArgumentValues.addIndexedArgumentValue(0,&quot;zero&quot;);</span><br><span class="line">        personBeanDefinition.setConstructorArgumentValues(constructorArgumentValues);</span><br><span class="line"></span><br><span class="line">//        log.debug(&quot;beanFactory=&#123;&#125;&quot;, beanFactory);</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/04/01/Spring/spring%20boot/%E6%B3%A8%E5%86%8Cbean%E5%88%B0IOC%E5%AE%B9%E5%99%A8/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Spring/spring%20boot/%E8%87%AA%E5%AE%9A%E4%B9%89%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2-%E8%A1%A8%E5%8D%95%E8%AF%B7%E6%B1%82%E6%88%96JSON%E8%AF%B7%E6%B1%82%E7%9A%84%E8%BD%AC%E6%8D%A2%E5%99%A8/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/04/01/Spring/spring%20boot/%E8%87%AA%E5%AE%9A%E4%B9%89%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2-%E8%A1%A8%E5%8D%95%E8%AF%B7%E6%B1%82%E6%88%96JSON%E8%AF%B7%E6%B1%82%E7%9A%84%E8%BD%AC%E6%8D%A2%E5%99%A8/" class="post-title-link" itemprop="url">自定义类型转换-表单请求或JSON请求的转换器</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Spring/Spring-Boot/" itemprop="url" rel="index"><span itemprop="name">Spring Boot</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="表单类型参数"><a href="#表单类型参数" class="headerlink" title="表单类型参数"></a>表单类型参数</h2><p>有时候需要将前台传来一些特定格式的数据对象转化成特定的Java对象，这个时候类型转换器就派上用场了。这里简单介绍使用比较简单的Converter接口。Converter是Spring 3.0后的一个函数式接口，只有一个方法，将source转化成target。</p>
-<p>首先需要定义自己的转换器，需要实现Converter&lt;S,T&gt;接口，convert就是具体的转换方法。</p>
-<p>一般推荐使用<code>ConditionalGenericConverter</code></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line">import java.util.Set;</span><br><span class="line">import org.springframework.core.convert.TypeDescriptor;</span><br><span class="line">import org.springframework.core.convert.converter.ConditionalGenericConverter;</span><br><span class="line">import org.springframework.stereotype.Component;</span><br><span class="line"></span><br><span class="line">public class CustomConditionalConverter implements ConditionalGenericConverter &#123;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public boolean matches(TypeDescriptor sourceType, TypeDescriptor targetType) &#123;</span><br><span class="line">        return targetType.hasAnnotation(Key.class);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public Set&lt;ConvertiblePair&gt; getConvertibleTypes() &#123;</span><br><span class="line">        // getConvertibleTypes方法返回可转换的源类型和目标类型的配对，</span><br><span class="line">        // 如果只关心，字符串类型的转换。</span><br><span class="line">        // return Collections.singleton(new ConvertiblePair(String.class, String.class));</span><br><span class="line"></span><br><span class="line">        // 如果全部都关注</span><br><span class="line">        return null;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public Object convert(Object source, TypeDescriptor sourceType, TypeDescriptor targetType) &#123;</span><br><span class="line">        if (source == null) &#123;</span><br><span class="line">            return null;</span><br><span class="line">        &#125;</span><br><span class="line">        Key annotation = targetType.getAnnotation(Key.class);</span><br><span class="line">        try &#123;</span><br><span class="line">            return annotation.using().newInstance().convert(source);</span><br><span class="line">        &#125; catch (Exception e) &#123;</span><br><span class="line">            throw new RuntimeException(e);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>然后需要将自定义的转换器进行注册：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">@Configuration</span><br><span class="line">public class CustomWebMvcConfig extends WebMvcConfigurerAdapter&#123;</span><br><span class="line">	@Override</span><br><span class="line">	public void addFormatters(FormatterRegistry registry) &#123;</span><br><span class="line">	    registry.addConverter(new CustomConditionalConverter());</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/04/01/Spring/spring%20boot/%E8%87%AA%E5%AE%9A%E4%B9%89%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2-%E8%A1%A8%E5%8D%95%E8%AF%B7%E6%B1%82%E6%88%96JSON%E8%AF%B7%E6%B1%82%E7%9A%84%E8%BD%AC%E6%8D%A2%E5%99%A8/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/20/Spring/UnexpectedRollbackExceptionTransaction%EF%BC%9Arolled%20back%20because%20it%20has%20been%20marked%20as%20rollback-only/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/03/20/Spring/UnexpectedRollbackExceptionTransaction%EF%BC%9Arolled%20back%20because%20it%20has%20been%20marked%20as%20rollback-only/" class="post-title-link" itemprop="url">UnexpectedRollbackException:Transaction rolled back because it has been marked as rollback-only</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-03-20 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-20T00:00:00+08:00">2024-03-20</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><strong>PROPAGATION_REQUIRES_NEW</strong>：原有事务A新起事务B，事务B中的commit和rollback不会影响外部事务A的commit和rollback，相互独立，如果事务B抛出异常，肯定会影响外事务A的。</p>
-<p><strong>PROPAGATION_NESTED</strong>：表示嵌套事务，看如下示例:</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">ServiceA &#123;  </span><br><span class="line">    <span class="comment">/** </span></span><br><span class="line"><span class="comment">     * 事务属性配置为 PROPAGATION_REQUIRED </span></span><br><span class="line"><span class="comment">     */</span>  </span><br><span class="line">    <span class="meta">@Transactional(propagation=Propagation.REQUIRED)</span> <span class="comment">// 1</span></span><br><span class="line">    <span class="keyword">void</span> <span class="title function_">methodA</span><span class="params">()</span> &#123;</span><br><span class="line">        insertData(); <span class="comment">//2</span></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            ServiceB.methodB();   <span class="comment">//3</span></span><br><span class="line">        &#125; <span class="keyword">catch</span> (SomeException) &#123;  </span><br><span class="line">            <span class="comment">// 执行其他业务, 如 ServiceC.methodC();   //5</span></span><br><span class="line">        &#125;</span><br><span class="line">        updateData(); <span class="comment">//6</span></span><br><span class="line">    &#125;  </span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">ServiceB &#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Transactional(propagation=Propagation.NESTED)</span></span><br><span class="line">    <span class="keyword">void</span> <span class="title function_">methodB</span><span class="params">()</span>&#123;</span><br><span class="line">        <span class="comment">//</span></span><br><span class="line">        updateData(); <span class="comment">//4</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>在上面的1，将开起新事务A，2的时候会插入数据，此时事务A挂起，没有commit，3的时候，使用<strong>PROPAGATION_NESTED</strong>传播，将在3点的时候新建一个savepoint保存2插入的数据，不提交。<br>如果methodB出现异常，将回滚4的操作，不影响2的操作，同时可以处理后面的5,6逻辑，最后一起commit: 2,5,6；<br>如果methodB没有出现异常，那么将一起commit: 2,4,6。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/03/20/Spring/UnexpectedRollbackExceptionTransaction%EF%BC%9Arolled%20back%20because%20it%20has%20been%20marked%20as%20rollback-only/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/7/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/7/">7</a><span class="page-number current">8</span><a class="page-number" href="/page/9/">9</a><span class="space">&hellip;</span><a class="page-number" href="/page/14/">14</a><a class="extend next" rel="next" href="/page/9/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/7/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/7/">7</a><span class="page-number current">8</span><a class="page-number" href="/page/9/">9</a><span class="space">&hellip;</span><a class="page-number" href="/page/15/">15</a><a class="extend next" rel="next" href="/page/9/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -1066,14 +1079,14 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">138</span>
+          <span class="site-state-item-count">143</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-count">28</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
   </nav>

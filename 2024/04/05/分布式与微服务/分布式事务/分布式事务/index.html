@@ -27,10 +27,18 @@
 <meta property="og:site_name" content="zero&#39;s Blog">
 <meta property="og:description" content="[TOC] 一、普通事务与分布式事务1.1 普通事务&emsp;&emsp;普通事务就是一般所说的 数据库事务。&emsp;&emsp;事务 是数据库管理系统执行过程中的一个逻辑单位，由一个有限的数据库操作序列构成。当事务被提交给了DBMS（数据库管理系统），DBMS需要确保 该事务中的所有操作都成功完成且其结果被永久保存在数据库中，如果事务中有的操作没有成功完成，则事务中的所有操作都需要被回滚，">
 <meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408112008613.jpeg">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408112010148.jpeg">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408112013160.jpeg">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408112019172.jpeg">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408112021699.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408112024512.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408112026928.png">
 <meta property="article:published_time" content="2024-04-04T16:00:00.000Z">
-<meta property="article:modified_time" content="2024-07-27T02:20:41.677Z">
+<meta property="article:modified_time" content="2024-08-11T14:43:24.181Z">
 <meta property="article:author" content="jianjia">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408112008613.jpeg">
 
 <link rel="canonical" href="http://example.com/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/">
 
@@ -241,18 +249,18 @@
 
       
         <p>[TOC]</p>
-<h3 id="一、普通事务与分布式事务"><a href="#一、普通事务与分布式事务" class="headerlink" title="一、普通事务与分布式事务"></a>一、普通事务与分布式事务</h3><h4 id="1-1-普通事务"><a href="#1-1-普通事务" class="headerlink" title="1.1 普通事务"></a>1.1 普通事务</h4><p>&emsp;&emsp;普通事务就是一般所说的 <strong>数据库事务</strong>。<br>&emsp;&emsp;事务 是数据库管理系统执行过程中的一个逻辑单位，由一个有限的数据库操作序列构成。当事务被提交给了DBMS（数据库管理系统），DBMS需要确保 该事务中的所有操作都成功完成且其结果被永久保存在数据库中，如果事务中有的操作没有成功完成，则事务中的所有操作都需要被回滚，回到事务执行前的状态。</p>
-<h5 id="1-1-1-事务的ACID特性"><a href="#1-1-1-事务的ACID特性" class="headerlink" title="1.1.1 事务的ACID特性"></a>1.1.1 事务的ACID特性</h5><p>&emsp;&emsp;<strong>原子性（Atomicity）</strong>：所谓的原子性就是说，在整个事务中的所有操作，要么全部完成，要么全部不做，没有中间状态。事务在执行中发生错误，所有的操作都会被回滚。<br>&emsp;&emsp;<strong>一致性（Consistency）</strong>：事务的执行必须保证系统的一致性，就拿转账为例，A有500元，B有300元，如果在一个事务里A成功转给B 50元，那么不管并发多少，不管发生什么，只要事务执行成功了，那么最后A账户一定是450元，B账户一定是350元。<br>&emsp;&emsp;<strong>隔离性（Isolation）</strong>：所谓的隔离性就是说，事务与事务之间不会互相影响，一个事务的中间状态不会被其他事务感知。<br>&emsp;&emsp;<strong>持久性（Durability）</strong>：所谓的持久性，就是说一旦事务完成了，那么事务对数据所做的变更就完全保存在了数据库中，即使发生停电、系统宕机也是如此。</p>
+<h2 id="一、普通事务与分布式事务"><a href="#一、普通事务与分布式事务" class="headerlink" title="一、普通事务与分布式事务"></a>一、普通事务与分布式事务</h2><h3 id="1-1-普通事务"><a href="#1-1-普通事务" class="headerlink" title="1.1 普通事务"></a>1.1 普通事务</h3><p>&emsp;&emsp;普通事务就是一般所说的 <strong>数据库事务</strong>。<br>&emsp;&emsp;事务 是数据库管理系统执行过程中的一个逻辑单位，由一个有限的数据库操作序列构成。当事务被提交给了DBMS（数据库管理系统），DBMS需要确保 该事务中的所有操作都成功完成且其结果被永久保存在数据库中，如果事务中有的操作没有成功完成，则事务中的所有操作都需要被回滚，回到事务执行前的状态。</p>
+<h4 id="1-1-1-事务的ACID特性"><a href="#1-1-1-事务的ACID特性" class="headerlink" title="1.1.1 事务的ACID特性"></a>1.1.1 事务的ACID特性</h4><p>&emsp;&emsp;<strong>原子性（Atomicity）</strong>：所谓的原子性就是说，在整个事务中的所有操作，要么全部完成，要么全部不做，没有中间状态。事务在执行中发生错误，所有的操作都会被回滚。<br>&emsp;&emsp;<strong>一致性（Consistency）</strong>：事务的执行必须保证系统的一致性，就拿转账为例，A有500元，B有300元，如果在一个事务里A成功转给B 50元，那么不管并发多少，不管发生什么，只要事务执行成功了，那么最后A账户一定是450元，B账户一定是350元。<br>&emsp;&emsp;<strong>隔离性（Isolation）</strong>：所谓的隔离性就是说，事务与事务之间不会互相影响，一个事务的中间状态不会被其他事务感知。<br>&emsp;&emsp;<strong>持久性（Durability）</strong>：所谓的持久性，就是说一旦事务完成了，那么事务对数据所做的变更就完全保存在了数据库中，即使发生停电、系统宕机也是如此。</p>
 <span id="more"></span>
-<h4 id="1-2-分布式事务（Distributed-Transaction-DT）"><a href="#1-2-分布式事务（Distributed-Transaction-DT）" class="headerlink" title="1.2 分布式事务（Distributed Transaction DT）"></a>1.2 分布式事务（Distributed Transaction DT）</h4><p>&emsp;&emsp;分布式事务 顾名思义就是在 <strong>分布式环境下运行的事务</strong>，对于分布式事务来说，事务的每个操作步骤是运行在不同机器上的服务的。分布式事务处理的关键是 必须可以知道事务在任何地方所做的所有动作，提交或回滚事务的动作必须产生统一的结果（全部提交或全部回滚）。<br>&emsp;&emsp;在现如今的大型互联网平台中，基本上都是采用分布式架构，所以分布式事务是非常常见的。比如一个电商平台的下单场景，一般对于用户下单会有两个步骤，一是订单业务下订单操作，二是库存业务减库存操作，但这两个业务一般会运行在不同的机器上，这就是一个典型的分布式事务场景。还有一个常见的场景就是支付宝向余额宝转账，而支付宝和余额宝不是一个系统，怎么保证这两个系统之间的一致性就是分布式事务所关注的问题。</p>
-<h5 id="1-2-1-分布式系统中的CAP定律"><a href="#1-2-1-分布式系统中的CAP定律" class="headerlink" title="1.2.1 分布式系统中的CAP定律"></a>1.2.1 分布式系统中的CAP定律</h5><p>&emsp;&emsp;为了更方便的理解分布式事务，介绍一下一个分布式系统的CAP定律。在分布式系统里面有一个CAP定律，这个定理的内容是指的是在一个分布式系统中， Consistency（一致性）、 Availability（可用性）、Partition tolerance（分区容错性），三者不可得兼。</p>
+<h3 id="1-2-分布式事务（Distributed-Transaction-DT）"><a href="#1-2-分布式事务（Distributed-Transaction-DT）" class="headerlink" title="1.2 分布式事务（Distributed Transaction DT）"></a>1.2 分布式事务（Distributed Transaction DT）</h3><p>&emsp;&emsp;分布式事务 顾名思义就是在 <strong>分布式环境下运行的事务</strong>，对于分布式事务来说，事务的每个操作步骤是运行在不同机器上的服务的。分布式事务处理的关键是 必须可以知道事务在任何地方所做的所有动作，提交或回滚事务的动作必须产生统一的结果（全部提交或全部回滚）。<br>&emsp;&emsp;在现如今的大型互联网平台中，基本上都是采用分布式架构，所以分布式事务是非常常见的。比如一个电商平台的下单场景，一般对于用户下单会有两个步骤，一是订单业务下订单操作，二是库存业务减库存操作，但这两个业务一般会运行在不同的机器上，这就是一个典型的分布式事务场景。还有一个常见的场景就是支付宝向余额宝转账，而支付宝和余额宝不是一个系统，怎么保证这两个系统之间的一致性就是分布式事务所关注的问题。</p>
+<h4 id="1-2-1-分布式系统中的CAP定律"><a href="#1-2-1-分布式系统中的CAP定律" class="headerlink" title="1.2.1 分布式系统中的CAP定律"></a>1.2.1 分布式系统中的CAP定律</h4><p>&emsp;&emsp;为了更方便的理解分布式事务，介绍一下一个分布式系统的CAP定律。在分布式系统里面有一个CAP定律，这个定理的内容是指的是在一个分布式系统中， Consistency（一致性）、 Availability（可用性）、Partition tolerance（分区容错性），三者不可得兼。</p>
 <ul>
 <li>一致性（C）：在分布式系统中的所有数据备份，在同一时刻是否是同样的值。</li>
 <li>可用性（A）：在集群中一部分节点故障后，集群整体是否还能响应客户端的读写请求。或者换个说法，系统提供的服务必须一直处于可用的状态，对于用户的每一个操作请求总是能够在有限的时间内返回结果。</li>
 <li>分区容错性（P）：分布式系统在遇到任何网络分区故障的时候，仍然需要能够保证对外提供满足一致性和可用性的服务，除非是整个网络环境都发生了故障。以实际效果而言，分区相当于对通信的时限要求，系统如果不能在时限内达成数据一致性，就意味着发生了分区的情况，必须就当前操作在C和A之间做出选择。</li>
 </ul>
 <p>&emsp;&emsp;需要明确的一点是，对于一个分布式系统而言，分区容错性是一个最基本的要求。因为既然是一个分布式系统，那么分布式系统中的组件必然需要被部署到不同的节点，否则也就无所谓分布式系统了，因此必然出现子网络。而对于分布式系统而言，网络问题又是一个必定会出现的异常情况，因此分区容错性也就成为了一个分布式系统必然需要面对和解决的问题。因此系统架构师往往需要把精力花在如何根据业务特点在C（一致性）和A（可用性）之间寻求平衡。</p>
-<h5 id="1-2-2-一致性理论"><a href="#1-2-2-一致性理论" class="headerlink" title="1.2.2 一致性理论"></a>1.2.2 一致性理论</h5><p>&emsp;&emsp;为了下一步讨论分布式事务特性，先简单介绍下数据一致性的基础理论。</p>
+<h4 id="1-2-2-一致性理论"><a href="#1-2-2-一致性理论" class="headerlink" title="1.2.2 一致性理论"></a>1.2.2 一致性理论</h4><p>&emsp;&emsp;为了下一步讨论分布式事务特性，先简单介绍下数据一致性的基础理论。</p>
 <ul>
 <li><p>   强一致：当更新操作完成之后，任何多个后续进程或者线程的访问都会返回最新的更新过的值。这种是对用户最友好的，就是用户上一次写什么，下一次就保证能读到什么。根据 CAP 理论，这种实现需要牺牲可用性。</p>
 </li>
@@ -262,7 +270,7 @@
 </ul>
 </li>
 </ul>
-<h5 id="1-2-3-分布式事务特性—最终一致性（BASE）"><a href="#1-2-3-分布式事务特性—最终一致性（BASE）" class="headerlink" title="1.2.3 分布式事务特性—最终一致性（BASE）"></a>1.2.3 分布式事务特性—最终一致性（BASE）</h5><p>&emsp;&emsp;在互联网大型分布式平台场景中，为了保障系统的可用性，一般会把强一致性的需求转换成最终一致性的需求。所以，对于大部分分布式事务场景，仅需要保证最终一致性即可。这种思路，即经典的BASE (Basically Available, Soft state, Eventually consistent)方案。</p>
+<h4 id="1-2-3-分布式事务特性—最终一致性（BASE）"><a href="#1-2-3-分布式事务特性—最终一致性（BASE）" class="headerlink" title="1.2.3 分布式事务特性—最终一致性（BASE）"></a>1.2.3 分布式事务特性—最终一致性（BASE）</h4><p>&emsp;&emsp;在互联网大型分布式平台场景中，为了保障系统的可用性，一般会把强一致性的需求转换成最终一致性的需求。所以，对于大部分分布式事务场景，仅需要保证最终一致性即可。这种思路，即经典的BASE (Basically Available, Soft state, Eventually consistent)方案。</p>
 <blockquote>
 <ul>
 <li>BA: Basic Availability 基本业务可用性，分布式系统在出现故障时，允许损失部分可用功能，保证核心功能可用。</li>
@@ -271,28 +279,42 @@
 </ul>
 </blockquote>
 <p>&emsp;&emsp;</p>
-<h3 id="二、分布式事务解决方案"><a href="#二、分布式事务解决方案" class="headerlink" title="二、分布式事务解决方案"></a>二、分布式事务解决方案</h3><h4 id="2-1-二阶段提交协议-2PC"><a href="#2-1-二阶段提交协议-2PC" class="headerlink" title="2.1 二阶段提交协议(2PC)"></a>2.1 二阶段提交协议(2PC)</h4><p>&emsp;&emsp;在分布式系统中，每个节点虽然可以知晓自己的操作是成功或者失败，却无法知道其他节点的操作是成功或失败。当一个事务跨越多个节点时，为了保持事务的ACID特性，需要引入一个作为 协调者 的组件来统一掌控所有节点(称作参与者)的操作结果，并最终指示这些节点是否要把操作结果进行真正的提交(比如将更新后的数据写入磁盘等等)。<br>&emsp;&emsp;因此，二阶段提交的算法思路可以概括为：参与者将操作成败通知协调者，再由协调者根据所有参与者的反馈决定各个参与者是否要提交操作还是中止操作。<br>&emsp;&emsp;<br>&emsp;&emsp;二阶段提交算法的成立基于以下假设：<br>-	该分布式系统中，存在一个节点作为协调者，其他节点作为参与者。且节点之间可以进行网络通信。<br>-	所有节点都采用预写式日志，且日志被写入后即被保持在可靠的存储设备上，即使节点损坏不会导致日志数据的消失。<br>-	所有节点不会永久性损坏，即使损坏后仍然可以恢复。</p>
-<p>&emsp;&emsp;两阶段提交协议把分布式事务分成两个过程，一个是准备阶段，一个是提交阶段：<br>&emsp;&emsp;1.准备阶段：协调者向所有参与者发起指令，参与者评估自己的状态，如果参与者评估指令可以完成，参与者会写redo或者undo日志（Write-Ahead Log的一种），然后锁定资源，执行操作，但是并不提交，并反馈给协调者；<br>&emsp;&emsp;2.提交阶段：如果每个参与者明确返回准备成功，也就是预留资源和执行操作成功，协调者向参与者发起提交指令，参与者提交资源变更的事务，释放锁定的资源；如果任何一个参与者明确返回准备失败，也就是预留资源或者执行操作失败，协调者向参与者发起中止指令，参与者取消已经变更的事务，执行undo日志，释放锁定的资源。<br>&emsp;&emsp;<br>&emsp;&emsp;两阶段提交协议在准备阶段锁定资源，是一个重量级的操作，并能保证强一致性，但是实现起来复杂、成本较高，不够灵活，更重要的是它有如下致命的问题：</p>
+<h2 id="二、分布式事务解决方案"><a href="#二、分布式事务解决方案" class="headerlink" title="二、分布式事务解决方案"></a>二、分布式事务解决方案</h2><h3 id="2-1-二阶段提交协议-2PC"><a href="#2-1-二阶段提交协议-2PC" class="headerlink" title="2.1 二阶段提交协议(2PC)"></a>2.1 二阶段提交协议(2PC)</h3><p>&emsp;&emsp;在分布式系统中，每个节点虽然可以知晓自己的操作是成功或者失败，却无法知道其他节点的操作是成功或失败。当一个事务跨越多个节点时，为了保持事务的ACID特性，需要引入一个作为 协调者 的组件来统一掌控所有节点(称作参与者)的操作结果，并最终指示这些节点是否要把操作结果进行真正的提交(比如将更新后的数据写入磁盘等等)。<br>&emsp;&emsp;因此，二阶段提交的算法思路可以概括为：参与者将操作成败通知协调者，再由协调者根据所有参与者的反馈决定各个参与者是否要提交操作还是中止操作。<br>&emsp;&emsp;<br>&emsp;&emsp;二阶段提交算法的成立基于以下假设：</p>
+<ul>
+<li>   该分布式系统中，存在一个节点作为协调者，其他节点作为参与者。且节点之间可以进行网络通信。</li>
+<li>   所有节点都采用预写式日志，且日志被写入后即被保持在可靠的存储设备上，即使节点损坏不会导致日志数据的消失。</li>
+<li>   所有节点不会永久性损坏，即使损坏后仍然可以恢复。</li>
+</ul>
+<p>&emsp;&emsp;两阶段提交协议把分布式事务分成两个过程，一个是准备阶段，一个是提交阶段：<br>&emsp;&emsp;1.准备阶段：协调者向所有参与者发起指令，参与者评估自己的状态，如果参与者评估指令可以完成，参与者会写redo或者undo日志（Write-Ahead Log的一种），然后锁定资源，执行操作，但是并不提交，并反馈给协调者；</p>
+<p>&emsp;&emsp;2.提交阶段：如果每个参与者明确返回准备成功，也就是预留资源和执行操作成功，协调者向参与者发起提交指令，参与者提交资源变更的事务，释放锁定的资源；如果任何一个参与者明确返回准备失败，也就是预留资源或者执行操作失败，协调者向参与者发起中止指令，参与者取消已经变更的事务，执行undo日志，释放锁定的资源。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408112008613.jpeg" alt="d32da35a66599d2785d4d34cfd515e28.jpg">&emsp;&emsp;<br>&emsp;&emsp;两阶段提交协议在准备阶段锁定资源，是一个重量级的操作，并能保证强一致性，但是实现起来复杂、成本较高，不够灵活，更重要的是它有如下致命的问题：</p>
 <ol>
-<li><p>同步阻塞：从上面的描述来看，对于任何一次指令必须收到明确的响应，才会继续做下一步，否则处于阻塞状态，参与者占用的资源被一直锁定，不会被释放；</p>
+<li><p>同步阻塞（性能问题）：从上面的描述来看，对于任何一次指令必须收到明确的响应，才会继续做下一步，否则处于阻塞状态，参与者占用的资源被一直锁定，不会被释放；</p>
 </li>
-<li><p>单点故障：如果协调者宕机，参与者没有了协调者指挥，会一直阻塞。尤其在第二阶段，协调者发生故障，那么所有的参与者还都处于锁定事务资源的状态中，而无法继续完成事务操作。尽管可以通过选举方式选出新的协调者，但是无法解决因为协调者宕机导致的参与者处于阻塞状态的问题；</p>
+<li><p>单点故障（可靠性问题）：如果协调者宕机，参与者没有了协调者指挥，会一直阻塞。尤其在第二阶段，协调者发生故障，那么所有的参与者还都处于锁定事务资源的状态中，而无法继续完成事务操作。尽管可以通过选举方式选出新的协调者，但是无法解决因为协调者宕机导致的参与者处于阻塞状态的问题；</p>
 </li>
 <li><p>   数据不一致：当协调者向参与者发送commit请求之后，发生了局部网络异常或者在发送commit请求过程中协调者发生了故障，导致只有一部分参与者接受到了commit请求。而这部分参与者接到commit请求之后就会执行commit操作，但是其它未接到commit请求的机器则无法执行事务提交，于是整个分布式系统便出现了数据不一致性的现象。</p>
 </li>
 </ol>
 <p>&emsp;&emsp;上面所有的这些问题，都是需要人工干预处理，没有自动化的解决方案，因此两阶段提交协议在正常情况下能保证系统的强一致性，但是在出现异常情况下，当前处理的操作处于错误状态，需要管理员人工干预解决，因此可用性不够好，这也符合CAP协议的一致性和可用性不能兼得的原理。</p>
 <p>&emsp;&emsp;</p>
-<h4 id="2-2-三阶段提交协议-3PC"><a href="#2-2-三阶段提交协议-3PC" class="headerlink" title="2.2 三阶段提交协议(3PC)"></a>2.2 三阶段提交协议(3PC)</h4><p>&emsp;&emsp;<strong>二阶段协议存在的问题:主要是同步阻塞问题。</strong>在二阶段协议中的第一阶段，所有参与者接受到事务协调器的事务准备请求后，会在本地开启并执行事务，但是没有提交事务。之后所有参与者等待第二阶段事务协调器发出事务提交或者回滚后才会提交或者回滚事务。而在这期间所有参与者开启的本地事务一直存在，也就是一直把相应的资源锁定了（比如本地事务要更新一行数据，则在开启事务后，事务提交或者回滚之前都一直通过行锁锁定了这行数据），导致其他需要访问这行数据的事务阻塞等待。<br>&emsp;&emsp;假如在第一阶段事务协调器给10个参与者发送准备请求，其中9个参与者正确接受了，并开启了本地事务锁定了具体的资源，而剩下一个参与者 或者由于网络问题没有收到准备请求，或者接受到了但是本事事务执行失败，或者执行正常但是给事务协调器的回执由于网络原因没有被协调器收到等，则事务协调器发现其中一个参与者返回准备失败或者等待超时后还没收到那一个参与者的回执则会通知所有的参与者执行回滚操作。也就是在具体回滚前，其他9个参与者白白的锁定了本地资源，这显然很浪费。</p>
+<h3 id="2-2-三阶段提交协议-3PC"><a href="#2-2-三阶段提交协议-3PC" class="headerlink" title="2.2 三阶段提交协议(3PC)"></a>2.2 三阶段提交协议(3PC)</h3><p>&emsp;&emsp;<strong>二阶段协议存在的问题:主要是同步阻塞问题。</strong>在二阶段协议中的第一阶段，所有参与者接受到事务协调器的事务准备请求后，会在本地开启并执行事务，但是没有提交事务。之后所有参与者等待第二阶段事务协调器发出事务提交或者回滚后才会提交或者回滚事务。而在这期间所有参与者开启的本地事务一直存在，也就是一直把相应的资源锁定了（比如本地事务要更新一行数据，则在开启事务后，事务提交或者回滚之前都一直通过行锁锁定了这行数据），导致其他需要访问这行数据的事务阻塞等待。<br>&emsp;&emsp;假如在第一阶段事务协调器给10个参与者发送准备请求，其中9个参与者正确接受了，并开启了本地事务锁定了具体的资源，而剩下一个参与者 或者由于网络问题没有收到准备请求，或者接受到了但是本事事务执行失败，或者执行正常但是给事务协调器的回执由于网络原因没有被协调器收到等，则事务协调器发现其中一个参与者返回准备失败或者等待超时后还没收到那一个参与者的回执则会通知所有的参与者执行回滚操作。也就是在具体回滚前，其他9个参与者白白的锁定了本地资源，这显然很浪费。</p>
 <p>&emsp;&emsp;三阶段协议把二阶段的第一阶段在细分为2阶段，具体内容如下：</p>
 <ul>
-<li>第一阶段 canCommit<br>事务发起方发起事务后，事务协调器会给所有的事务参与者发起 canCommit 的请求，参与者收到后根据自己的情况判断是否可以执行提交，如果可以则返回ok，否者返回fail，但不开启本地事务并执行。具体参与者是如何判断本地是否可以执行提交协议并没有具体规定，需要协议实现者自己规定，比如可能判断参与者是否存在（网络是否OK）或者本地数据库连接是否可用来判断。<br>如果协调器发现有些参与者返回fail或者等待超时后参与者还没返回，则给所有事务参与者发起中断操作，具体中断操作做什么协议也没有具体规定。如果协调器发现所有参与者返回可以提交，则进入第二阶段。</li>
-<li>第二阶段 preCommit<br> 事务协调器向所有参与者发起准备事务请求，参与者接受到后，开启本地事务并执行，但是不提交。剩下的与二阶段协议的第一阶段一致。</li>
-<li>第三阶段doCommit<br> 与二阶段协议中的第二阶段一致。</li>
+<li><p>第一阶段 canCommit<br>事务发起方发起事务后，事务协调器会给所有的事务参与者发起 canCommit 的请求，参与者收到后根据自己的情况判断是否可以执行提交，如果可以则返回ok，否者返回fail，但不开启本地事务并执行。具体参与者是如何判断本地是否可以执行提交协议并没有具体规定，需要协议实现者自己规定，比如可能判断参与者是否存在（网络是否OK）或者本地数据库连接是否可用来判断。<br>如果协调器发现有些参与者返回fail或者等待超时后参与者还没返回，则给所有事务参与者发起中断操作，具体中断操作做什么协议也没有具体规定。如果协调器发现所有参与者返回可以提交，则进入第二阶段。</p>
+</li>
+<li><p>第二阶段 preCommit<br> 事务协调器向所有参与者发起准备事务请求，参与者接受到后，开启本地事务并执行，但是不提交。剩下的与二阶段协议的第一阶段一致。</p>
+</li>
+<li><p>第三阶段doCommit<br> 与二阶段协议中的第二阶段一致。</p>
+<p> <img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408112010148.jpeg" alt="89cd7f395e530a61da32a3bfa6669e15.jpg"></p>
+</li>
 </ul>
 <p>&emsp;&emsp;三阶段协议与二阶段协议最大不同在于三阶段协议把二阶段协议的第一阶段拆分为了两个阶段，其中第一阶段并不锁定资源，而是询问参与者是否可以提交，等所有参与者回复OK后在具体执行第二阶段锁定资源，询问阶段可以确保尽可能早的发现无法执行操作而需要中止的行为，但是它并不能发现所有的这种行为，只会减少这种情况的发生。理论上如果第一阶段返回都OK，则第二阶段和三阶段执行成功的概率就很大，另外如果第一阶段有些参与者返回了fail，由于这时候其他参与者还没有锁定资源，所以不会造成资源的阻塞。</p>
+<p>​	与2PC相比，3PC降低了阻塞范围，并且在等待超时后，协调者或参与者会中断事务，避免了协调者单点问题，阶段三中协调者出现问题时，参与者会继续提交事务。</p>
+<p>​	数据不一致问题依然存在，当在参与者收到 preCommit 请求后等待 doCommit 指令时，此时如果协调者请求中断事务，而协调者因为网络问题无法与参与者正常通信，会导致参与者继续提交事务，造成数据不一致。</p>
+<p>​	2PC和3PC都无法保证数据绝对的一致性，一般为了预防这种问题，可以添加一个报警，比如监控到事务异常的时候，通过脚本自动补偿差异的信息。</p>
 <p>&emsp;&emsp;</p>
-<h4 id="2-3-TCC编程模式"><a href="#2-3-TCC编程模式" class="headerlink" title="2.3 TCC编程模式"></a>2.3 TCC编程模式</h4><p>&emsp;&emsp;TCC是通过补偿机制实现最终一致性，TCC编程模式本质上也是一种二阶段协议，不同在于TCC编程模式需要与具体业务耦合，下面首先看下TCC编程模式步骤:</p>
+<h3 id="2-3-TCC编程模式"><a href="#2-3-TCC编程模式" class="headerlink" title="2.3 TCC编程模式"></a>2.3 TCC编程模式</h3><p>&emsp;&emsp;TCC是通过补偿机制实现最终一致性，TCC编程模式本质上也是一种二阶段协议，不同在于TCC编程模式需要与具体业务耦合，下面首先看下TCC编程模式步骤:</p>
 <ul>
 <li>所有事务参与方都需要实现try,confirm,cancle接口。</li>
 <li>事务发起方 向 事务协调器 发起事务请求，事务协调器调用所有事务参与者的try方法完成资源的预留，这时候并没有真正执行业务，而是为后面具体要执行的业务预留资源，这里完成了一阶段。</li>
@@ -301,8 +323,16 @@
 <li>如果协调器发现所有参与者的confirm方法都OK了，则分布式事务结束。</li>
 <li>如果协调器发现有些参与者的confirm方法失败了，或者由于网络原因没有收到回执，则协调器会进行重试。这里如果重试一定次数后还是失败，会怎么样那？常见的是做事务补偿。</li>
 </ul>
+<p>TCC的执行流程可以分为两个阶段，分别如下：</p>
+<p>（1）第一阶段：Try，业务系统做检测并预留资源 (加锁，锁住资源)，比如常见的下单，在try阶段，我们不是真正的减库存，而是把下单的库存给锁定住。</p>
+<p>（2）第二阶段：根据第一阶段的结果决定是执行confirm还是cancel</p>
+<ul>
+<li>Confirm：执行真正的业务（执行业务，释放锁）</li>
+<li>Cancle：是对Try阶段预留资源的释放（出问题，释放锁）</li>
+</ul>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408112013160.jpeg" alt="3ea72d3d3c669ceb5b2cd026d777cb7e.jpg"></p>
 <p>&emsp;&emsp;</p>
-<h4 id="2-4-本地消息-事务-表"><a href="#2-4-本地消息-事务-表" class="headerlink" title="2.4 本地消息(事务)表"></a>2.4 本地消息(事务)表</h4><p>&emsp;&emsp;此方案的核心是将需要分布式处理的任务通过消息日志的方式来异步执行。消息日志可以存储到本地文本、数据库或消息队列，再通过业务规则自动或人工发起重试。人工重试更多的是应用于支付场景，通过对账系统对事后问题的处理，达到最终的一致。</p>
+<h3 id="2-4-本地消息-事务-表"><a href="#2-4-本地消息-事务-表" class="headerlink" title="2.4 本地消息(事务)表"></a>2.4 本地消息(事务)表</h3><p>&emsp;&emsp;此方案的核心是将需要分布式处理的任务通过消息日志的方式来异步执行。消息日志可以存储到本地文本、数据库或消息队列，再通过业务规则自动或人工发起重试。人工重试更多的是应用于支付场景，通过对账系统对事后问题的处理，达到最终的一致。</p>
 <p>&emsp;&emsp;举个例子。假设系统中有两个表<code>user(id, name, amt_sold, amt_bought)</code>及<code>transaction(xid, seller_id, buyer_id, amount)</code>。其中user表记录用户交易汇总信息，transaction表记录每个交易的详细信息。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">begin;</span><br><span class="line">    INSERT INTO transaction VALUES(xid, $seller_id, $buyer_id, $amount);</span><br><span class="line">    UPDATE user SET amt_sold = amt_sold + $amount WHERE id = $seller_id;</span><br><span class="line">    UPDATE user SET amt_bought = amt_bought + $amount WHERE id = $buyer_id;</span><br><span class="line">commit;</span><br></pre></td></tr></table></figure>
 <p>&emsp;&emsp;即在transaction表中记录交易信息，然后更新卖家和买家的状态。</p>
@@ -311,38 +341,72 @@
 <p>&emsp;&emsp;对于user表更新业务，也需要新建一个<code>message_applied(msg_id)</code>表来记录被成功应用的消息，然后发起一个异步任务轮询队列内容进行处理：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">for each message in queue</span><br><span class="line">    begin;</span><br><span class="line">    //先检查此消息是否已处理</span><br><span class="line">    SELECT count(*) as cnt FROM message_applied WHERE msg_id = message.id;</span><br><span class="line">    if cnt = 0 then</span><br><span class="line">    //若没有处理，对user表做更新操作</span><br><span class="line">    if message.type = “seller” then</span><br><span class="line">        UPDATE user SET amt_sold = amt_sold + message.amount WHERE id = message.user_id;</span><br><span class="line">    else</span><br><span class="line">        UPDATE user SET amt_bought = amt_bought + message.amount WHERE id = message.user_id;</span><br><span class="line">    end</span><br><span class="line">    //插入应用的消息，标记此消息已处理</span><br><span class="line">    INSERT INTO message_applied VALUES(message.id);</span><br><span class="line">    end</span><br><span class="line">    commit;</span><br><span class="line">end</span><br></pre></td></tr></table></figure>
 <p>&emsp;&emsp;来仔细分析一下上面代码：<br>&emsp;&emsp;1. 消息队列与transaction使用同一实例，因此第一个事务不涉及分布式操作；<br>&emsp;&emsp;2. message_applied与user表在同一个实例中，也能保证一致性；<br>&emsp;&emsp;3. 第二个事务结束后，系统可能出故障，出故障后系统会重新从消息队列中取出这一消息，但通过message_applied表可以检查出来这一消息已经被应用过，跳过这一消息实现正确的行为。</p>
+<hr>
+<p><strong>本地消息表的执行流程：</strong></p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408112019172.jpeg" alt="1d5b0548ba00d569f9bf3cd85840262e.jpg"></p>
+<ul>
+<li>① 事务主动方在同一个本地事务中处理业务和写消息表操作</li>
+<li>② 事务主动方通过消息中间件，通知事务被动方处理事务消息。消息中间件可以基于 Kafka、RocketMQ 消息队列，事务主动方主动写消息到消息队列，事务消费方消费并处理消息队列中的消息。</li>
+<li>③ 事务被动方通过消息中间件，通知事务主动方事务已处理的消息。</li>
+<li>④ 事务主动方接收中间件的消息，更新消息表的状态为已处理。</li>
+</ul>
+<p>一些必要的容错处理如下：</p>
+<ul>
+<li>当①处理出错，由于还在事务主动方的本地事务中，直接回滚即可</li>
+<li>当②、③处理出错，由于事务主动方本地保存了消息，只需要轮询消息重新通过消息中间件发送，通知事务被动方重新读取消息处理业务即可。</li>
+<li>如果是业务上处理失败，事务被动方可以发消息给事务主动方回滚事务</li>
+<li>如果事务被动方已经消费了消息，事务主动方需要回滚事务的话，需要发消息通知事务主动方进行回滚事务。</li>
+</ul>
+<p><strong>本地消息表的优缺点</strong>：</p>
+<p>（1）优点：</p>
+<ul>
+<li>从应用设计开发的角度实现了消息数据的可靠性，消息数据的可靠性不依赖于消息中间件，弱化了对 MQ 中间件特性的依赖。</li>
+<li>方案轻量，容易实现。</li>
+</ul>
+<p>2）缺点：</p>
+<ul>
+<li>与具体的业务场景绑定，耦合性强，不可公用</li>
+<li>消息数据与业务数据同库，占用业务系统资源</li>
+<li>业务系统在使用关系型数据库的情况下，消息服务性能会受到关系型数据库并发性能的局限</li>
+</ul>
 <p>&emsp;&emsp;</p>
-<h4 id="2-5-采用消息中间件"><a href="#2-5-采用消息中间件" class="headerlink" title="2.5 采用消息中间件"></a>2.5 采用消息中间件</h4><p>&emsp;&emsp;解决分布式事务问题还有一种方案，也是现在大型互联网平台普遍采用的方案，就是利用消息中间件。<br>&emsp;&emsp;消息中间件也可称作消息系统(MQ)，它本质上是一个暂存转发消息的一个中间件。在分布式应用当中，可以把一个业务操作转换成一个消息，比如支付宝转账余额宝操作，支付宝系统执行减掉账户金额操作之后向消息系统发一个消息，余额宝系统订阅这条消息然后进行增加账户金额操作。<br>&emsp;&emsp;实质上，基于消息中间件的两阶段提交是将一个分布式事务拆成一个消息事务（A系统的本地操作+发消息）+ B系统的本地操作，其中B系统的操作由消息驱动，只要消息事务成功，那么A操作一定成功，消息也一定发出来了，这时候B会收到消息去执行本地操作，如果本地操作失败，消息会重投，直到B操作成功，这样就变相地实现了A与B的分布式事务。</p>
-<p>&emsp;&emsp;但是在分布式业务之间引入消息中间件还存在一个问题，就是如何保证业务系统与消息系统之间消息传递的可靠性。在分布式业务场景中，可靠性永远是最重要的。如果采用消息中间件，保证业务之间消息的发送与接收的可靠性是非常重要的问题。</p>
-<p>&emsp;&emsp;当采用消息中间件时，消息的可靠性体现在两个方面：</p>
-<ol>
-<li>消息的发送者端 （生产者）：发送者端完成操作后一定能将消息成功发送到消息系统。</li>
-<li>消息的接收者端（消费者）：消费者端仅且能够从消息系统成功消费一次消息。</li>
-</ol>
-<h5 id="2-5-1-发送端保证消息的可靠性"><a href="#2-5-1-发送端保证消息的可靠性" class="headerlink" title="2.5.1 发送端保证消息的可靠性"></a>2.5.1 发送端保证消息的可靠性</h5><p>&emsp;&emsp;可以利用本地事务：主要原理是通过本地消息表做中间表。在数据库中建一张消息表，将消息数据与业务数据保存在同一数据库实例里，这样就可以利用本地数据库的事务机制，保证业务操作和保存消息完全一致：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Begin transaction</span><br><span class="line">    update A set amount=amount-10000 where userId=1;</span><br><span class="line">    insert into message(userId, amount,status) values(1, 10000, 1);</span><br><span class="line">End transaction</span><br><span class="line">commit;</span><br></pre></td></tr></table></figure>
-<p>&emsp;&emsp;通过本地事务一定能保证扣完款后消息能保存下来。当上述事务提交成功后，再通过消息中间件实时扫描这张消息表，把消息表中的数据转移到消息中间件，若转移消息成功则删除消息表中的数据，若转移失败继续重试。</p>
-<p>&emsp;&emsp;通常情况下，在使用非事务消息支持的MQ产品时，很难将业务操作与对MQ的操作放在一个本地事务域中管理。通俗点描述，以“支付宝转账”为例，很难保证在支付宝扣款完成之后对MQ投递消息的操作就一定能成功。先从消息生产者这端来分析，请看伪代码： </p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">try&#123;</span><br><span class="line">  //1. 操作数据库</span><br><span class="line">  boolean result = dao.update(mode1); </span><br><span class="line">  //2.如果第一步成功，则投递消息</span><br><span class="line">  if(result)&#123;</span><br><span class="line">    mq.append(model1)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;catch(Execption ex)&#123;</span><br><span class="line">  rollback();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>&emsp;&emsp;根据上述代码，来分析下可能出现的情况：</p>
-<ol>
-<li>操作数据库成功，向MQ中投递消息也成功 </li>
-<li>操作数据库失败，不会向MQ中投递消息了</li>
-<li>操作数据库成功，但是向MQ中投递消息时失败，向外抛出了异常，刚刚执行的更新数据库的操作将被回滚</li>
-</ol>
-<p>&emsp;&emsp;所以这种方式基本上也能保证发送者发送消息的可靠性。</p>
-<p>&emsp;&emsp;除了上面介绍的通过异常捕获和回滚的方式外，阿里巴巴的RocketMQ中间件就支持一种事务消息机制，能够确保本地操作和发送消息达到本地事务一样的效果。</p>
-<h5 id="2-5-2-接收者端保证消息的可靠性"><a href="#2-5-2-接收者端保证消息的可靠性" class="headerlink" title="2.5.2 接收者端保证消息的可靠性"></a>2.5.2 接收者端保证消息的可靠性</h5><h6 id="1-保证消费者不重复消费消息"><a href="#1-保证消费者不重复消费消息" class="headerlink" title="1.保证消费者不重复消费消息"></a>1.保证消费者不重复消费消息</h6><p>&emsp;&emsp;什么情况下会产生重复消费的情况呢？比如消费者接收到消息并完成了本地事务(如减库存操作)，此时还要返回消息系统一个通知，告诉消息系统把这条消息删除掉。然后不巧恰恰在此时网络出现了问题，返回给消息系统删除消息的通知丢失，则消费者端会再次消费这条消息，导致了重复消费。</p>
-<p>&emsp;&emsp;那么该怎么处理这种情况呢？</p>
-<ol>
-<li>消费端处理消息的<strong>业务逻辑保持幂等性</strong></li>
-<li><strong>保存消费者消费的状态</strong>，即保证每条消息都有唯一编号，并且保证消息处理成功后一定能写入到一张去重日志表</li>
-</ol>
-<p>&emsp;&emsp;关于第1条幂等性，只要业务操作保持幂等性，不管来多少条重复消息，最后处理的结果都一样。这个很明显应该在消费端实现，不属于消息系统要实现的功能。<br>&emsp;&emsp;关于第2条，原理就是利用一张日志表来记录已经处理成功的消息的ID，如果新到的消息ID已经在日志表中，那么就不再处理这条消息。当然这个可以消息系统实现，也可以业务端实现。正常情况下出现重复消息的概率不一定大，且由消息系统实现的话，肯定会对消息系统的吞吐量和高可用有影响，所以，一般消费状态的保存都是在消费者端进行保存。</p>
-<h6 id="2-解决消费者消费超时和失败"><a href="#2-解决消费者消费超时和失败" class="headerlink" title="2. 解决消费者消费超时和失败"></a>2. 解决消费者消费超时和失败</h6><p>&emsp;&emsp;再回到转账的例子，如果A的账户的余额已经减少，且消息已经发送成功，消费端开始消费这条消息，这个时候就会出现消费失败和消费超时两个问题？解决超时问题的思路就是一直重试，直到消费端消费消息成功，整个过程中有可能会出现消息重复的问题，按照前面的思路解决即可。<br>&emsp;&emsp;上面基本上可以解决超时问题，但是如果消费失败怎么办？如果按照事务的流程，如果事务中的某个步骤操作失败了的话，就要回滚之前的所有操作。如果消息系统要实现这个回滚流程的话，系统复杂度将大大提升。而且一般通过消息系统的处理流程都是一个异步操作，也就是说，但当用户下单时我们不会等到整个流程完成之后才返回给用户结果，而是直接返回给用户下单成功的结果，后端再慢慢处理。如果进行回滚操作的话，那么就会出现用户明明下单成功了过段时间一看又失败了这种情况，这是不允许的。<br>&emsp;&emsp;所以针对消费失败这种情况，最好的办法就是通过 报警系统 及时发现失败情况然后再人工处理。其实为了交易系统更可靠，一般会在类似交易这种高级别的服务代码中，加入详细日志记录的，一旦系统内部引发类似致命异常要及时通过短信(钉钉、邮件)通知给业务方。同时，应该设计一个报警系统在后台实时扫描和分析此类日志，检查出这种特殊的情况，通过短信(钉钉、邮件)及时通知相关人员。</p>
-<hr>
-<hr>
-<p>&emsp;&emsp;再来思考一个问题，假如数据库在提交事务的时候突然断电，那么它是怎么样恢复的呢？<br>&emsp;&emsp;为什么要提到这个知识点呢？ 因为分布式系统的核心就是处理各种异常情况，这也是分布式系统复杂的地方，因为分布式的网络环境很复杂，这种“断电”故障要比单机多很多，所以在做分布式系统的时候，最先考虑的就是这种情况。这些异常可能有 机器宕机、网络异常、消息丢失、消息乱序、数据错误、不可靠的TCP、存储数据丢失、其他异常等等…<br>&emsp;&emsp;那么本地事务数据库断电的这种情况，它是怎么保证数据一致性的呢？使用SQL Server来举例，SQL Server数据库是由两个文件组成的，一个数据库文件和一个日志文件，通常情况下，日志文件都要比数据库文件大很多。数据库进行任何写入操作的时候都是要先写日志的，同样的道理，在执行事务的时候数据库首先会记录下这个事务的redo操作日志，然后才开始真正操作数据库，在操作之前首先会把日志文件写入磁盘，那么当突然断电的时候，即使操作没有完成，在重新启动数据库时候，数据库会根据当前数据的情况进行undo回滚或者是redo前滚，这样就保证了数据的强一致性。</p>
+<h3 id="2-5-采用MQ事务消息"><a href="#2-5-采用MQ事务消息" class="headerlink" title="2.5 采用MQ事务消息"></a>2.5 采用MQ事务消息</h3><p>​	基于MQ的分布式事务方案本质上是对本地消息表的封装，整体流程与本地消息表一致，唯一不同的就是将本地消息表存在了MQ内部，而不是业务数据库中，如下图：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408112021699.png" alt="6501a3de25d9618797c6fdbc1eb9306b.png"><br>&emsp;&emsp;实质上，基于消息中间件的两阶段提交是将一个分布式事务拆成一个消息事务（A系统的本地操作+发消息)+ B系统的本地操作，其中B系统的操作由消息驱动，只要消息事务成功，那么A操作一定成功，消息也一定发出来了，这时候B会收到消息去执行本地操作，如果本地操作失败，消息会重投，直到B操作成功，这样就变相地实现了A与B的分布式事务。</p>
+<p>​	由于将本地消息表存在了MQ内部，那么MQ内部的处理尤为重要，下面主要基于 RocketMQ4.3 之后的版本介绍 MQ 的分布式事务方案。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408112024512.png" alt="7752a69202d9c41af10e8991e26b08c3.png"></p>
+<p>​	在本地消息表方案中，保证事务主动方发写业务表数据和写消息表数据的一致性是基于数据库事务，而 RocketMQ 的事务消息相对于普通 MQ提供了 2PC 的提交接口，方案如下：</p>
+<p><strong>（1）正常情况：</strong></p>
+<p>在事务主动方服务正常，没有发生故障的情况下，发消息流程如下：</p>
+<ul>
+<li>步骤①：发送方向 MQ Server(MQ服务方)发送 half 消息</li>
+<li>步骤②：MQ Server 将消息持久化成功之后，向发送方 ack 确认消息已经发送成功</li>
+<li>步骤③：发送方开始执行本地事务逻辑</li>
+<li>步骤④：发送方根据本地事务执行结果向 MQ Server 提交二次确认（commit 或是 rollback）。</li>
+<li>最终步骤：MQ Server 如果收到的是 commit 操作，则将半消息标记为可投递，MQ订阅方最终将收到该消息；若收到的是 rollback 操作则删除 half 半消息，订阅方将不会接受该消息</li>
+</ul>
+<p><strong>（2）异常情况：</strong></p>
+<p>​	在断网或者应用重启等异常情况下，图中的步骤④提交的二次确认超时未到达 MQ Server，此时的处理逻辑如下：</p>
+<ul>
+<li>步骤⑤：MQ Server 对该消息发起消息回查</li>
+<li>步骤⑥：发送方收到消息回查后，需要检查对应消息的本地事务执行的最终结果</li>
+<li>步骤⑦：发送方根据检查得到的本地事务的最终状态再次提交二次确认。</li>
+<li>最终步骤：MQ Server基于 commit&#x2F;rollback 对消息进行投递或者删除。</li>
+</ul>
+<p><strong>MQ事务消息的优缺点：</strong></p>
+<p>（1）优点：相比本地消息表方案，MQ 事务方案优点是：</p>
+<ul>
+<li>消息数据独立存储 ，降低业务系统与消息系统之间的耦合</li>
+<li>吞吐量大于使用本地消息表方案</li>
+</ul>
+<p>（2）缺点：</p>
+<ul>
+<li>一次消息发送需要两次网络请求(half 消息 + commit&#x2F;rollback 消息) 。</li>
+<li>业务处理服务需要实现消息状态回查接口。</li>
+</ul>
+<h3 id="2-6-最大努力通知"><a href="#2-6-最大努力通知" class="headerlink" title="2.6 最大努力通知"></a>2.6 最大努力通知</h3><p>​	最大努力通知也称为定期校对，是对MQ事务方案的进一步优化。它在事务主动方增加了消息校对的接口，如果事务被动方没有接收到主动方发送的消息，此时可以调用事务主动方提供的消息校对的接口主动获取。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408112026928.png" alt="7d1f86d1f8b86ad0448a38ce8fb0be51.png"></p>
+<p>​	在可靠消息事务中，事务主动方需要将消息发送出去，并且让接收方成功接收消息，这种可靠性发送是由事务主动方保证的；但是最大努力通知，事务主动方仅仅是尽最大努力（重试，轮询…）将事务发送给事务接收方，所以存在事务被动方接收不到消息的情况，此时需要事务被动方主动调用事务主动方的消息校对接口查询业务消息并消费，这种通知的可靠性是由事务被动方保证的。</p>
+<p>​	所以最大努力通知适用于业务通知类型，例如微信交易的结果，就是通过最大努力通知方式通知各个商户，既有回调通知，也有交易查询接口。</p>
 <hr>
 <p>转载自：<br><a target="_blank" rel="noopener" href="http://ifeve.com/distribute-transaction-2pc/">http://ifeve.com/distribute-transaction-2pc/</a><br><a target="_blank" rel="noopener" href="http://coolshell.cn/articles/10910.html">http://coolshell.cn/articles/10910.html</a><br><a target="_blank" rel="noopener" href="http://www.jianshu.com/p/1156151e20c8">http://www.jianshu.com/p/1156151e20c8</a><br><a target="_blank" rel="noopener" href="https://blog.csdn.net/suifeng3051/article/details/52691210">https://blog.csdn.net/suifeng3051/article/details/52691210</a></p>
 
@@ -425,7 +489,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E6%99%AE%E9%80%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1"><span class="nav-number">1.</span> <span class="nav-text">一、普通事务与分布式事务</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-%E6%99%AE%E9%80%9A%E4%BA%8B%E5%8A%A1"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 普通事务</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#1-1-1-%E4%BA%8B%E5%8A%A1%E7%9A%84ACID%E7%89%B9%E6%80%A7"><span class="nav-number">1.1.1.</span> <span class="nav-text">1.1.1 事务的ACID特性</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1%EF%BC%88Distributed-Transaction-DT%EF%BC%89"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 分布式事务（Distributed Transaction DT）</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#1-2-1-%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F%E4%B8%AD%E7%9A%84CAP%E5%AE%9A%E5%BE%8B"><span class="nav-number">1.2.1.</span> <span class="nav-text">1.2.1 分布式系统中的CAP定律</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#1-2-2-%E4%B8%80%E8%87%B4%E6%80%A7%E7%90%86%E8%AE%BA"><span class="nav-number">1.2.2.</span> <span class="nav-text">1.2.2 一致性理论</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#1-2-3-%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1%E7%89%B9%E6%80%A7%E2%80%94%E6%9C%80%E7%BB%88%E4%B8%80%E8%87%B4%E6%80%A7%EF%BC%88BASE%EF%BC%89"><span class="nav-number">1.2.3.</span> <span class="nav-text">1.2.3 分布式事务特性—最终一致性（BASE）</span></a></li></ol></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88"><span class="nav-number">2.</span> <span class="nav-text">二、分布式事务解决方案</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-%E4%BA%8C%E9%98%B6%E6%AE%B5%E6%8F%90%E4%BA%A4%E5%8D%8F%E8%AE%AE-2PC"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 二阶段提交协议(2PC)</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-%E4%B8%89%E9%98%B6%E6%AE%B5%E6%8F%90%E4%BA%A4%E5%8D%8F%E8%AE%AE-3PC"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 三阶段提交协议(3PC)</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-TCC%E7%BC%96%E7%A8%8B%E6%A8%A1%E5%BC%8F"><span class="nav-number">2.3.</span> <span class="nav-text">2.3 TCC编程模式</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-%E6%9C%AC%E5%9C%B0%E6%B6%88%E6%81%AF-%E4%BA%8B%E5%8A%A1-%E8%A1%A8"><span class="nav-number">2.4.</span> <span class="nav-text">2.4 本地消息(事务)表</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-5-%E9%87%87%E7%94%A8%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6"><span class="nav-number">2.5.</span> <span class="nav-text">2.5 采用消息中间件</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#2-5-1-%E5%8F%91%E9%80%81%E7%AB%AF%E4%BF%9D%E8%AF%81%E6%B6%88%E6%81%AF%E7%9A%84%E5%8F%AF%E9%9D%A0%E6%80%A7"><span class="nav-number">2.5.1.</span> <span class="nav-text">2.5.1 发送端保证消息的可靠性</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#2-5-2-%E6%8E%A5%E6%94%B6%E8%80%85%E7%AB%AF%E4%BF%9D%E8%AF%81%E6%B6%88%E6%81%AF%E7%9A%84%E5%8F%AF%E9%9D%A0%E6%80%A7"><span class="nav-number">2.5.2.</span> <span class="nav-text">2.5.2 接收者端保证消息的可靠性</span></a><ol class="nav-child"><li class="nav-item nav-level-6"><a class="nav-link" href="#1-%E4%BF%9D%E8%AF%81%E6%B6%88%E8%B4%B9%E8%80%85%E4%B8%8D%E9%87%8D%E5%A4%8D%E6%B6%88%E8%B4%B9%E6%B6%88%E6%81%AF"><span class="nav-number">2.5.2.1.</span> <span class="nav-text">1.保证消费者不重复消费消息</span></a></li><li class="nav-item nav-level-6"><a class="nav-link" href="#2-%E8%A7%A3%E5%86%B3%E6%B6%88%E8%B4%B9%E8%80%85%E6%B6%88%E8%B4%B9%E8%B6%85%E6%97%B6%E5%92%8C%E5%A4%B1%E8%B4%A5"><span class="nav-number">2.5.2.2.</span> <span class="nav-text">2. 解决消费者消费超时和失败</span></a></li></ol></li></ol></li></ol></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E6%99%AE%E9%80%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1"><span class="nav-number">1.</span> <span class="nav-text">一、普通事务与分布式事务</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-%E6%99%AE%E9%80%9A%E4%BA%8B%E5%8A%A1"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 普通事务</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-1-%E4%BA%8B%E5%8A%A1%E7%9A%84ACID%E7%89%B9%E6%80%A7"><span class="nav-number">1.1.1.</span> <span class="nav-text">1.1.1 事务的ACID特性</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1%EF%BC%88Distributed-Transaction-DT%EF%BC%89"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 分布式事务（Distributed Transaction DT）</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-1-%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F%E4%B8%AD%E7%9A%84CAP%E5%AE%9A%E5%BE%8B"><span class="nav-number">1.2.1.</span> <span class="nav-text">1.2.1 分布式系统中的CAP定律</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-2-%E4%B8%80%E8%87%B4%E6%80%A7%E7%90%86%E8%AE%BA"><span class="nav-number">1.2.2.</span> <span class="nav-text">1.2.2 一致性理论</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-3-%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1%E7%89%B9%E6%80%A7%E2%80%94%E6%9C%80%E7%BB%88%E4%B8%80%E8%87%B4%E6%80%A7%EF%BC%88BASE%EF%BC%89"><span class="nav-number">1.2.3.</span> <span class="nav-text">1.2.3 分布式事务特性—最终一致性（BASE）</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88"><span class="nav-number">2.</span> <span class="nav-text">二、分布式事务解决方案</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E4%BA%8C%E9%98%B6%E6%AE%B5%E6%8F%90%E4%BA%A4%E5%8D%8F%E8%AE%AE-2PC"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 二阶段提交协议(2PC)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E4%B8%89%E9%98%B6%E6%AE%B5%E6%8F%90%E4%BA%A4%E5%8D%8F%E8%AE%AE-3PC"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 三阶段提交协议(3PC)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-TCC%E7%BC%96%E7%A8%8B%E6%A8%A1%E5%BC%8F"><span class="nav-number">2.3.</span> <span class="nav-text">2.3 TCC编程模式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-%E6%9C%AC%E5%9C%B0%E6%B6%88%E6%81%AF-%E4%BA%8B%E5%8A%A1-%E8%A1%A8"><span class="nav-number">2.4.</span> <span class="nav-text">2.4 本地消息(事务)表</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-5-%E9%87%87%E7%94%A8MQ%E4%BA%8B%E5%8A%A1%E6%B6%88%E6%81%AF"><span class="nav-number">2.5.</span> <span class="nav-text">2.5 采用MQ事务消息</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-6-%E6%9C%80%E5%A4%A7%E5%8A%AA%E5%8A%9B%E9%80%9A%E7%9F%A5"><span class="nav-number">2.6.</span> <span class="nav-text">2.6 最大努力通知</span></a></li></ol></li></ol></div>
       </div>
       <!--/noindex-->
 
@@ -439,14 +503,14 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">138</span>
+          <span class="site-state-item-count">143</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-count">28</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
   </nav>

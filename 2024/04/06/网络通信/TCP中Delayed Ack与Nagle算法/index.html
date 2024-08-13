@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="[toc] 什么是Delayed Ack　　TCP是可靠传输，可靠的核心是收到包后回复一个ack来告诉对方收到了。但如果只是单纯的发送一个确认，代价会比较高(20字节的ip首部,20字节的tcp首部)，最好能附带响应数据一起发送给对方。 　　Delayed Ack是指收到包后不立即ack，而是等一小会（比如40毫秒）看看，如果这40毫秒以内正好有一个包发给client，那么这个ack包就跟着发过去">
+<meta property="og:type" content="article">
+<meta property="og:title" content="TCP中Delayed Ack与Nagle算法">
+<meta property="og:url" content="http://example.com/2024/04/06/%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1/TCP%E4%B8%ADDelayed%20Ack%E4%B8%8ENagle%E7%AE%97%E6%B3%95/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="[toc] 什么是Delayed Ack　　TCP是可靠传输，可靠的核心是收到包后回复一个ack来告诉对方收到了。但如果只是单纯的发送一个确认，代价会比较高(20字节的ip首部,20字节的tcp首部)，最好能附带响应数据一起发送给对方。 　　Delayed Ack是指收到包后不立即ack，而是等一小会（比如40毫秒）看看，如果这40毫秒以内正好有一个包发给client，那么这个ack包就跟着发过去">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2024-04-05T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-08-13T15:16:55.716Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2024/04/06/%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1/TCP%E4%B8%ADDelayed%20Ack%E4%B8%8ENagle%E7%AE%97%E6%B3%95/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>TCP中Delayed Ack与Nagle算法 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/06/%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1/TCP%E4%B8%ADDelayed%20Ack%E4%B8%8ENagle%E7%AE%97%E6%B3%95/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          TCP中Delayed Ack与Nagle算法
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-06 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-06T00:00:00+08:00">2024-04-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1/" itemprop="url" rel="index"><span itemprop="name">网络通信</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>[toc]</p>
+<h2 id="什么是Delayed-Ack"><a href="#什么是Delayed-Ack" class="headerlink" title="什么是Delayed Ack"></a>什么是Delayed Ack</h2><p>　　TCP是可靠传输，可靠的核心是收到包后回复一个ack来告诉对方收到了。但如果只是单纯的发送一个确认，代价会比较高(20字节的ip首部,20字节的tcp首部)，最好能附带响应数据一起发送给对方。</p>
+<p>　　Delayed Ack是指收到包后不立即ack，而是等一小会（比如40毫秒）看看，如果这40毫秒以内正好有一个包发给client，那么这个ack包就跟着发过去，而不需要增加任何大小，这样节省了资源。当然如果超过这个时间还没有包发给client，那么这个ack也要发给client了（要不client以为丢包了，又要重发）。<br>　　假如这个时候ack包还在等待延迟发送的时候，又收到了client的一个包，那么这个时候server有两个ack包要回复，那么os会把这两个ack包合起来立即回复一个ack包给client，告诉client前两个包都收到了。</p>
+<p>　　也就是Delayed Ack开启的情况下：ack包有顺风车就搭；如果凑两个ack包自己包个车也立即发车；再如果等了40毫秒以上也没顺风车，那么自己打个车也发车。</p>
+<span id="more"></span>
+
+<hr>
+<h2 id="什么是Nagle算法"><a href="#什么是Nagle算法" class="headerlink" title="什么是Nagle算法"></a>什么是Nagle算法</h2><p>　　当tcp用来传输小的数据段时代价是很高的，Nagle算法是为了提高带宽利用率设计的算法，其做法是合并小的TCP 包为一个，避免了过多的小报文的 TCP 头所浪费的带宽。如果开启了这个算法 （默认），则协议栈会累积数据直到以下两个条件之一满足的时候才真正发送出去：</p>
+<blockquote>
+<ul>
+<li>积累的数据量到达最大的 TCP Segment Size</li>
+<li>收到了一个 Ack</li>
+</ul>
+</blockquote>
+<p>　　因此，如果要发送的数据大于最大传输包（MSS）的话，立即发送；否则，看看前面发出去的包是不是还有没有ack的，如果有没有ack的，那么这个小包不急着发送，等前面的ack回来再发送。这样可以优化带宽利用率，Nagle算法也是用来优化改进tcp传输效率的。<strong>Nagle算法一般默认开启的。</strong></p>
+<hr>
+<h2 id="如果client启用Nagle，并且server端启用了delay-ack会有什么后果呢？"><a href="#如果client启用Nagle，并且server端启用了delay-ack会有什么后果呢？" class="headerlink" title="如果client启用Nagle，并且server端启用了delay ack会有什么后果呢？"></a>如果client启用Nagle，并且server端启用了delay ack会有什么后果呢？</h2><p>　　假如client要发送一个http请求给server，这个请求有1600个bytes，握手的MSS是1460，那么这1600个bytes就会分成2个TCP包，第一个包1460，剩下的140bytes放在第二个包。<br>　　第一个包发出去后，server收到第一个包，因为delay ack所以没有回复ack，同时因为server没有收全这个HTTP请求，所以也没法回复HTTP response（server等一个完整的HTTP请求，或者40毫秒的delay时间）。client这边开启了Nagle算法（默认开启）第二个包比较小（140&lt;MSS),第一个包的ack还没有回来，那么第二个包就不发了，等！互相等！一直到Delay Ack的Delay时间到了。</p>
+<hr>
+<h2 id="再来看一个经典例子和数据分析"><a href="#再来看一个经典例子和数据分析" class="headerlink" title="再来看一个经典例子和数据分析"></a>再来看一个经典例子和数据分析</h2><p>　　这个案例来自：<a target="_blank" rel="noopener" href="http://www.stuartcheshire.org/papers/nagledelayedack/">http://www.stuartcheshire.org/papers/nagledelayedack/</a><br>　　案例核心奇怪的问题是，如果传输的数据是 99,900 bytes，速度5.2M&#x2F;秒；如果传输的数据是 100,000 bytes 速度2.7M&#x2F;秒，多了10个bytes，不至于传输速度差这么多。</p>
+<p>原因就是：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">99,900 bytes = 68 full-sized 1448-byte packets, plus 1436 bytes extra</span><br><span class="line">100,000 bytes = 69 full-sized 1448-byte packets, plus   88 bytes extra</span><br></pre></td></tr></table></figure>
+<p>　　99,900 bytes时，68个整包会立即发送（都是整包，不受Nagle算法的影响），因为68是偶数，对方收到最后两个包后立即回复ack（delay ack凑够两个也立即ack），那么剩下的1436也很快发出去（根据Nagle算法，没有没ack的包了，立即发）。<br>　　100,000 bytes时，前面68个整包很快发出去也收到ack回复了，然后发了第69个整包，剩下88bytes（不够一个整包）根据Nagle算法要等一等，server收到第69个ack后，因为delay ack不回复（手里只攒下一个没有回复的包），所以client、server两边等在等，一直等到server的delay ack超时了。</p>
+<hr>
+<p>转载自：<br><a target="_blank" rel="noopener" href="http://jm.taobao.org/2017/06/01/20170601/">http://jm.taobao.org/2017/06/01/20170601/</a><br><a target="_blank" rel="noopener" href="https://blog.csdn.net/zheng0518/article/details/78560942">https://blog.csdn.net/zheng0518/article/details/78560942</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/04/06/%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1/%E6%B7%B1%E5%85%A5%E5%89%96%E6%9E%90socket%E7%9A%84timeout/" rel="prev" title="常见的Socket网络异常场景分析">
+      <i class="fa fa-chevron-left"></i> 常见的Socket网络异常场景分析
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/04/06/%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1/%E5%B8%B8%E8%A7%81%E7%9A%84Socket%E7%BD%91%E7%BB%9C%E5%BC%82%E5%B8%B8%E5%9C%BA%E6%99%AF%E5%88%86%E6%9E%90/" rel="next" title="常见的Socket网络异常场景分析">
+      常见的Socket网络异常场景分析 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AFDelayed-Ack"><span class="nav-number">1.</span> <span class="nav-text">什么是Delayed Ack</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AFNagle%E7%AE%97%E6%B3%95"><span class="nav-number">2.</span> <span class="nav-text">什么是Nagle算法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A6%82%E6%9E%9Cclient%E5%90%AF%E7%94%A8Nagle%EF%BC%8C%E5%B9%B6%E4%B8%94server%E7%AB%AF%E5%90%AF%E7%94%A8%E4%BA%86delay-ack%E4%BC%9A%E6%9C%89%E4%BB%80%E4%B9%88%E5%90%8E%E6%9E%9C%E5%91%A2%EF%BC%9F"><span class="nav-number">3.</span> <span class="nav-text">如果client启用Nagle，并且server端启用了delay ack会有什么后果呢？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%86%8D%E6%9D%A5%E7%9C%8B%E4%B8%80%E4%B8%AA%E7%BB%8F%E5%85%B8%E4%BE%8B%E5%AD%90%E5%92%8C%E6%95%B0%E6%8D%AE%E5%88%86%E6%9E%90"><span class="nav-number">4.</span> <span class="nav-text">再来看一个经典例子和数据分析</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">143</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">28</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

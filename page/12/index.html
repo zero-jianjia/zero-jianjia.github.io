@@ -187,6 +187,447 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/11/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B&%E7%BA%BF%E7%A8%8B%E6%B1%A0/Java%E7%BA%BF%E7%A8%8B%E6%B1%A0/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/03/11/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B&%E7%BA%BF%E7%A8%8B%E6%B1%A0/Java%E7%BA%BF%E7%A8%8B%E6%B1%A0/" class="post-title-link" itemprop="url">Java线程池</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-03-11 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-11T00:00:00+08:00">2024-03-11</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/" itemprop="url" rel="index"><span itemprop="name">Java进阶</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B-%E7%BA%BF%E7%A8%8B%E6%B1%A0/" itemprop="url" rel="index"><span itemprop="name">线程&线程池</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>[TOC]</p>
+<h2 id="1-为什么需要使用线程池"><a href="#1-为什么需要使用线程池" class="headerlink" title="1.为什么需要使用线程池"></a>1.为什么需要使用线程池</h2><p>&emsp;&emsp;合理利用线程池能够带来三个好处。<br>&emsp;&emsp;第一：降低资源消耗。通过重复利用已创建的线程降低线程创建和销毁造成的消耗。<br>&emsp;&emsp;第二：提高响应速度。当任务到达时，任务可以不需要的等到线程创建就能立即行。<br>&emsp;&emsp;第三：提高线程的可管理性。线程是稀缺资源，如果无限制的创建，不仅会消耗系统资源，还会降低系统的稳定性，使用线程池可以进行统一的分配，调优和监控。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/03/11/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B&%E7%BA%BF%E7%A8%8B%E6%B1%A0/Java%E7%BA%BF%E7%A8%8B%E6%B1%A0/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/11/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B&%E7%BA%BF%E7%A8%8B%E6%B1%A0/Java%E7%BA%BF%E7%A8%8B%E7%9A%846%E7%A7%8D%E7%8A%B6%E6%80%81%E5%8F%8A%E5%88%87%E6%8D%A2/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/03/11/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B&%E7%BA%BF%E7%A8%8B%E6%B1%A0/Java%E7%BA%BF%E7%A8%8B%E7%9A%846%E7%A7%8D%E7%8A%B6%E6%80%81%E5%8F%8A%E5%88%87%E6%8D%A2/" class="post-title-link" itemprop="url">Java线程的6种状态及切换</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-03-11 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-11T00:00:00+08:00">2024-03-11</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/" itemprop="url" rel="index"><span itemprop="name">Java进阶</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B-%E7%BA%BF%E7%A8%8B%E6%B1%A0/" itemprop="url" rel="index"><span itemprop="name">线程&线程池</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="一、线程六种状态"><a href="#一、线程六种状态" class="headerlink" title="一、线程六种状态"></a>一、线程六种状态</h2><p>线程的状态在java中有明确的定义，在java.lang.Thread.State中有6种。</p>
+<ul>
+<li>① New：线程被创建，未执行和运行的时候</li>
+<li>② Runnable：不代表线程在跑，两种：被cpu执行的线程，随时可以被cpu执行的状态。</li>
+<li>③ Blocked：线程阻塞，处于synchronized同步代码块或方法中被阻塞。</li>
+<li>④ Waiting：等待先生的线程状态。线程当前不执行，如果被其他唤醒后会继续执行的状态。依赖另一个线程的通知的。这个等待是一直等，没人叫你，你起不来。</li>
+<li>⑤ Time Waiting：指定等待时间的等待线程的线程状态。带超时的方式：Thread.sleep，Object.wait，Thread.join，LockSupport.parkNanos，LockSupport.parkUntil</li>
+<li>⑥ Terminated：正常执行完毕或者出现异常终止的线程状态。</li>
+</ul>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/03/11/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B&%E7%BA%BF%E7%A8%8B%E6%B1%A0/Java%E7%BA%BF%E7%A8%8B%E7%9A%846%E7%A7%8D%E7%8A%B6%E6%80%81%E5%8F%8A%E5%88%87%E6%8D%A2/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/11/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B&%E7%BA%BF%E7%A8%8B%E6%B1%A0/Tomcat%E7%9A%84StandardThreadExecutor/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/03/11/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B&%E7%BA%BF%E7%A8%8B%E6%B1%A0/Tomcat%E7%9A%84StandardThreadExecutor/" class="post-title-link" itemprop="url">Tomcat的StandardThreadExecutor</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-03-11 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-11T00:00:00+08:00">2024-03-11</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/" itemprop="url" rel="index"><span itemprop="name">Java进阶</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B-%E7%BA%BF%E7%A8%8B%E6%B1%A0/" itemprop="url" rel="index"><span itemprop="name">线程&线程池</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>JDK中的ThreadExecutor中的execute方法的处理逻辑应该都知道：</p>
+<blockquote>
+<p>1.小于等于Coresize：创建线程执行；<br>2.大于CoreSize：加入队列；<br>3.队列满且小于maxSize：有空闲线程使用空闲线程执行，没有的话，创建线程执行；如果大于maxSize则拒绝策略执行。</p>
+</blockquote>
+<p>这样会造成一个现象，如果设置的不恰当，队列使用LinkedBlockingQueue，那么线程数量是很不可能达到maximumPoolSize，因为线程数量到了corePoolSize之后，之后新的任务是添加到队列里面去了。</p>
+<p>Tomcat中有一个StandardThreadExecutor线程池，该线程池execute执行策略是优先扩充线程到maximumPoolSize，再offer到queue，如果满了就reject。来看看StandardThreadExecutor是怎么实现的。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/03/11/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B&%E7%BA%BF%E7%A8%8B%E6%B1%A0/Tomcat%E7%9A%84StandardThreadExecutor/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/11/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B&%E7%BA%BF%E7%A8%8B%E6%B1%A0/Thread.interrupt%E4%B8%8ELockSupport/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/03/11/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B&%E7%BA%BF%E7%A8%8B%E6%B1%A0/Thread.interrupt%E4%B8%8ELockSupport/" class="post-title-link" itemprop="url">Thread.interrupt与LockSupport</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-03-11 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-11T00:00:00+08:00">2024-03-11</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/" itemprop="url" rel="index"><span itemprop="name">Java进阶</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B-%E7%BA%BF%E7%A8%8B%E6%B1%A0/" itemprop="url" rel="index"><span itemprop="name">线程&线程池</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>首先抛几个问题：</p>
+<ul>
+<li>Thread.interrupt()方法和InterruptedException异常的关系？是由interrupt触发产生了InterruptedException异常？</li>
+<li>Thread.interrupt()会中断线程什么状态的工作？ RUNNING or BLOCKING？</li>
+<li>LockSupport.park()和unpark()，与object.wait()和notify()的区别？</li>
+<li>LockSupport.park(Object blocker)传递的blocker对象做什么用？</li>
+<li>LockSupport能响应Thread.interrupt()事件不？会抛出InterruptedException异常？</li>
+</ul>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/03/11/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B&%E7%BA%BF%E7%A8%8B%E6%B1%A0/Thread.interrupt%E4%B8%8ELockSupport/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/11/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B&%E7%BA%BF%E7%A8%8B%E6%B1%A0/%E5%86%8D%E8%81%8A%E7%BA%BF%E7%A8%8B%E6%B1%A0/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/03/11/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B&%E7%BA%BF%E7%A8%8B%E6%B1%A0/%E5%86%8D%E8%81%8A%E7%BA%BF%E7%A8%8B%E6%B1%A0/" class="post-title-link" itemprop="url">再聊线程池</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-03-11 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-11T00:00:00+08:00">2024-03-11</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/" itemprop="url" rel="index"><span itemprop="name">Java进阶</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B-%E7%BA%BF%E7%A8%8B%E6%B1%A0/" itemprop="url" rel="index"><span itemprop="name">线程&线程池</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>关于线程池的介绍在<a target="_blank" rel="noopener" href="http://blog.csdn.net/zero__007/article/details/43795287">http://blog.csdn.net/zero__007&#x2F;article&#x2F;details&#x2F;43795287</a> ，<a target="_blank" rel="noopener" href="http://blog.csdn.net/zero__007/article/details/44102239">http://blog.csdn.net/zero__007&#x2F;article&#x2F;details&#x2F;44102239</a> 已经介绍了，这里只是稍微补充补充。</p>
+<p><strong>RejectedExecutionHandler</strong></p>
+<p>ThreadPoolExecutor的构造函数中会有该参数，表示拒绝策略。当队列满且线程池大小&gt;&#x3D;maximumPoolSize时会触发驳回，因为这时线程池已经不能响应新提交的任务，驳回时就会回调这个接口rejectedExecution方法，JDK默认提供了4种驳回策略，可以根据业务场景来选择，线程池的默认策略是AbortPolicy。</p>
+<ul>
+<li>ThreadPoolExecutor.AbortPolicy：直接抛出运行时异常。</li>
+<li>ThreadPoolExecutor.CallerRunsPolicy： 转成同步调用。</li>
+<li>ThreadPoolExecutor.DiscardPolicy：  直接丢弃。</li>
+<li>ThreadPoolExecutor.DiscardOldestPolicy： 取出队列的头并丢弃，重新提交该任务。</li>
+</ul>
+<p>ThreadPoolExecutor预留了以下三个方法，我们可以通过继承该类来做一些扩展，比如监控、日志等等。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">beforeExecute</span><span class="params">(Thread t,  Runnable r)</span> &#123; &#125;  </span><br><span class="line"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">afterExecute</span><span class="params">(Thread t,  Runnable r)</span> &#123; &#125; </span><br><span class="line"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">terminated</span><span class="params">()</span> &#123; &#125;  </span><br></pre></td></tr></table></figure>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/03/11/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B&%E7%BA%BF%E7%A8%8B%E6%B1%A0/%E5%86%8D%E8%81%8A%E7%BA%BF%E7%A8%8B%E6%B1%A0/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
     <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/11/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B&%E7%BA%BF%E7%A8%8B%E6%B1%A0/%E7%BA%BF%E7%A8%8B%E6%B1%A0%E7%9A%84%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86%E6%9C%BA%E5%88%B6/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -605,427 +1046,10 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/10/Java/Java%E8%BF%9B%E9%98%B6/ThreadLocal/ThreadLocal%E4%B8%8EInheritableThreadLocal%E7%9A%84%E4%BD%BF%E7%94%A8/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/03/10/Java/Java%E8%BF%9B%E9%98%B6/ThreadLocal/ThreadLocal%E4%B8%8EInheritableThreadLocal%E7%9A%84%E4%BD%BF%E7%94%A8/" class="post-title-link" itemprop="url">ThreadLocal与InheritableThreadLocal的使用</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-03-10 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-10T00:00:00+08:00">2024-03-10</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/" itemprop="url" rel="index"><span itemprop="name">Java进阶</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/ThreadLocal/" itemprop="url" rel="index"><span itemprop="name">ThreadLocal</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>​	ThreadLocal，线程本地存储,为变量在每个线程中都创建了一个副本，那么每个线程可以独立地改变和访问自己的副本变量，而不会影响其它线程所对应的副本变量。从线程的角度看，目标变量就像是线程的本地变量，这也是类名中“Local”所要表达的意思。</p>
-<p>​        ThreadLocal不是用来解决对象共享访问问题的，而是提供了保持对象的方法和避免参数传递的对象访问方式。每个线程中都有一个自己的ThreadLocalMap类对象，可以将线程自己的对象保持到其中，各管各的，线程可以正确的访问到自己的对象。将一个共用的ThreadLocal静态实例作为key，将不同对象的引用保存到不同线程的ThreadLocalMap中，然后在线程执行的各处通过这个静态ThreadLocal实例的get()方法取得自己线程保存的那个对象。</p>
-<p>​        在每个线程Thread内部有一个ThreadLocal.ThreadLocalMap类型的成员变量threadLocals，这个 threadLocals就是用来存储实际的变量副本的，键值为当前ThreadLocal变量，value为变量副本。初始时，在Thread里面，threadLocals为空，当通过ThreadLocal变量调用get()方法或者set()方法，就会对 Thread类中的threadLocals进行初始化，并且以当前ThreadLocal变量为键值，以ThreadLocal要保存的副本变量为 value，存到threadLocals。然后在当前线程里面，如果要使用副本变量，就可以通过get方法在threadLocals里面查找。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/03/10/Java/Java%E8%BF%9B%E9%98%B6/ThreadLocal/ThreadLocal%E4%B8%8EInheritableThreadLocal%E7%9A%84%E4%BD%BF%E7%94%A8/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/10/Java/Java%E8%BF%9B%E9%98%B6/ThreadLocal/ThreadLocal%E6%B3%A8%E6%84%8F%E4%BA%8B%E9%A1%B9/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/03/10/Java/Java%E8%BF%9B%E9%98%B6/ThreadLocal/ThreadLocal%E6%B3%A8%E6%84%8F%E4%BA%8B%E9%A1%B9/" class="post-title-link" itemprop="url">ThreadLocal注意事项</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-03-10 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-10T00:00:00+08:00">2024-03-10</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/" itemprop="url" rel="index"><span itemprop="name">Java进阶</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/ThreadLocal/" itemprop="url" rel="index"><span itemprop="name">ThreadLocal</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>​	在使用了线程池(如Executor)的情况下，那么即使父线程已经结束，子线程依然存在并被池化。这样，线程池中的线程在下一次请求被执行的时候，ThreadLocal对象的get()方法返回的将不是当前线程中设定的变量，因为池中的“子线程”根本不是当前线程创建的，当前线程设定的 ThreadLocal变量也就无法传递给线程池中的线程。因此，必须将外部线程中的ThreadLocal变量显式地传递给线程池中的线程。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/03/10/Java/Java%E8%BF%9B%E9%98%B6/ThreadLocal/ThreadLocal%E6%B3%A8%E6%84%8F%E4%BA%8B%E9%A1%B9/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/10/Java/Java%E8%BF%9B%E9%98%B6/ThreadLocal/ThreadLocal%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/03/10/Java/Java%E8%BF%9B%E9%98%B6/ThreadLocal/ThreadLocal%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" class="post-title-link" itemprop="url">ThreadLocal源码分析</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-03-10 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-10T00:00:00+08:00">2024-03-10</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/" itemprop="url" rel="index"><span itemprop="name">Java进阶</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/ThreadLocal/" itemprop="url" rel="index"><span itemprop="name">ThreadLocal</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>​	ThreadLocal这个类给线程提供了一个本地变量，这个变量是该线程自己拥有的。在该线程存活和ThreadLocal实例能访问的时候,保存了对这个变量副本的引用.当线程消失的时候，所有的本地实例都会被GC。建议ThreadLocal最好是 private static 修饰的成员。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ThreadLocal</span>&lt;T&gt; &#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> <span class="type">int</span> <span class="variable">threadLocalHashCode</span> <span class="operator">=</span> nextHashCode();</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="type">AtomicInteger</span> <span class="variable">nextHashCode</span> <span class="operator">=</span></span><br><span class="line">        <span class="keyword">new</span> <span class="title class_">AtomicInteger</span>();</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">int</span> <span class="variable">HASH_INCREMENT</span> <span class="operator">=</span> <span class="number">0x61c88647</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="type">int</span> <span class="title function_">nextHashCode</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> nextHashCode.getAndAdd(HASH_INCREMENT);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>​	ThreadLocals 解决Hash 冲突使用线性探测的方法。其中key为ThreadLocal对象，因为Thread类中的threadLocals是个map对象，意味一个Thread中可以存放多个ThreadLocal对象。因此用threadLocalHashCode来区分是哪个ThreadLocal类型。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/03/10/Java/Java%E8%BF%9B%E9%98%B6/ThreadLocal/ThreadLocal%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/05/Java/Java%E8%BF%9B%E9%98%B6/DirectByteBuffer/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/03/05/Java/Java%E8%BF%9B%E9%98%B6/DirectByteBuffer/" class="post-title-link" itemprop="url">DirectByteBuffer</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-03-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-05T00:00:00+08:00">2024-03-05</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/" itemprop="url" rel="index"><span itemprop="name">Java进阶</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><strong>堆外内存</strong><br>&emsp;&emsp;堆外内存是相对于堆内内存的一个概念。堆内内存是由JVM所管控的Java进程内存，我们平时在Java中创建的对象都处于堆内内存中，并且它们遵循JVM的内存管理机制，JVM会采用垃圾回收机制统一管理它们的内存。那么堆外内存就是存在于JVM管控之外的一块内存区域，因此它是不受JVM的管控。<br>&emsp;&emsp;可以使用ByteBuffer等类来操纵堆外内存了，使用ByteBuffer分配本地内存则非常简单，直接：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ByteBuffer buffer = ByteBuffer.allocateDirect(10 * 1024 * 1024);</span><br></pre></td></tr></table></figure>
-<p>&emsp;&emsp;可以通过指定JVM参数来确定堆外内存大小限制：<code>-XX:MaxDirectMemorySize=512m</code><br>&emsp;&emsp;对于这种direct buffer内存不够的时候会抛出错误： <code>java.lang.OutOfMemoryError: Direct buffer memory</code><br>&emsp;&emsp;堆外内存泄露的问题定位通常比较麻烦，可以借助google-perftools这个工具，它可以输出不同方法申请堆外内存的数量。</p>
-<p> </p>
-<p>&emsp;&emsp;使用ByteBuffer堆外内存时，必须要由我们自己释放；必须先释放堆内存中的对象(引用)，才能释放堆外内存，但是我们又不能强制JVM释放堆内存。例如：<code>ByteBuffer bb = ByteBuffer.allocateDirect(1024)</code>，这段代码的执行会在堆外占用1k的内存，Java堆内只会占用一个对象的指针引用的大小，堆外的这1k的空间只有当bb对象被回收时，才会被回收，这里会发现一个明显的不对称现象，就是堆外可能占用了很多，而堆内没占用多少，导致还没触发GC，那就很容易出现Direct Memory造成物理内存耗光。<br>&emsp;&emsp;再者，假设堆内 ByteBuffer对象的引用升级到了老年代，导致这个引用会长期存在无法回收，这时堆外的内存将长期无法得到回收。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/03/05/Java/Java%E8%BF%9B%E9%98%B6/DirectByteBuffer/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/05/Java/Java%E8%BF%9B%E9%98%B6/Java%E5%A0%86%E5%A4%96%E5%86%85%E5%AD%98%E6%8E%92%E6%9F%A5/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/03/05/Java/Java%E8%BF%9B%E9%98%B6/Java%E5%A0%86%E5%A4%96%E5%86%85%E5%AD%98%E6%8E%92%E6%9F%A5/" class="post-title-link" itemprop="url">Java堆外内存排查</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-03-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-05T00:00:00+08:00">2024-03-05</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/" itemprop="url" rel="index"><span itemprop="name">Java进阶</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h3 id="起因"><a href="#起因" class="headerlink" title="起因"></a>起因</h3><p>&emsp;&emsp;运行在docker上的一个服务，在某个版本之后，占用的内存开始增长，直到docker分配的内存上限，但是并不会OOM。使用ps查看进程使用的内存和虚拟内存 ( Linux内存管理 )。除了虚拟内存比较高达到17GB以外，实际使用的内存RSS也夸张的达到了7GB，远远超过了-Xmx的设定。</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root]$ ps -p 75 -o rss,vsz  </span><br><span class="line">RSS    VSZ 7152568 17485844</span><br></pre></td></tr></table></figure>
-
-<p>&emsp;&emsp;</p>
-<h3 id="排查过程"><a href="#排查过程" class="headerlink" title="排查过程"></a>排查过程</h3><p>&emsp;&emsp;明显的，是有堆外内存的使用，了解到基础软件涉及到netty，netty会用到一些DirectByteBuffer，第一轮排查采用如下方式：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">jmap -dump:format=b,file=75.dump 75 通过分析堆内存找到DirectByteBuffer的引用和大小</span><br><span class="line">部署一个升级基础软件之前的版本，持续观察</span><br></pre></td></tr></table></figure>
-<p>&emsp;&emsp;结果还是出现了内存超用的问题。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/03/05/Java/Java%E8%BF%9B%E9%98%B6/Java%E5%A0%86%E5%A4%96%E5%86%85%E5%AD%98%E6%8E%92%E6%9F%A5/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/11/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/11/">11</a><span class="page-number current">12</span><a class="page-number" href="/page/13/">13</a><a class="page-number" href="/page/14/">14</a><a class="extend next" rel="next" href="/page/13/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/11/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/11/">11</a><span class="page-number current">12</span><a class="page-number" href="/page/13/">13</a><span class="space">&hellip;</span><a class="page-number" href="/page/15/">15</a><a class="extend next" rel="next" href="/page/13/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -1091,14 +1115,14 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">138</span>
+          <span class="site-state-item-count">143</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-count">28</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
   </nav>
