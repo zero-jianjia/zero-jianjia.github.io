@@ -187,6 +187,187 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/9%E7%A7%8D%E5%B8%B8%E8%A7%81%E7%9A%84CMS%20GC%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90%E4%B8%8E%E8%A7%A3%E5%86%B3/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/9%E7%A7%8D%E5%B8%B8%E8%A7%81%E7%9A%84CMS%20GC%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90%E4%B8%8E%E8%A7%A3%E5%86%B3/" class="post-title-link" itemprop="url">9种常见的CMS GC问题分析与解决</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/JVM/" itemprop="url" rel="index"><span itemprop="name">JVM</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/JVM/GC%E7%9B%B8%E5%85%B3/" itemprop="url" rel="index"><span itemprop="name">GC相关</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>[toc]</p>
+<h1 id="GC-Cause"><a href="#GC-Cause" class="headerlink" title="GC Cause"></a>GC Cause</h1><p>JVM 什么样的条件下选择进行 GC 操作，具体 Cause 的分类可以看一下 Hotspot 源码：src&#x2F;share&#x2F;vm&#x2F;gc&#x2F;shared&#x2F;gcCause.hpp 和 src&#x2F;share&#x2F;vm&#x2F;gc&#x2F;shared&#x2F;gcCause.cpp 中。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br></pre></td><td class="code"><pre><span class="line">const char* GCCause::to_string(GCCause::Cause cause) &#123;</span><br><span class="line">  switch (cause) &#123;</span><br><span class="line">    case _java_lang_system_gc:</span><br><span class="line">      return &quot;System.gc()&quot;;</span><br><span class="line"></span><br><span class="line">    case _full_gc_alot:</span><br><span class="line">      return &quot;FullGCAlot&quot;;</span><br><span class="line">     </span><br><span class="line">    case _scavenge_alot:</span><br><span class="line">      return &quot;ScavengeAlot&quot;;</span><br><span class="line">     </span><br><span class="line">    case _allocation_profiler:</span><br><span class="line">      return &quot;Allocation Profiler&quot;;</span><br><span class="line">     </span><br><span class="line">    case _jvmti_force_gc:</span><br><span class="line">      return &quot;JvmtiEnv ForceGarbageCollection&quot;;</span><br><span class="line">     </span><br><span class="line">    case _gc_locker:</span><br><span class="line">      return &quot;GCLocker Initiated GC&quot;;</span><br><span class="line">     </span><br><span class="line">    case _heap_inspection:</span><br><span class="line">      return &quot;Heap Inspection Initiated GC&quot;;</span><br><span class="line">     </span><br><span class="line">    case _heap_dump:</span><br><span class="line">      return &quot;Heap Dump Initiated GC&quot;;</span><br><span class="line">     </span><br><span class="line">    case _wb_young_gc:</span><br><span class="line">      return &quot;WhiteBox Initiated Young GC&quot;;</span><br><span class="line">     </span><br><span class="line">    case _wb_conc_mark:</span><br><span class="line">      return &quot;WhiteBox Initiated Concurrent Mark&quot;;</span><br><span class="line">     </span><br><span class="line">    case _wb_full_gc:</span><br><span class="line">      return &quot;WhiteBox Initiated Full GC&quot;;</span><br><span class="line">     </span><br><span class="line">    case _no_gc:</span><br><span class="line">      return &quot;No GC&quot;;</span><br><span class="line">     </span><br><span class="line">    case _allocation_failure:</span><br><span class="line">      return &quot;Allocation Failure&quot;;</span><br><span class="line">     </span><br><span class="line">    case _tenured_generation_full:</span><br><span class="line">      return &quot;Tenured Generation Full&quot;;</span><br><span class="line">     </span><br><span class="line">    case _metadata_GC_threshold:</span><br><span class="line">      return &quot;Metadata GC Threshold&quot;;</span><br><span class="line">     </span><br><span class="line">    case _metadata_GC_clear_soft_refs:</span><br><span class="line">      return &quot;Metadata GC Clear Soft References&quot;;</span><br><span class="line">     </span><br><span class="line">    case _cms_generation_full:</span><br><span class="line">      return &quot;CMS Generation Full&quot;;</span><br><span class="line">     </span><br><span class="line">    case _cms_initial_mark:</span><br><span class="line">      return &quot;CMS Initial Mark&quot;;</span><br><span class="line">     </span><br><span class="line">    case _cms_final_remark:</span><br><span class="line">      return &quot;CMS Final Remark&quot;;</span><br><span class="line">     </span><br><span class="line">    case _cms_concurrent_mark:</span><br><span class="line">      return &quot;CMS Concurrent Mark&quot;;</span><br><span class="line">     </span><br><span class="line">    case _old_generation_expanded_on_last_scavenge:</span><br><span class="line">      return &quot;Old Generation Expanded On Last Scavenge&quot;;</span><br><span class="line">     </span><br><span class="line">    case _old_generation_too_full_to_scavenge:</span><br><span class="line">      return &quot;Old Generation Too Full To Scavenge&quot;;</span><br><span class="line">     </span><br><span class="line">    case _adaptive_size_policy:</span><br><span class="line">      return &quot;Ergonomics&quot;;</span><br><span class="line">     </span><br><span class="line">    case _g1_inc_collection_pause:</span><br><span class="line">      return &quot;G1 Evacuation Pause&quot;;</span><br><span class="line">     </span><br><span class="line">    case _g1_humongous_allocation:</span><br><span class="line">      return &quot;G1 Humongous Allocation&quot;;</span><br><span class="line">     </span><br><span class="line">    case _dcmd_gc_run:</span><br><span class="line">      return &quot;Diagnostic Command&quot;;</span><br><span class="line">     </span><br><span class="line">    case _last_gc_cause:</span><br><span class="line">      return &quot;ILLEGAL VALUE - last gc cause - ILLEGAL VALUE&quot;;</span><br><span class="line">     </span><br><span class="line">    default:</span><br><span class="line">      return &quot;unknown GCCause&quot;;</span><br><span class="line">  &#125;</span><br><span class="line">  ShouldNotReachHere();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>重点需要关注的几个GC Cause：</p>
+<ul>
+<li><p>System.gc()：手动触发GC操作。</p>
+</li>
+<li><p>CMS：CMS GC 在执行过程中的一些动作，重点关注 CMS Initial Mark 和 CMS Final Remark 两个 STW 阶段。</p>
+</li>
+<li><p>Promotion Failure：Old 区没有足够的空间分配给 Young 区晋升的对象（即使总可用内存足够大）。</p>
+</li>
+<li><p>Concurrent Mode Failure：CMS GC 运行期间，Old 区预留的空间不足以分配给新的对象，此时收集器会发生退化，严重影响 GC 性能，下面的一个案例即为这种场景。</p>
+</li>
+<li><p>GCLocker Initiated GC：如果线程执行在 JNI 临界区时，刚好需要进行 GC，此时 GC Locker 将会阻止 GC 的发生，同时阻止其他线程进入 JNI 临界区，直到最后一个线程退出临界区时触发一次 GC。</p>
+</li>
+</ul>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/9%E7%A7%8D%E5%B8%B8%E8%A7%81%E7%9A%84CMS%20GC%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90%E4%B8%8E%E8%A7%A3%E5%86%B3/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/G1%E6%97%A5%E5%BF%97/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/G1%E6%97%A5%E5%BF%97/" class="post-title-link" itemprop="url">G1日志</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/JVM/" itemprop="url" rel="index"><span itemprop="name">JVM</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/JVM/GC%E7%9B%B8%E5%85%B3/" itemprop="url" rel="index"><span itemprop="name">GC相关</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="Young-Collection日志"><a href="#Young-Collection日志" class="headerlink" title="Young Collection日志"></a>Young Collection日志</h1> <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">2016-09-29T16:58:43.298+0800: 84662.983: [GC pause (G1 Evacuation Pause) (young)</span><br><span class="line">   [Parallel Time: 39.5 ms, GC Workers: 13]</span><br><span class="line">      [GC Worker Start (ms): Min: 84662997.2, Avg: 84662997.6, Max: 84662997.8, Diff: 0.6]</span><br><span class="line">      [Ext Root Scanning (ms): Min: 1.0, Avg: 1.6, Max: 6.2, Diff: 5.2, Sum: 21.0]</span><br><span class="line">      [Update RS (ms): Min: 8.1, Avg: 12.4, Max: 13.1, Diff: 5.0, Sum: 161.1]</span><br><span class="line">         [Processed Buffers: Min: 9, Avg: 17.8, Max: 26, Diff: 17, Sum: 231]</span><br><span class="line">      [Scan RS (ms): Min: 5.8, Avg: 6.2, Max: 6.3, Diff: 0.5, Sum: 80.2]</span><br><span class="line">      [Code Root Scanning (ms): Min: 0.0, Avg: 0.0, Max: 0.0, Diff: 0.0, Sum: 0.0]</span><br><span class="line">      [Object Copy (ms): Min: 18.4, Avg: 18.6, Max: 18.7, Diff: 0.3, Sum: 241.2]</span><br><span class="line">      [Termination (ms): Min: 0.0, Avg: 0.2, Max: 0.2, Diff: 0.2, Sum: 2.1]</span><br><span class="line">         [Termination Attempts: Min: 1, Avg: 149.4, Max: 197, Diff: 196, Sum: 1942]</span><br><span class="line">      [GC Worker Other (ms): Min: 0.0, Avg: 0.1, Max: 0.1, Diff: 0.1, Sum: 1.1]</span><br><span class="line">      [GC Worker Total (ms): Min: 38.7, Avg: 39.0, Max: 39.3, Diff: 0.6, Sum: 506.8]</span><br><span class="line">      [GC Worker End (ms): Min: 84663036.5, Avg: 84663036.5, Max: 84663036.6, Diff: 0.1]</span><br><span class="line">   [Code Root Fixup: 0.1 ms]</span><br><span class="line">   [Code Root Purge: 0.0 ms]</span><br><span class="line">   [Clear CT: 1.1 ms]</span><br><span class="line">   [Other: 17.8 ms]</span><br><span class="line">      [Choose CSet: 0.0 ms]</span><br><span class="line">      [Ref Proc: 1.9 ms]</span><br><span class="line">      [Ref Enq: 0.1 ms]</span><br><span class="line">      [Redirty Cards: 0.4 ms]</span><br><span class="line">      [Humongous Register: 11.8 ms]</span><br><span class="line">      [Humongous Reclaim: 0.1 ms]</span><br><span class="line">      [Free CSet: 1.1 ms]</span><br><span class="line">   [Eden: 7968.0M(7968.0M)-&gt;0.0B(13.8G) Survivors: 0.0B-&gt;0.0B Heap: 31.9G(96.0G)-&gt;24.3G(96.0G)]</span><br></pre></td></tr></table></figure>
+
+<p>GC pause (G1 Evacuation Pause) (young) - 表示此时GC暂停是YGC。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/G1%E6%97%A5%E5%BF%97/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
     <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/G1%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E5%99%A8/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -845,171 +1026,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Spring/spring%20boot/BeanPostProcessor/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/04/01/Spring/spring%20boot/BeanPostProcessor/" class="post-title-link" itemprop="url">BeanPostProcessor</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Spring/Spring-Boot/" itemprop="url" rel="index"><span itemprop="name">Spring Boot</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>[toc]</p>
-<p>BeanPostProcessor 从名字上就能看出来，这是一个 Bean 的后置处理器，也就是说，BeanPostProcessor 其实主要是对已经创建出来的 Bean 做一些后置处理，而 BeanFactoryPostProcessor 主要是针对 BeanDefinition 做后置处理（此时 Bean 对象还没创建出来）。</p>
-<p>但是，BeanPostProcessor 家族里边也有例外，即 MergedBeanDefinitionPostProcessor，这是一个 BeanPostProcessor，但是却可以处理 BeanDefinition。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/04/01/Spring/spring%20boot/BeanPostProcessor/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Spring/spring%20boot/Controller%E5%B1%82%E8%AE%BE%E7%BD%AE%E5%88%87%E9%9D%A2%E7%9A%84%E4%B8%89%E7%A7%8D%E6%96%B9%E5%BC%8F/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/04/01/Spring/spring%20boot/Controller%E5%B1%82%E8%AE%BE%E7%BD%AE%E5%88%87%E9%9D%A2%E7%9A%84%E4%B8%89%E7%A7%8D%E6%96%B9%E5%BC%8F/" class="post-title-link" itemprop="url">Controller层设置切面的三种方式</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Spring/Spring-Boot/" itemprop="url" rel="index"><span itemprop="name">Spring Boot</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>[toc]</p>
-<h2 id="1-自定义PointcutAdvisor"><a href="#1-自定义PointcutAdvisor" class="headerlink" title="1.自定义PointcutAdvisor"></a>1.自定义PointcutAdvisor</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">@Target(&#123;ElementType.METHOD, ElementType.TYPE&#125;)</span><br><span class="line">@Retention(RetentionPolicy.RUNTIME)</span><br><span class="line">@Documented</span><br><span class="line">@Inherited</span><br><span class="line">public @interface AopAnnotation &#123;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">CustomizePointcutAdvisor</span> <span class="keyword">extends</span> <span class="title class_">DefaultPointcutAdvisor</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">Logger</span> <span class="variable">log</span> <span class="operator">=</span> LoggerFactory.getLogger(CustomizePointcutAdvisor.class);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">CustomizePointcutAdvisor</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="type">Pointcut</span> <span class="variable">pointcut</span> <span class="operator">=</span> <span class="built_in">this</span>.buildPointcut();</span><br><span class="line">        <span class="type">Advice</span> <span class="variable">advice</span> <span class="operator">=</span> <span class="built_in">this</span>.buildAdvice();</span><br><span class="line">        <span class="built_in">this</span>.setAdvice(advice);</span><br><span class="line">        <span class="built_in">this</span>.setPointcut(pointcut);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> Advice <span class="title function_">buildAdvice</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="type">MethodInterceptor</span> <span class="variable">methodInterceptor</span> <span class="operator">=</span> (methodInvocation) -&gt; &#123;</span><br><span class="line">            <span class="type">Method</span> <span class="variable">method</span> <span class="operator">=</span> methodInvocation.getMethod();</span><br><span class="line">            Class&lt;?&gt; declaringClass = AopUtils.getTargetClass(methodInvocation.getThis());</span><br><span class="line">            <span class="type">Method</span> <span class="variable">specificMethod</span> <span class="operator">=</span> AopUtils.getMostSpecificMethod(method, declaringClass);</span><br><span class="line">            <span class="type">long</span> <span class="variable">start</span> <span class="operator">=</span> System.currentTimeMillis();</span><br><span class="line"></span><br><span class="line">            Object proceed;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                proceed = methodInvocation.proceed();</span><br><span class="line">            &#125; <span class="keyword">catch</span> (Throwable throwable) &#123;</span><br><span class="line">                log.error(<span class="string">&quot;&quot;</span>, throwable);</span><br><span class="line">                <span class="keyword">throw</span> throwable;</span><br><span class="line">            &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">                log.info(<span class="string">&quot;方法&#123;&#125;耗时:&#123;&#125;ms&quot;</span>, specificMethod.getName(), (System.currentTimeMillis() - start));</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">return</span> proceed;</span><br><span class="line">        &#125;;</span><br><span class="line">        <span class="keyword">return</span> methodInterceptor;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> Pointcut <span class="title function_">buildPointcut</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="comment">//ComposablePointcut 可组合的切点</span></span><br><span class="line">        <span class="type">Pointcut</span> <span class="variable">pointcut</span> <span class="operator">=</span> Pointcuts.union(</span><br><span class="line">            <span class="comment">//注解匹配切点</span></span><br><span class="line">            <span class="keyword">new</span> <span class="title class_">AnnotationMatchingPointcut</span>(AopAnnotation.class, <span class="literal">true</span>),</span><br><span class="line">            <span class="keyword">new</span> <span class="title class_">AnnotationMatchingPointcut</span>((Class) <span class="literal">null</span>, AopAnnotation.class));</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> pointcut;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">@Configuration</span><br><span class="line">public class CustomizeAutoConfiguration &#123;</span><br><span class="line">    @Bean</span><br><span class="line">    public CustomizePointcutAdvisor alertPointcutAdvisor() &#123;</span><br><span class="line">        return new CustomizePointcutAdvisor();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">@RestController</span><br><span class="line">@RequestMapping(&quot;/api/test&quot;)</span><br><span class="line">public class AopTestController &#123;</span><br><span class="line"></span><br><span class="line">    @GetMapping(&quot;/0&quot;)</span><br><span class="line">    public String test0() &#123;</span><br><span class="line">        return &quot;test0&quot;;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @AopAnnotation</span><br><span class="line">    @GetMapping(&quot;/1&quot;)</span><br><span class="line">    public String test1() &#123;</span><br><span class="line">        return &quot;test1&quot;;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/04/01/Spring/spring%20boot/Controller%E5%B1%82%E8%AE%BE%E7%BD%AE%E5%88%87%E9%9D%A2%E7%9A%84%E4%B8%89%E7%A7%8D%E6%96%B9%E5%BC%8F/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -1079,7 +1095,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">143</span>
+          <span class="site-state-item-count">145</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
