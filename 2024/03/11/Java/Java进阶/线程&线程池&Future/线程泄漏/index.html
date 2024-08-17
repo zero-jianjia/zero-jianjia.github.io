@@ -23,7 +23,7 @@
   <meta name="description" content="当单线程应用程序中的主线程抛出一个未捕获的异常时，因为控制台中会打印堆栈跟踪（也因为程序停止），所以很可能注意到。但在多线程应用程序中，尤其是在作为服务器运行并且不与控制台相连的应用程序中，线程死亡可能成为不太引人注目的事件，这会导致局部系统失败，从而产生混乱的应用程序行为。 编写得不正确的线程池会“泄漏”线程，直到最终丢失所有线程。大多数线程池实现通过捕获抛出的异常或重新启动死亡的线程来防止这一">
 <meta property="og:type" content="article">
 <meta property="og:title" content="线程泄漏">
-<meta property="og:url" content="http://example.com/2024/03/11/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B&%E7%BA%BF%E7%A8%8B%E6%B1%A0/%E7%BA%BF%E7%A8%8B%E6%B3%84%E6%BC%8F/index.html">
+<meta property="og:url" content="http://example.com/2024/03/11/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B&%E7%BA%BF%E7%A8%8B%E6%B1%A0&Future/%E7%BA%BF%E7%A8%8B%E6%B3%84%E6%BC%8F/index.html">
 <meta property="og:site_name" content="zero&#39;s Blog">
 <meta property="og:description" content="当单线程应用程序中的主线程抛出一个未捕获的异常时，因为控制台中会打印堆栈跟踪（也因为程序停止），所以很可能注意到。但在多线程应用程序中，尤其是在作为服务器运行并且不与控制台相连的应用程序中，线程死亡可能成为不太引人注目的事件，这会导致局部系统失败，从而产生混乱的应用程序行为。 编写得不正确的线程池会“泄漏”线程，直到最终丢失所有线程。大多数线程池实现通过捕获抛出的异常或重新启动死亡的线程来防止这一">
 <meta property="og:locale" content="en_US">
@@ -32,7 +32,7 @@
 <meta property="article:author" content="jianjia">
 <meta name="twitter:card" content="summary">
 
-<link rel="canonical" href="http://example.com/2024/03/11/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B&%E7%BA%BF%E7%A8%8B%E6%B1%A0/%E7%BA%BF%E7%A8%8B%E6%B3%84%E6%BC%8F/">
+<link rel="canonical" href="http://example.com/2024/03/11/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B&%E7%BA%BF%E7%A8%8B%E6%B1%A0&Future/%E7%BA%BF%E7%A8%8B%E6%B3%84%E6%BC%8F/">
 
 
 <script id="page-configurations">
@@ -190,7 +190,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/11/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B&%E7%BA%BF%E7%A8%8B%E6%B1%A0/%E7%BA%BF%E7%A8%8B%E6%B3%84%E6%BC%8F/">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/11/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B&%E7%BA%BF%E7%A8%8B%E6%B1%A0&Future/%E7%BA%BF%E7%A8%8B%E6%B3%84%E6%BC%8F/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
@@ -288,8 +288,8 @@
       <i class="fa fa-chevron-left"></i> Netty关于ThreadLocal的优化
     </a></div>
       <div class="post-nav-item">
-    <a href="/2024/03/11/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B&%E7%BA%BF%E7%A8%8B%E6%B1%A0/%E7%BA%BF%E7%A8%8B%E6%B1%A0%E4%BD%BF%E7%94%A8%E6%8B%92%E7%BB%9D%E7%AD%96%E7%95%A5%E6%97%B6%E9%9C%80%E8%A6%81%E6%B3%A8%E6%84%8F%E7%9A%84%E5%9D%91/" rel="next" title="线程池使用拒绝策略时需要注意的坑">
-      线程池使用拒绝策略时需要注意的坑 <i class="fa fa-chevron-right"></i>
+    <a href="/2024/03/11/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B&%E7%BA%BF%E7%A8%8B%E6%B1%A0&Future/%E7%BA%BF%E7%A8%8B%E6%B1%A0%E7%9A%84%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86%E6%9C%BA%E5%88%B6/" rel="next" title="线程池的异常处理机制">
+      线程池的异常处理机制 <i class="fa fa-chevron-right"></i>
     </a></div>
     </div>
       </footer>
@@ -362,7 +362,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">145</span>
+          <span class="site-state-item-count">151</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>

@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="[toc]&emsp;&emsp;编程最基本的原则就是要追求高内聚和低耦合的解决方案和代码模块设计。SOLID 是面向对象设计5大重要原则的首字母缩写：          SRP Single Responsibility Principle 单一责任原则   OCP Open Closed Principle 开放封闭原则   LSP Liskov Substitution Principle">
+<meta property="og:type" content="article">
+<meta property="og:title" content="面向对象设计的 SOLID 原则">
+<meta property="og:url" content="http://example.com/2024/05/16/%E7%9B%AE%E5%BD%95%E5%BE%85%E5%AE%9A/%E9%9D%A2%E5%90%91%E5%AF%B9%E8%B1%A1%E8%AE%BE%E8%AE%A1%E7%9A%84%20SOLID%20%E5%8E%9F%E5%88%99/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="[toc]&emsp;&emsp;编程最基本的原则就是要追求高内聚和低耦合的解决方案和代码模块设计。SOLID 是面向对象设计5大重要原则的首字母缩写：          SRP Single Responsibility Principle 单一责任原则   OCP Open Closed Principle 开放封闭原则   LSP Liskov Substitution Principle">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2024-05-15T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-08-17T14:28:58.153Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2024/05/16/%E7%9B%AE%E5%BD%95%E5%BE%85%E5%AE%9A/%E9%9D%A2%E5%90%91%E5%AF%B9%E8%B1%A1%E8%AE%BE%E8%AE%A1%E7%9A%84%20SOLID%20%E5%8E%9F%E5%88%99/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>面向对象设计的 SOLID 原则 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/05/16/%E7%9B%AE%E5%BD%95%E5%BE%85%E5%AE%9A/%E9%9D%A2%E5%90%91%E5%AF%B9%E8%B1%A1%E8%AE%BE%E8%AE%A1%E7%9A%84%20SOLID%20%E5%8E%9F%E5%88%99/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          面向对象设计的 SOLID 原则
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-05-16 00:00:00" itemprop="dateCreated datePublished" datetime="2024-05-16T00:00:00+08:00">2024-05-16</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%9B%AE%E5%BD%95%E5%BE%85%E5%AE%9A/" itemprop="url" rel="index"><span itemprop="name">目录待定</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>[toc]<br>&emsp;&emsp;编程最基本的原则就是要追求高内聚和低耦合的解决方案和代码模块设计。SOLID 是面向对象设计5大重要原则的首字母缩写：</p>
+<table>
+<thead>
+<tr>
+<th align="center"></th>
+<th align="left"></th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">SRP</td>
+<td align="left">Single Responsibility Principle</td>
+<td align="left">单一责任原则</td>
+</tr>
+<tr>
+<td align="center">OCP</td>
+<td align="left">Open Closed Principle</td>
+<td align="left">开放封闭原则</td>
+</tr>
+<tr>
+<td align="center">LSP</td>
+<td align="left">Liskov Substitution Principle</td>
+<td align="left">里氏替换原则</td>
+</tr>
+<tr>
+<td align="center">ISP</td>
+<td align="left">Interface Segregation Principle</td>
+<td align="left">接口分离原则</td>
+</tr>
+<tr>
+<td align="center">DIP</td>
+<td align="left">Dependency Inversion Principle</td>
+<td align="left">依赖倒置原则</td>
+</tr>
+</tbody></table>
+<span id="more"></span>
+
+<h2 id="单一责任原则（SRP）"><a href="#单一责任原则（SRP）" class="headerlink" title="单一责任原则（SRP）"></a>单一责任原则（SRP）</h2><p>&emsp;&emsp;每一个模块或者类所对应的职责，应对应系统若干功能中的某个单一部分，同时关于该职责的封装都应当通过这个类来完成。<br>&emsp;&emsp;一个类只做一种类型责任，当这个类需要承担其他类型的责任的时候，就需要分解这个类。 类被修改的几率很大，因此应该专注于单一的功能。如果把多个功能放在同一个类中，功能之间就形成了关联，改变其中一个功能，有可能中止另一个功能。<br>&emsp;&emsp;SRP 核心是把整个问题分为小部分，并且每个小部分都将通过一个单独的类负责。</p>
+<h2 id="开放封闭原则（OCP）"><a href="#开放封闭原则（OCP）" class="headerlink" title="开放封闭原则（OCP）"></a>开放封闭原则（OCP）</h2><p>&emsp;&emsp;软件实体应该是可扩展，而不可修改的。也就是说，对扩展是开放的，而对修改是封闭的。<br>&emsp;&emsp;当需要对已有代码作出一些修改时，请切记以下两点：<br>&emsp;&emsp;1. 保持函数、类、模块当前它们本身的状态，或者是近似于它们一般情况下的状态（即不可修改性）<br>&emsp;&emsp;2. 使用组合的方式（避免使用继承方式）来扩展现有的类，函数或模块，以使它们可能以不同的名称来暴露新的特性或功能</p>
+<p>&emsp;&emsp;开闭原则所带来最有用的好处就是，当实现抽象层代码时，就可以对未来可能需要作出改变的地方拥有一个比较完整的设想，这样当真正面临改变时，所对原有代码的修改，更贴近于改变本身，而不是一味的修改已有的抽象代码。 也就是要预测未来可能的修改，留有扩展的余地。<br>&emsp;&emsp;示例：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">sendByEmail</span><span class="params">(String addr, String title, String content)</span> &#123;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">sendBySMS</span><span class="params">(String addr, String content)</span> &#123;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 在其它地方调用上述方法发送信息</span></span><br><span class="line">sendByEmail(addr, title, content);</span><br><span class="line">sendBySMS(addr, content);</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;如果现在又多了一种发送信息的方式，比如可以通过QQ发送信息，那么不仅需要增加一个方法sendByQQ()，还需要在调用它的地方进行修改，违反了OCP原则，更好的方式是: 抽象出一个Send接口，里面有个send()方法，然后让SendByEmail和SendBySMS去实现它既可。这样即使多了一个通过QQ发送的请求，那么只要再添加一个SendByQQ实现类实现Send接口既可。这样就不需要修改已有的接口定义和已实现类，很好的遵循了OCP原则。</p>
+<h2 id="里氏替换原则（LSP）"><a href="#里氏替换原则（LSP）" class="headerlink" title="里氏替换原则（LSP）"></a>里氏替换原则（LSP）</h2><p>&emsp;&emsp;某个对象实例的子类实例应当可以在不影响程序正确性的基础上替换它们。这句话的意思是说，当传递一个父抽象的子类型时，需要保证不会修改任何关于这个父抽象的行为和状态语义。</p>
+<p>&emsp;&emsp;如何实践里氏替换原则？<br>&emsp;&emsp;里氏替换原则推荐通过在子类中调用父类的公有方法来获取一些内部状态变量，而不是直接使用它。这样就可以保证父类抽象中正确的状态语义，从而避免了副作用和非法的状态转变。<br>&emsp;&emsp;它也推荐应当尽可能的使基本抽象保持简单和最小化，因为对于子类来说，有助于提供父类的扩展性。如果一个父类是比较复杂的，那么子类在覆盖它的时候，在不影响父类状态语义的情况下进行扩展绝非易事。<br>&emsp;&emsp;对于内部系统做可行的后置条件检查也是一个不错的方式，这种检查通常会验证是否子类会搅乱一些关键代码的运行路径。</p>
+<h2 id="接口隔离原则（ISP）"><a href="#接口隔离原则（ISP）" class="headerlink" title="接口隔离原则（ISP）"></a>接口隔离原则（ISP）</h2><p>&emsp;&emsp;类不应该被迫依赖它们不使用的方法。换句话说，使用多个专门的接口而不是使用单一的总接口。</p>
+<p>&emsp;&emsp;例如一个电子商务的网站，需要有一个购物车和关联订单处理机制。有一个接口 IOrderProcessor,它用包含一个验证信用卡是否有效的方法(ValidateCardInfo)以及收件人地址是否有效的方法(ValidateShippingAddress)。与此同时，一个OnlineOrderProcessor 的类表示在线支付。<br>&emsp;&emsp;现在考虑另一种情形，假设在线信用卡支付不再有效，可以接受货到付款支付。乍一看，这个解决方案听起来很简单,可以创建一个CashOnDeliveryProcessor并实现 IOrderProcessor 接口。货到付款的购买方式不会涉及任何信贷卡验证,所以，CashOnDeliveryOrderProcessor 类内部的 ValidateCardInfo 方法抛出 NotImplementedException。<br>&emsp;&emsp;这样的设计在未来可能会出现的潜在问题。假设由于某种原因在线信用用卡付款需要额外的验证步骤。自然，IOrderProcessor 将被修改，它将包括那些额外的方法,于此同时 OnlineOrderProcessor 将实现这些额外的方法。然而，CashOnDeliveryOrderProcessor 尽管不需要任何的附加功能,但必须实现这些附加的功能。显然，这违反了接口隔离原则。</p>
+<p>&emsp;&emsp;要符合ISP原则，可以设计两个接口。IOrderProcessor 接口只包含两个方法：ValidateShippingAddress 和 ProcessOrder，而 ValidateCardInfo 抽象到到一个单独的接口：IOnlineOrderProcessor。现在，在线信用卡支付的任何改变只局限于IOnlineOrderProcessor 和它的子类实现，而 CashOnDeliveryOrderProcessor 是不会被影响。因此,新设计符合接口隔离原则。</p>
+<h2 id="依赖倒置原则（DIP）"><a href="#依赖倒置原则（DIP）" class="headerlink" title="依赖倒置原则（DIP）"></a>依赖倒置原则（DIP）</h2><p>&emsp;&emsp;高层模块不应该依赖低层模块，它们都应该依赖抽象类或者接口。抽象不应当依赖于实现，实现应当依赖于抽象。</p>
+<p>&emsp;&emsp;那么什么是高层模块，什么是低层模块呢？通常情况下，我们会在一个类（高层模块）的内部实例化它依赖的对象（低层模块），这样势必造成两者的紧耦合，任何依赖对象的改变都将引起类的改变。<br>&emsp;&emsp;依赖倒置原则表明高层模块、低层模块都依赖于抽象，举个例子，一个通知系统，当用户改变密码时，邮件通知用户：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">UserManager</span></span><br><span class="line">&#123;</span><br><span class="line"> </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">ChangePassword</span><span class="params">(string username,string oldpwd,string newpwd)</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="type">EmailNotifier</span> <span class="variable">notifier</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">EmailNotifier</span>();</span><br><span class="line"> </span><br><span class="line">        <span class="comment">//add some logic and change password </span></span><br><span class="line">        <span class="comment">//Notify the user</span></span><br><span class="line">        notifier.Notify(<span class="string">&quot;Password was changed on &quot;</span>+DateTime.Now);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;这样的实现在功能上没有问题，但试想一下，新的需求希望通过SNS形式通知用户，那么只能手动将EmaiNorifier 替换为 SNSNotifier。在这儿，UserManager 就是高层模块，而EmailNotifier 就是低层模块，它们彼此耦合。我们希望解耦，依赖于抽象 INotifier，也就是面向接口的编程。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/05/10/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/SLA%EF%BC%88%E6%9C%8D%E5%8A%A1%E7%AD%89%E7%BA%A7%E5%8D%8F%E8%AE%AE%EF%BC%89/" rel="prev" title="SLA（服务等级协议）">
+      <i class="fa fa-chevron-left"></i> SLA（服务等级协议）
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/05/16/%E7%9B%AE%E5%BD%95%E5%BE%85%E5%AE%9A/%E7%9B%91%E6%8E%A7%E7%B3%BB%E7%BB%9F%E4%BB%8B%E7%BB%8D/" rel="next" title="监控系统介绍">
+      监控系统介绍 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%95%E4%B8%80%E8%B4%A3%E4%BB%BB%E5%8E%9F%E5%88%99%EF%BC%88SRP%EF%BC%89"><span class="nav-number">1.</span> <span class="nav-text">单一责任原则（SRP）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BC%80%E6%94%BE%E5%B0%81%E9%97%AD%E5%8E%9F%E5%88%99%EF%BC%88OCP%EF%BC%89"><span class="nav-number">2.</span> <span class="nav-text">开放封闭原则（OCP）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%87%8C%E6%B0%8F%E6%9B%BF%E6%8D%A2%E5%8E%9F%E5%88%99%EF%BC%88LSP%EF%BC%89"><span class="nav-number">3.</span> <span class="nav-text">里氏替换原则（LSP）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8E%A5%E5%8F%A3%E9%9A%94%E7%A6%BB%E5%8E%9F%E5%88%99%EF%BC%88ISP%EF%BC%89"><span class="nav-number">4.</span> <span class="nav-text">接口隔离原则（ISP）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BE%9D%E8%B5%96%E5%80%92%E7%BD%AE%E5%8E%9F%E5%88%99%EF%BC%88DIP%EF%BC%89"><span class="nav-number">5.</span> <span class="nav-text">依赖倒置原则（DIP）</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">151</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">28</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

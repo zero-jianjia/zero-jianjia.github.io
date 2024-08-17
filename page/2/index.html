@@ -680,6 +680,286 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/06/08/Java/Java%E8%BF%9B%E9%98%B6/javaagent%20&%20Instrumentation/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/06/08/Java/Java%E8%BF%9B%E9%98%B6/javaagent%20&%20Instrumentation/" class="post-title-link" itemprop="url">javaagent & Instrumentation</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-06-08 00:00:00" itemprop="dateCreated datePublished" datetime="2024-06-08T00:00:00+08:00">2024-06-08</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/" itemprop="url" rel="index"><span itemprop="name">Java进阶</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h3 id="什么是Instrumentation？"><a href="#什么是Instrumentation？" class="headerlink" title="什么是Instrumentation？"></a>什么是Instrumentation？</h3><p>&emsp;&emsp;Java Instrumentation指的是可以用独立于应用程序之外的代理（agent）程序来监测和协助运行在JVM上的应用程序。这种监测和协助包括但不限于获取JVM运行时状态，替换和修改类定义等。 Java SE5中使用JVM TI替代了JVM PI和JVM DI。提供一套代理机制，支持独立于JVM应用程序之外的程序以代理的方式连接和访问JVM。java.lang.instrument是在JVM TI的基础上提供的Java版本的实现。 Instrumentation提供的主要功能是修改jvm中类的行为。 Java SE6中由两种应用Instrumentation的方式，premain和agentmain（运行时）</p>
+<h3 id="premain方式"><a href="#premain方式" class="headerlink" title="premain方式"></a>premain方式</h3><p>&emsp;&emsp;在Java SE5时代，Instrument只提供了premain一种方式，即在真正的应用程序（包含main方法的程序）的main方法启动前启动一个代理程序。例如使用如下命令：<br><code>java -javaagent:agent_jar_path[=options] java_app_name</code><br>&emsp;&emsp;可以在启动名为java_app_name的应用之前启动一个agent_jar_path指定位置的agent jar。 实现这样一个agent jar包，必须满足两个条件：<br>1.	在这个jar包的manifest文件中包含Premain-Class属性，并且该属性的值为代理类全路径名。<br>2.	代理类必须提供一个 <code>public static void premain(String args, Instrumentation inst)</code> 或 <code>public static void premain(String args)</code> 方法。</p>
+<p>&emsp;&emsp;当在命令行启动该代理jar时，VM会根据manifest中指定的代理类，使用于main类相同的系统类加载器（即<code>ClassLoader.getSystemClassLoader()</code>获得的加载器）加载代理类。在执行main方法前执行premain()方法。如果<code>premain(String args, Instrumentation inst)</code>和<code>premain(String args)</code>同时存在时，优先使用前者。其中方法参数args即命令中的options，类型为String（注意不是String[]），因此如果需要多个参数，需要在方法中自行处理（比如用”;”分割多个参数之类）；inst是运行时由VM自动传入的Instrumentation实例，可以用于获取VM信息。</p>
+<p><strong>premain实例-打印所有的方法调用</strong><br>&emsp;&emsp;premain方式的agent类必须提供premain方法，代码如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">public class Agent &#123;</span><br><span class="line">    public static void premain(String args, Instrumentation inst)&#123;</span><br><span class="line">        System.out.println(&quot;Hi, I&#x27;m agent!&quot;);</span><br><span class="line">        inst.addTransformer(new Transformer());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;premain有两个参数，args为自定义传入的代理类参数，inst为VM自动传入的Instrumentation实例。Transformer是自定义的类的转换器，用于转换类的行为。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Transformer</span> <span class="keyword">implements</span> <span class="title class_">ClassFileTransformer</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="type">byte</span>[] transform(ClassLoader loader, String className, Class&lt;?&gt; classBeingRedefined,</span><br><span class="line">            ProtectionDomain protectionDomain, <span class="type">byte</span>[] classfileBuffer) <span class="keyword">throws</span> IllegalClassFormatException &#123;</span><br><span class="line">        <span class="keyword">if</span> (className.startsWith(<span class="string">&quot;java&quot;</span>)</span><br><span class="line">                || className.startsWith(<span class="string">&quot;javax&quot;</span>)</span><br><span class="line">                || className.startsWith(<span class="string">&quot;sun&quot;</span>)</span><br><span class="line">                || className.startsWith(<span class="string">&quot;jdk&quot;</span>)</span><br><span class="line">                || className.startsWith(<span class="string">&quot;com/sun&quot;</span>)</span><br><span class="line">                || className.startsWith(<span class="string">&quot;com/intellij&quot;</span>)) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="type">ClassReader</span> <span class="variable">cr</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ClassReader</span>(classfileBuffer);</span><br><span class="line">        <span class="type">ClassNode</span> <span class="variable">cn</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ClassNode</span>();</span><br><span class="line">        cr.accept(cn, <span class="number">0</span>);</span><br><span class="line">        <span class="keyword">for</span> (Object obj : cn.methods) &#123;</span><br><span class="line">            <span class="type">MethodNode</span> <span class="variable">md</span> <span class="operator">=</span> (MethodNode) obj;</span><br><span class="line">            <span class="keyword">if</span> (<span class="string">&quot;&lt;init&gt;&quot;</span>.endsWith(md.name) || <span class="string">&quot;&lt;clinit&gt;&quot;</span>.equals(md.name)) &#123;</span><br><span class="line">                <span class="keyword">continue</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="type">InsnList</span> <span class="variable">insns</span> <span class="operator">=</span> md.instructions;</span><br><span class="line">            <span class="type">InsnList</span> <span class="variable">il</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">InsnList</span>();</span><br><span class="line">            il.add(<span class="keyword">new</span> <span class="title class_">FieldInsnNode</span>(Opcodes.GETSTATIC, <span class="string">&quot;java/lang/System&quot;</span>,</span><br><span class="line">                    <span class="string">&quot;out&quot;</span>, <span class="string">&quot;Ljava/io/PrintStream;&quot;</span>));</span><br><span class="line">            il.add(<span class="keyword">new</span> <span class="title class_">LdcInsnNode</span>(<span class="string">&quot;invoke -&gt; &quot;</span> + cn.name + <span class="string">&quot;.&quot;</span> + md.name));</span><br><span class="line">            il.add(<span class="keyword">new</span> <span class="title class_">MethodInsnNode</span>(Opcodes.INVOKEVIRTUAL,</span><br><span class="line">                    <span class="string">&quot;java/io/PrintStream&quot;</span>, <span class="string">&quot;println&quot;</span>, <span class="string">&quot;(Ljava/lang/String;)V&quot;</span>));</span><br><span class="line">            insns.insert(il);</span><br><span class="line">            md.maxStack += <span class="number">3</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="type">ClassWriter</span> <span class="variable">cw</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ClassWriter</span>(<span class="number">0</span>);</span><br><span class="line">        cn.accept(cw);</span><br><span class="line">        <span class="keyword">return</span> cw.toByteArray();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;Transformer实现了ClassFileTransformer接口，该接口只有一个transform方法，参数传入包括该类的类加载器，类名，原字节码字节流等，返回被转换后的字节码字节流。<br>&emsp;&emsp;当方法返回后，Java虚拟机会使用所返回的byte数组，来完成接下来的类加载工作；返回null或者抛出异常，那么Java虚拟机将使用原来的byte数组完成类加载工作。<br>&emsp;&emsp;上面的例子，主要使用ASM实现在所有的类定义的方法中，在方法开始出添加了一段打印该类名和方法名的字节码。</p>
+<p>&emsp;&emsp;设置MANIFEST.MF文件中的属性，文件内容如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">Manifest-Version: 1.0</span><br><span class="line">Premain-Class: com.zero.AgentMain</span><br><span class="line">Can-Redefine-Classes: true</span><br><span class="line">Can-Retransform-Classes: true</span><br><span class="line">Created-By: Apache Maven 3.3.9</span><br><span class="line">Build-Jdk: 1.8.0_171</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;maven配置如下</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">plugin</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.apache.maven.plugins<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>maven-jar-plugin<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>3.1.0<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">archive</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">manifestEntries</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">Project-name</span>&gt;</span>$&#123;project.name&#125;<span class="tag">&lt;/<span class="name">Project-name</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">Project-version</span>&gt;</span>$&#123;project.version&#125;<span class="tag">&lt;/<span class="name">Project-version</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">Agent-Class</span>&gt;</span>com.zero.AgentMain<span class="tag">&lt;/<span class="name">Agent-Class</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">Premain-Class</span>&gt;</span>com.zero.AgentMain<span class="tag">&lt;/<span class="name">Premain-Class</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">Can-Redefine-Classes</span>&gt;</span>true<span class="tag">&lt;/<span class="name">Can-Redefine-Classes</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">Can-Retransform-Classes</span>&gt;</span>true<span class="tag">&lt;/<span class="name">Can-Retransform-Classes</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">manifestEntries</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">archive</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">plugin</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="agentmain方式"><a href="#agentmain方式" class="headerlink" title="agentmain方式"></a>agentmain方式</h3><p>&emsp;&emsp;premain时Java SE5开始就提供的代理方式，给了开发者诸多惊喜，不过也有不便，由于其必须在命令行指定代理jar，并且代理类必须在main方法前启动。因此，要求开发者在应用前就必须确认代理的处理逻辑和参数内容等等，在有些场合下，这是比较困难的。<br>&emsp;&emsp;比如正常的生产环境下，一般不会开启代理功能，但是在发生问题时，我们不希望停止应用就能够动态的去修改一些类的行为，以帮助排查问题，这在应用启动前是无法确定的。 为解决运行时启动代理类的问题，Java SE6开始，提供了在应用程序的VM启动后在动态添加代理的方式，即agentmain方式。 与Permain类似，agent方式同样需要提供一个agent jar，并且这个jar需要满足：</p>
+<ol>
+<li>   在manifest中指定Agent-Class属性，值为代理类全路径</li>
+<li>   代理类需要提供<code>public static void agentmain(String args, Instrumentation inst)</code>或<code>public static void agentmain(String args)</code>方法。并且再二者同时存在时以前者优先。args和inst和premain中的一致。</li>
+</ol>
+<p>&emsp;&emsp;不过如此设计的再运行时进行代理有个问题——如何在应用程序启动之后再开启代理程序呢？ JDK6中提供了Java Tools API，其中Attach API可以满足这个需求。Attach API中的VirtualMachine代表一个运行中的VM。其提供了loadAgent()方法，可以在运行时动态加载一个代理jar。</p>
+<p>agentmain实例-打印当前已加载的类</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> loaded;</span><br><span class="line"> </span><br><span class="line"><span class="keyword">import</span> java.lang.instrument.Instrumentation;</span><br><span class="line"> </span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">AgentMain</span> &#123;</span><br><span class="line">    <span class="meta">@SuppressWarnings(&quot;rawtypes&quot;)</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">agentmain</span><span class="params">(String args, Instrumentation inst)</span>&#123;</span><br><span class="line">        Class[] classes = inst.getAllLoadedClasses();</span><br><span class="line">        <span class="keyword">for</span>(Class cls :classes)&#123;</span><br><span class="line">            System.out.println(cls.getName());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;设置MANIFEST.MF文件，指定Agent-Class:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">Manifest-Version: 1.0</span><br><span class="line">Agent-Class: com.zero.AgentMain</span><br><span class="line">Can-Redefine-Classes: true</span><br><span class="line">Can-Retransform-Classes: true</span><br><span class="line">Created-By: Apache Maven 3.3.9</span><br><span class="line">Build-Jdk: 1.8.0_171</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;将agent类和MANIFEST.MF文件编译打成agent.jar后，由于agent main方式无法向pre main方式那样在命令行指定代理jar，因此需要借助Attach Tools API。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Test</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> AttachNotSupportedException,</span><br><span class="line">            IOException, AgentLoadException, AgentInitializationException &#123;</span><br><span class="line">        <span class="type">VirtualMachine</span> <span class="variable">vm</span> <span class="operator">=</span> VirtualMachine.attach(args[<span class="number">0</span>]);</span><br><span class="line">        vm.loadAgent(<span class="string">&quot;/Users/xxx/agent.jar&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;该程序接受一个参数为目标应用程序的进程id，通过Attach Tools API的<code>VirtualMachine.attach</code>方法绑定到目标VM，并向其中加载代理jar。</p>
+<hr>
+<p>&emsp;&emsp;在 agent 的 manifest 里加入 Boot-Class-Path 其实一样可以在动态地载入 agent 的同时加入自己的 boot class 路径。</p>
+<p>附：agent jar中manifest的属性<br>&emsp;&emsp;<code>Premain-Class</code>: 当在VM启动时，在命令行中指定代理jar时，必须在manifest中设置Premain-Class属性，值为代理类全类名，并且该代理类必须提供premain方法。否则JVM会异常终止。<br>&emsp;&emsp;<code>Agent-Class</code>: 当在VM启动之后，动态添加代理jar包时，代理jar包中manifest必须设置Agent-Class属性，值为代理类全类名，并且该代理类必须提供agentmain方法，否则无法启动该代理。<br>&emsp;&emsp;<code>Boot-Class-Path</code>: Bootstrap class loader加载类时的搜索路径，可选。<br>&emsp;&emsp;<code>Can-Redefine-Classes</code>: true&#x2F;false；标示代理类是否能够重定义类。可选。<br>&emsp;&emsp;<code>Can-Retransform-Classes</code>: true&#x2F;false；标示代理类是否能够转换类定义。可选。<br>&emsp;&emsp;<code>Can-Set-Native-Prefix</code>:true&#x2F;false；标示代理类是否需要本地方法前缀，可选。</p>
+<p>&emsp;&emsp;当一个代理jar包中的manifest文件中既有Premain-Class又有Agent-Class时，如果以命令行方式在VM启动前指定代理jar，则使用Premain-Class；反之如果在VM启动后，动态添加代理jar，则使用Agent-Class</p>
+<hr>
+<p><code>Caused by: java.lang.UnsupportedOperationException: redefineClasses is not supported in this environment </code><br>通过在MANIFEST.MF增加配置Can-Redefine-Classes: true解决 </p>
+<p><code>Caused by: java.lang.UnsupportedOperationException: adding retransformable transformers is not supported in this environment </code><br>通过在MANIFEST.MF增加配置Can-Retransform-Classes: true解决</p>
+<p>&emsp;&emsp;</p>
+<hr>
+<p>应用场景：</p>
+<ol>
+<li>监控，例如APM</li>
+<li>代码注入</li>
+<li>故障模拟，例如对某个method改造抛异常</li>
+<li>流量录制</li>
+<li>在线dug，例如arthas</li>
+</ol>
+<hr>
+<p>转载自：<br><a target="_blank" rel="noopener" href="https://blog.csdn.net/productshop/article/details/50623626">https://blog.csdn.net/productshop/article/details/50623626</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/06/08/Java/Java%E8%BF%9B%E9%98%B6/MethodHandle%E4%B8%8Einvokedynamic%E6%8C%87%E4%BB%A4/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/06/08/Java/Java%E8%BF%9B%E9%98%B6/MethodHandle%E4%B8%8Einvokedynamic%E6%8C%87%E4%BB%A4/" class="post-title-link" itemprop="url">MethodHandle与invokedynamic指令</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-06-08 00:00:00" itemprop="dateCreated datePublished" datetime="2024-06-08T00:00:00+08:00">2024-06-08</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/" itemprop="url" rel="index"><span itemprop="name">Java进阶</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h3 id="MethodHandle"><a href="#MethodHandle" class="headerlink" title="MethodHandle"></a>MethodHandle</h3><p>&emsp;&emsp;MethodHandle即方法句柄，使用方法和效果上与Reflection都有众多相似之处。不过，它们也有以下这些区别：</p>
+<ol>
+<li>Reflection和MethodHandle机制本质上都是在模拟方法调用，但是Reflection是在模拟Java语言层面的方法调用，而MethodHandle是在模拟Java字节码层面的方法调用，MethodHandle效率更高。<br> 在MethodHandles.Lookup上的三个方法findStatic()、findVirtual()、findSpecial()，正是为了对应于invokestatic、invokevirtual &amp; invokeinterface和invokespecial这几条字节码指令的执行权限校验行为，而这些底层细节在使用Reflection API时是不需要关心的。<blockquote>
+<p>invokespecial：调用一个初始化(构造)方法，私有方法或者父类的方法<br>invokestatic：调用静态方法<br>invokevirtual：调用实例方法<br>invokeinterface：调用接口方法 </p>
+</blockquote>
+</li>
+<li>Reflection中的java.lang.reflect.Method对象远比MethodHandle机制中的java.lang.invoke.MethodHandle对象所包含的信息来得多。前者是方法在Java端的全面映像，包含了方法的签名、描述符以及方法属性表中各种属性的Java端表示方式，还包含有执行权限等的运行期信息。而后者仅仅包含着与执行该方法相关的信息。用开发人员通俗的话来讲，Reflection是重量级，而MethodHandle是轻量级。</li>
+<li>和反射相比好处是：调用 invoke() 已经被JVM优化，类似直接调用一样，性能要好很多。</li>
+</ol>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/06/08/Java/Java%E8%BF%9B%E9%98%B6/MethodHandle%E4%B8%8Einvokedynamic%E6%8C%87%E4%BB%A4/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/06/08/Java/Java%E8%BF%9B%E9%98%B6/%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E6%96%B9%E6%B3%95%E5%8F%8D%E5%B0%84/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/06/08/Java/Java%E8%BF%9B%E9%98%B6/%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E6%96%B9%E6%B3%95%E5%8F%8D%E5%B0%84/" class="post-title-link" itemprop="url">深入分析Java方法反射</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-06-08 00:00:00" itemprop="dateCreated datePublished" datetime="2024-06-08T00:00:00+08:00">2024-06-08</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/" itemprop="url" rel="index"><span itemprop="name">Java进阶</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>&emsp;&emsp;线上服务器jmap发现 Perm Generation使用量持续增长, 查看dump信息发现有很多sun.reflect.DelegatingClassLoader、sun.reflect.GeneratedConstructorAccessor77。原因是反射调用引起的，类越來越多。</p>
+<p>&emsp;&emsp;当使用Java反射时，Java虚拟机有两种方法获取被反射的类的信息。它可以使用一个JNI存取器。如果使用Java字节码存取器，则需要拥有它自己的Java类和类加载器（sun&#x2F;reflect&#x2F;GeneratedMethodAccessor类和sun&#x2F;reflect&#x2F;DelegatingClassLoader)。这些类和类加载器使用本机内存。字节码存取器也可以被JIT编译，这样会增加本机内存的使用。如果Java反射被频繁使用，会显著地增加本机内存的使用。<br>&emsp;&emsp;Java虚拟机会首先使用JNI存取器，然后在访问了同一个类若干次后，会改为使用Java字节码存取器。注意使用字节码方式第一次有加载的成本比正常执行慢3-4倍，但是后面的执行会有20倍以上的性能提升，这样整体性能会有很大的提升。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/06/08/Java/Java%E8%BF%9B%E9%98%B6/%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E6%96%B9%E6%B3%95%E5%8F%8D%E5%B0%84/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
     <link itemprop="mainEntityOfPage" href="http://example.com/2024/06/07/Spring/spring%20boot/Spring%E4%BD%BF%E7%94%A8TransactionalEventListener%E8%A7%A3%E5%86%B3%E4%BA%8B%E5%8A%A1%E6%9C%AA%E6%8F%90%E4%BA%A4%E8%AF%BB%E5%8F%96%E4%B8%8D%E5%88%B0%E6%95%B0%E6%8D%AE%E9%97%AE%E9%A2%98/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -759,260 +1039,10 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/06/06/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%8F%AF%E8%A7%82%E6%B5%8B/%E4%BB%8EOpentracing%E3%80%81OpenCensus%20%E5%88%B0%20OpenTelemetry%EF%BC%8C%E7%9C%8B%E5%8F%AF%E8%A7%82%E6%B5%8B%E6%95%B0%E6%8D%AE%E6%A0%87%E5%87%86%E6%BC%94%E8%BF%9B%E5%8F%B2/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/06/06/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%8F%AF%E8%A7%82%E6%B5%8B/%E4%BB%8EOpentracing%E3%80%81OpenCensus%20%E5%88%B0%20OpenTelemetry%EF%BC%8C%E7%9C%8B%E5%8F%AF%E8%A7%82%E6%B5%8B%E6%95%B0%E6%8D%AE%E6%A0%87%E5%87%86%E6%BC%94%E8%BF%9B%E5%8F%B2/" class="post-title-link" itemprop="url">从Opentracing、OpenCensus 到 OpenTelemetry，看可观测数据标准演进史</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-06-06 00:00:00" itemprop="dateCreated datePublished" datetime="2024-06-06T00:00:00+08:00">2024-06-06</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/" itemprop="url" rel="index"><span itemprop="name">分布式与微服务</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%8F%AF%E8%A7%82%E6%B5%8B/" itemprop="url" rel="index"><span itemprop="name">可观测</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>[toc]</p>
-<h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>&emsp;&emsp;伴随着分布式应用、Serverless 应用被越来越多开发者及企业所接受，但其背后所隐藏的运维问题也逐渐凸显出来–微服务架构中请求链路过长从而导致问题定位时间长，运维想要日常监控也非常困难。以一个具体问题举例，在分布式应用中完成一个单一用户请求可能会需要多个不同的微服务处理，这其中任何一个服务失败或性能拉垮，都会对用户请求响应造成极大影响。随着业务不断扩张，这个调用链也越来越复杂。仅凭借打印日志或 APM 性能监控很难做到全景浏览或者一竿到底。对于问题排查或性能分析时，这无异于盲人摸象。</p>
-<p>&emsp;&emsp;面对这样的问题，Google 发表了论文《“Dapper - a Large-Scale Distributed Systems Tracing Infrastructure”》介绍他们的分布式跟踪技术，并认为分布式跟踪系统应该满足以下业务需求：</p>
-<ul>
-<li>性能低损耗： 分布式跟踪系统对服务的性能损耗应尽可能做到忽略不计，尤其是那些对性能敏感的应用。</li>
-<li>低侵入： 尽可能做到业务代码的低侵入或无侵入。</li>
-<li>快速扩展：能够随着业务或微服务规模快速扩大。</li>
-<li>实时展现：低延时采集数据，实时监控系统，对系统的异常状况作出快速的反应。</li>
-</ul>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/06/06/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%8F%AF%E8%A7%82%E6%B5%8B/%E4%BB%8EOpentracing%E3%80%81OpenCensus%20%E5%88%B0%20OpenTelemetry%EF%BC%8C%E7%9C%8B%E5%8F%AF%E8%A7%82%E6%B5%8B%E6%95%B0%E6%8D%AE%E6%A0%87%E5%87%86%E6%BC%94%E8%BF%9B%E5%8F%B2/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/06/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%8F%AF%E8%A7%82%E6%B5%8B/%E7%AE%80%E8%BF%B0OpenTracing%E4%B8%8EOpenTelemetry%E7%9A%84%E5%88%86%E5%88%AB/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/06/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%8F%AF%E8%A7%82%E6%B5%8B/%E7%AE%80%E8%BF%B0OpenTracing%E4%B8%8EOpenTelemetry%E7%9A%84%E5%88%86%E5%88%AB/" class="post-title-link" itemprop="url">简述OpenTracing与OpenTelemetry的分别</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-06-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-06-05T00:00:00+08:00">2024-06-05</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/" itemprop="url" rel="index"><span itemprop="name">分布式与微服务</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%8F%AF%E8%A7%82%E6%B5%8B/" itemprop="url" rel="index"><span itemprop="name">可观测</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>[toc]</p>
-<p>OpenTracing作为调用链规范标准，在实际使用的过程，也有了一些使用上的痛点，例如：</p>
-<ul>
-<li>光依据调用链无法很好的定位问题；</li>
-<li>调用链与日志系统关联性差，定位具体问题耗时较长；</li>
-<li>切换数据后端成本较高；</li>
-<li>内部团队有些使用的规范不同，需要适配多套规范；</li>
-</ul>
-<p>业界也开始寻找是否有更优的解决方案，OpenTelemetry逐渐突显出来。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/06/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%8F%AF%E8%A7%82%E6%B5%8B/%E7%AE%80%E8%BF%B0OpenTracing%E4%B8%8EOpenTelemetry%E7%9A%84%E5%88%86%E5%88%AB/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/06/01/k8s&docker/%E4%BB%80%E4%B9%88%E6%98%AF%E5%85%83%E5%8E%9F%E7%94%9F/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/06/01/k8s&docker/%E4%BB%80%E4%B9%88%E6%98%AF%E5%85%83%E5%8E%9F%E7%94%9F/" class="post-title-link" itemprop="url">什么是元原生</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-06-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-06-01T00:00:00+08:00">2024-06-01</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/k8s-docker/" itemprop="url" rel="index"><span itemprop="name">k8s&docker</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>[toc]</p>
-<h1 id="一、云原生是什么"><a href="#一、云原生是什么" class="headerlink" title="一、云原生是什么"></a>一、云原生是什么</h1><p>要理解云原生，可以把云原生拆分为云和原生两部分。<br><strong>云</strong><br>云原生的“云”代表“云计算”，因此在了解云原生之前，需要先了解云计算。</p>
-<p>云计算的字面意义是通过互联网提供计算资源，其中最为基础的计算资源就是服务器、存储、网络资源等，这些资源是互联网世界的基础设施，因此提供这些资源的租用的服务就叫做 IaaS（Infrastructure as a Service）。显而易见，这些基础设施服务供应商都是业界大佬：AWS（亚马逊云）、Azure（微软云）、阿里云、谷歌云、IBM 云、腾讯云、华为云等。</p>
-<p>供应商将大量的基础设施进行统一管理，通过虚拟化等技术手段，形成巨大的可动态分配资源池，大大促进了物理资源的利用率，因此也使得租用成本降低。企业只需要按照使用量进行付费，再不用付出昂贵的设施购买、维护成本。除此之外，云服务还有可随时按需伸缩容量、备份恢复简单、快速部署易于集成等优点。</p>
-<p>云资源不仅包含基础设施，在云上搭建的开发平台、应用等都可以作为一种服务提供给用户，这就是Paas（Platform as a Service）和 SaaS（Software as a Service）。根据云服务的开放范围，又可以分为公有云、私有云、混合云。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/06/01/k8s&docker/%E4%BB%80%E4%B9%88%E6%98%AF%E5%85%83%E5%8E%9F%E7%94%9F/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="page-number current">2</span><a class="page-number" href="/page/3/">3</a><span class="space">&hellip;</span><a class="page-number" href="/page/15/">15</a><a class="extend next" rel="next" href="/page/3/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="page-number current">2</span><a class="page-number" href="/page/3/">3</a><span class="space">&hellip;</span><a class="page-number" href="/page/16/">16</a><a class="extend next" rel="next" href="/page/3/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -1078,7 +1108,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">145</span>
+          <span class="site-state-item-count">151</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>

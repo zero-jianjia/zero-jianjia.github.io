@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="MethodHandle&emsp;&emsp;MethodHandle即方法句柄，使用方法和效果上与Reflection都有众多相似之处。不过，它们也有以下这些区别：  Reflection和MethodHandle机制本质上都是在模拟方法调用，但是Reflection是在模拟Java语言层面的方法调用，而MethodHandle是在模拟Java字节码层面的方法调用，MethodHandle效率">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MethodHandle与invokedynamic指令">
+<meta property="og:url" content="http://example.com/2024/06/08/Java/Java%E8%BF%9B%E9%98%B6/MethodHandle%E4%B8%8Einvokedynamic%E6%8C%87%E4%BB%A4/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="MethodHandle&emsp;&emsp;MethodHandle即方法句柄，使用方法和效果上与Reflection都有众多相似之处。不过，它们也有以下这些区别：  Reflection和MethodHandle机制本质上都是在模拟方法调用，但是Reflection是在模拟Java语言层面的方法调用，而MethodHandle是在模拟Java字节码层面的方法调用，MethodHandle效率">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2024-06-07T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-08-17T14:54:26.078Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2024/06/08/Java/Java%E8%BF%9B%E9%98%B6/MethodHandle%E4%B8%8Einvokedynamic%E6%8C%87%E4%BB%A4/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>MethodHandle与invokedynamic指令 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/06/08/Java/Java%E8%BF%9B%E9%98%B6/MethodHandle%E4%B8%8Einvokedynamic%E6%8C%87%E4%BB%A4/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          MethodHandle与invokedynamic指令
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-06-08 00:00:00" itemprop="dateCreated datePublished" datetime="2024-06-08T00:00:00+08:00">2024-06-08</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/" itemprop="url" rel="index"><span itemprop="name">Java进阶</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h3 id="MethodHandle"><a href="#MethodHandle" class="headerlink" title="MethodHandle"></a>MethodHandle</h3><p>&emsp;&emsp;MethodHandle即方法句柄，使用方法和效果上与Reflection都有众多相似之处。不过，它们也有以下这些区别：</p>
+<ol>
+<li>Reflection和MethodHandle机制本质上都是在模拟方法调用，但是Reflection是在模拟Java语言层面的方法调用，而MethodHandle是在模拟Java字节码层面的方法调用，MethodHandle效率更高。<br> 在MethodHandles.Lookup上的三个方法findStatic()、findVirtual()、findSpecial()，正是为了对应于invokestatic、invokevirtual &amp; invokeinterface和invokespecial这几条字节码指令的执行权限校验行为，而这些底层细节在使用Reflection API时是不需要关心的。<blockquote>
+<p>invokespecial：调用一个初始化(构造)方法，私有方法或者父类的方法<br>invokestatic：调用静态方法<br>invokevirtual：调用实例方法<br>invokeinterface：调用接口方法 </p>
+</blockquote>
+</li>
+<li>Reflection中的java.lang.reflect.Method对象远比MethodHandle机制中的java.lang.invoke.MethodHandle对象所包含的信息来得多。前者是方法在Java端的全面映像，包含了方法的签名、描述符以及方法属性表中各种属性的Java端表示方式，还包含有执行权限等的运行期信息。而后者仅仅包含着与执行该方法相关的信息。用开发人员通俗的话来讲，Reflection是重量级，而MethodHandle是轻量级。</li>
+<li>和反射相比好处是：调用 invoke() 已经被JVM优化，类似直接调用一样，性能要好很多。</li>
+</ol>
+<span id="more"></span>
+<p>&emsp;&emsp;方法句柄中首先涉及到两个重要的类，MethodHandle和MethodType。<br>&emsp;&emsp;MethodHandle：它是可对直接执行的方法的类型引用，或者说，它是一个有能力安全调用方法的对象。换个方法来说，通过句柄可以直接调用该句柄所引用的底层方法。从作用上来看，方法句柄类似于反射中的Method类，但是方法句柄的功能更加强大、使用更加灵活、性能也更好。<br>&emsp;&emsp;MethodType：它是表示方法签名类型的不可变对象。每个方法句柄都有一个MethodType实例，用来指明方法的返回类型和参数类型。它的类型完全由参数类型和方法类型来确定，而与它所引用的底层的方法的名称和所在的类没有关系。举个例子，例如String类的length方法和Integer类的intValue方法的方法句柄的类型就是一样的，因为这两个方法都没有参数，而且返回值类型都是int。<br>&emsp;&emsp;简单示例：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">User</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">say</span><span class="params">(String msg)</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;hello world, &quot;</span> + msg);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">test0</span><span class="params">()</span> <span class="keyword">throws</span> Throwable &#123;</span><br><span class="line">    <span class="comment">// 通过MethodType的静态工厂方法构造 MethodType</span></span><br><span class="line">    <span class="type">MethodType</span> <span class="variable">methodType</span> <span class="operator">=</span> MethodType.methodType(<span class="keyword">void</span>.class, String.class);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 获取方法句柄</span></span><br><span class="line">    <span class="type">MethodHandle</span> <span class="variable">methodHandle</span> <span class="operator">=</span> MethodHandles.lookup()</span><br><span class="line">        .findVirtual(User.class, <span class="string">&quot;say&quot;</span>, methodType);</span><br><span class="line"></span><br><span class="line">    <span class="type">User</span> <span class="variable">user</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">User</span>();</span><br><span class="line">    methodHandle.invoke(user, <span class="string">&quot;zero&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// invoke和invokeExact方法, invokeExact方法与直接调用底层方法是一样的</span></span><br><span class="line">    methodHandle.invokeExact(user, <span class="string">&quot;zero&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;</p>
+<h3 id="invokedynamic指令"><a href="#invokedynamic指令" class="headerlink" title="invokedynamic指令"></a>invokedynamic指令</h3><p>&emsp;&emsp;invokedynamic指令需要与MethodHandle方法句柄结合起来使用。该指令的灵活性在很大程度上取决于方法句柄的灵活性。<br>&emsp;&emsp;在字节代码中每个出现的 invokedynamic 指令都成为一个动态调用点（dynamic call site）。每个动态调用点在初始化的时候，都处于未链接的状态。在这个时候，这个动态调用点并没有被指定要调用的实际方法。<br>&emsp;&emsp;当Java虚拟机要执行 invokedynamic 指令时，首先需要链接其对应的动态调用点。在链接的时候，Java虚拟机会先调用一个启动方法（bootstrap method）。这个启动方法的返回值是 java.lang.invoke.CallSite 类的对象。在通过启动方法得到了CallSite之后，通过这个CallSite对象的 getTarget 方法可以获取到实际要调用的目标方法句柄。有了方法句柄之后，对这个动态调用点的调用，实际上是代理给方法句柄来完成的。也就是说，对invokedynamic指令的调用实际上就等价于对 方法句柄 的调用，具体来说是被转换成对方法句柄的invoke方法的调用。<br>&emsp;&emsp;Java 7中提供了三种类型的动态调用点CallSite的实现，分别是<code>java.lang.invoke.ConstantCallSite</code>、<code>java.lang.invoke.MutableCallSite</code>和<code>java.lang.invoke.VolatileCallSite</code>。这些CallSite实现的不同之处在于所对应的目标方法句柄的特性不同。</p>
+<blockquote>
+<ul>
+<li>ConstantCallSite所表示的调用点绑定的是一个固定的方法句柄，一旦链接之后，就无法修改</li>
+<li>MutableCallSite所表示的调用点则允许在运行时动态修改其目标方法句柄，即可以重新链接到新的方法句柄上;</li>
+<li>VolatileCallSite的作用与MutableCallSite类似，不同的是它适用于多线程情况，用来保证对于目标方法句柄所做的修改能够被其他线程看到。这也是名称中volatile的含义所在，类似于Java中的volatile关键词的作用。</li>
+</ul>
+</blockquote>
+<p>&emsp;&emsp;虽然CallSite一般同invokedynamic指令结合起来使用，但是在Java代码中也可以通过调用CallSite的dynamicInvoker方法来获取一个方法句柄。调用这个方法句柄就相当于执行invokedynamic指令。通过此方法可以预先对CallSite进行测试，以保证字节代码中的invokedynamic指令的行为是正确的，毕竟在生成的字节代码中进行调试是一件很麻烦的事情。</p>
+<p>&emsp;&emsp;下面介绍CallSite时会先通过dynamicInvoker方法在Java程序中直接试验CallSite的使用。先介绍ConstantCallSite的使用。ConstantCallSite要求在创建的时候就指定其链接到的目标方法句柄。每次该调用点被调用的时候，总是会执行对应的目标方法句柄。在代码，创建了一个ConstantCallSite并指定目标方法句柄为引用String类中的substring方法。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">useConstantCallSite</span><span class="params">()</span> <span class="keyword">throws</span> Throwable &#123;  </span><br><span class="line">    MethodHandles.<span class="type">Lookup</span> <span class="variable">lookup</span> <span class="operator">=</span> MethodHandles.lookup();  </span><br><span class="line">    <span class="type">MethodType</span> <span class="variable">type</span> <span class="operator">=</span> MethodType.methodType(String.class, <span class="type">int</span>.class, <span class="type">int</span>.class);  </span><br><span class="line">    <span class="type">MethodHandle</span> <span class="variable">mh</span> <span class="operator">=</span> lookup.findVirtual(String.class, <span class="string">&quot;substring&quot;</span>, type);</span><br><span class="line">    </span><br><span class="line">    <span class="type">ConstantCallSite</span> <span class="variable">callSite</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ConstantCallSite</span>(mh);  </span><br><span class="line">    <span class="type">MethodHandle</span> <span class="variable">invoker</span> <span class="operator">=</span> callSite.dynamicInvoker();  </span><br><span class="line">    <span class="type">String</span> <span class="variable">result</span> <span class="operator">=</span> (String) invoker.invoke(<span class="string">&quot;Hello&quot;</span>, <span class="number">2</span>, <span class="number">3</span>);  </span><br><span class="line">&#125; </span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;接下来的MutableCallSite则允许对其所关联的目标方法句柄进行修改。修改操作是通过setTarget方法来完成的。在创建MutableCallSite的时候，既可以指定一个方法类型MethodType，又可以指定一个初始的方法句柄。如果像下面代码中那样指定方法类型，则通过setTarget设置的方法句柄都必须有同样的方法类型。如果创建时指定的是初始的方法句柄，则之后设置的其他方法句柄的类型也必须与初始的方法句柄相同。MutableCallSite对象中的目标方法句柄的类型总是固定的。下面的代码通过setTarget方法把目标方法句柄分别设置为Math类中的max和min方法，在调用MutableCallSite时可以得到不同的结果。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">useMutableCallSite</span><span class="params">()</span> <span class="keyword">throws</span> Throwable &#123;  </span><br><span class="line">    <span class="type">MethodType</span> <span class="variable">type</span> <span class="operator">=</span> MethodType.methodType(<span class="type">int</span>.class, <span class="type">int</span>.class, <span class="type">int</span>.class);  </span><br><span class="line">    <span class="type">MutableCallSite</span> <span class="variable">callSite</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">MutableCallSite</span>(type);  </span><br><span class="line">    <span class="type">MethodHandle</span> <span class="variable">invoker</span> <span class="operator">=</span> callSite.dynamicInvoker();  </span><br><span class="line">    MethodHandles.<span class="type">Lookup</span> <span class="variable">lookup</span> <span class="operator">=</span> MethodHandles.lookup();  </span><br><span class="line">    </span><br><span class="line">    <span class="type">MethodHandle</span> <span class="variable">mhMax</span> <span class="operator">=</span> lookup.findStatic(Math.class, <span class="string">&quot;max&quot;</span>, type);  </span><br><span class="line">    <span class="type">MethodHandle</span> <span class="variable">mhMin</span> <span class="operator">=</span> lookup.findStatic(Math.class, <span class="string">&quot;min&quot;</span>, type);  </span><br><span class="line">    </span><br><span class="line">    callSite.setTarget(mhMax);  </span><br><span class="line">    <span class="type">int</span> <span class="variable">result</span> <span class="operator">=</span> (<span class="type">int</span>) invoker.invoke(<span class="number">3</span>, <span class="number">5</span>); <span class="comment">//值为5  </span></span><br><span class="line">    callSite.setTarget(mhMin);  </span><br><span class="line">    result = (<span class="type">int</span>) invoker.invoke(<span class="number">3</span>, <span class="number">5</span>); <span class="comment">//值为3  </span></span><br><span class="line">&#125; </span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;需要考虑的是多线程情况下的可见性问题。有可能在一个线程中对MutableCallSite的目标方法句柄做了修改，而在另外一个线程中不能及时看到这个变化。对于这种情况，MutableCallSite提供了一个静态方法syncAll来强制要求各个线程中MutableCallSite的使用者立即获取最新的目标方法句柄。该方法接收一个MutableCallSite类型的数组作为参数。</p>
+<p>&emsp;&emsp;如果一个目标方法句柄可变的调用点被设计为在多线程的情况下使用，可以直接使用VolatileCallSite，而不使用MutableCallSite。当使用VolatileCallSite的时候，每当目标方法句柄发生变化的时候，其他线程会自动看到这个变化。这与Java中volatile关键词的语义是一样的。这比使用MutableCallSite再加上syncAll方法要简单得多。除了这一点之外，VolatileCallSite的作用与MutableCallSite完全相同。</p>
+<p>&emsp;&emsp;</p>
+<h3 id="invokedynamic指令实战"><a href="#invokedynamic指令实战" class="headerlink" title="invokedynamic指令实战"></a>invokedynamic指令实战</h3><p>&emsp;&emsp;下面将要介绍invokedynamic指令在Java字节代码中的具体使用方式。由于涉及字节代码的生成，这里使用了ASM工具。首先需要提供invokedynamic指令所需的启动方法，如代码清单2-70所示。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ToUpperCase</span> &#123;  </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> CallSite <span class="title function_">bootstrap</span><span class="params">(Lookup lookup, String name, MethodType type, String value)</span> <span class="keyword">throws</span> Exception &#123;  </span><br><span class="line">        <span class="type">MethodHandle</span> <span class="variable">mh</span> <span class="operator">=</span> lookup.findVirtual(String.class, <span class="string">&quot;toUpperCase&quot;</span>, MethodType.methodType(String.class)).bindTo(value);  </span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">ConstantCallSite</span>(mh);  </span><br><span class="line">    &#125;  </span><br><span class="line">&#125; </span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;该启动方法是一个普通的Java类中的方法。该方法的类型声明可以是多种格式。返回值必须是CallSite，而参数则允许多种形式。在典型情况下，前面的3个参数分别是进行方法查找的MethodHandles.Lookup对象、方法的名称和方法的类型MethodType。这3个参数之后的其他参数都会被传递给CallSite对应的方法句柄。在上面的代码中，使用了一个ConstantCallSite，而该调用点所绑定的方法句柄引用的底层方法是String类中的toUpperCase方法。启动方法bootstrap接收一个额外的参数value。这个参数被预先绑定给方法句柄。因此当该方法句柄被调用的时候，不需要额外的参数，而返回结果是对参数value表示的字符串调用toUpperCase方法的结果。</p>
+<p>&emsp;&emsp;有了启动方法之后，就需要在字节代码中生成invokedynamic指令。代码清单2-71给出的程序会产生一个新的Java类文件ToUpperCaseMain.class。通过java命令可以运行该类文件，输出结果是“HELLO”。<br>&emsp;&emsp;生成使用invokedynamic指令的字节代码</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ToUpperCaseGenerator</span> &#123;   </span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">MethodHandle</span> <span class="variable">BSM</span> <span class="operator">=</span>  </span><br><span class="line">            <span class="keyword">new</span> <span class="title class_">MethodHandle</span>(MH_INVOKESTATIC,  </span><br><span class="line">            ToUpperCase.class.getName().replace(<span class="string">&#x27;.&#x27;</span>, <span class="string">&#x27;/&#x27;</span>),  </span><br><span class="line">            <span class="string">&quot;bootstrap&quot;</span>,  </span><br><span class="line">            MethodType.methodType(  </span><br><span class="line">            CallSite.class, Lookup.class, String.class, MethodType.class, String.class).toMethodDescriptorString());  </span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> IOException &#123;  </span><br><span class="line">        <span class="type">ClassWriter</span> <span class="variable">cw</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ClassWriter</span>(ClassWriter.COMPUTE_FRAMES);  </span><br><span class="line">        cw.visit(V1_7, ACC_PUBLIC | ACC_SUPER, <span class="string">&quot;ToUpperCaseMain&quot;</span>, <span class="literal">null</span>, <span class="string">&quot;java/lang/Object&quot;</span>, <span class="literal">null</span>);  </span><br><span class="line">        <span class="type">MethodVisitor</span> <span class="variable">mv</span> <span class="operator">=</span> cw.visitMethod(ACC_PUBLIC | ACC_STATIC, <span class="string">&quot;main&quot;</span>, <span class="string">&quot;([Ljava/lang/String;)V&quot;</span>, <span class="literal">null</span>, <span class="literal">null</span>);  </span><br><span class="line">        mv.visitCode();  </span><br><span class="line">        mv.visitFieldInsn(GETSTATIC, <span class="string">&quot;java/lang/System&quot;</span>, <span class="string">&quot;out&quot;</span>, <span class="string">&quot;Ljava/io/PrintStream;&quot;</span>);  </span><br><span class="line">        mv.visitInvokeDynamicInsn(<span class="string">&quot;toUpperCase&quot;</span>, <span class="string">&quot;()Ljava/lang/String;&quot;</span>, BSM, <span class="string">&quot;Hello&quot;</span>);  </span><br><span class="line">        mv.visitMethodInsn(INVOKEVIRTUAL, <span class="string">&quot;java/io/PrintStream&quot;</span>, <span class="string">&quot;println&quot;</span>, <span class="string">&quot;(Ljava/lang/String;)V&quot;</span>);  </span><br><span class="line">        mv.visitInsn(RETURN);  </span><br><span class="line">        mv.visitMaxs(<span class="number">0</span>, <span class="number">0</span>);  </span><br><span class="line">        mv.visitEnd();  </span><br><span class="line">        cw.visitEnd();  </span><br><span class="line">    </span><br><span class="line">        Files.write(Paths.get(<span class="string">&quot;ToUpperCaseMain.class&quot;</span>), cw.toByteArray());  </span><br><span class="line">    &#125;  </span><br><span class="line">&#125; </span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;上面的代码中包含了大量使用ASM工具的代码，这里只需要关心的是“mv.visitInvokeDynamicInsn(“toUpperCase”, “()Ljava&#x2F;lang&#x2F;String;”, BSM, “Hello”)；”这行代码。这行代码是用来在字节代码中生成invokedynamic指令的。在调用的时候传入了方法的名称、方法句柄的类型、对应的启动方法和额外的参数“Hello”。在invokedynamic指令被执行的时候，会先调用对应的启动方法，即代码清单中的bootstrap方法。bootstrap方法的返回值是一个ConstantCallSite的对象。接着从该ConstantCallSite对象中通过getTarget方法获取目标方法句柄，最后再调用此方法句柄。在调用visitInvokeDynamicInsn方法时提供了一个额外的参数“Hello”。这个参数会被传递给bootstrap方法的最后一个参数value，用来创建目标方法句柄。当目标方法句柄被调用的时候，返回的结果是把参数“Hello”转换成大写形式之后的值“HELLO”。</p>
+<p>&emsp;&emsp;从上面这个简单的示例可以看出，invokedynamic指令是如何与方法句柄结合起来使用的。上面的示例只使用了最简单的ConstantCallSite。复杂的示例包括根据参数的值确定需要返回的CallSite对象，或是对已有的MutableCallSite对象的目标方法句柄进行修改等。</p>
+<hr>
+<p>转载自：<br><a target="_blank" rel="noopener" href="https://blog.csdn.net/yushuifirst/article/details/48028859?utm_source=blogxgwz7?utm_medium=distribute.pc_relevant.none-task-blog-baidujs-1">https://blog.csdn.net/yushuifirst/article/details/48028859?utm_source=blogxgwz7?utm_medium=distribute.pc_relevant.none-task-blog-baidujs-1</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/06/08/Java/Java%E8%BF%9B%E9%98%B6/%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E6%96%B9%E6%B3%95%E5%8F%8D%E5%B0%84/" rel="prev" title="深入分析Java方法反射">
+      <i class="fa fa-chevron-left"></i> 深入分析Java方法反射
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/06/08/Java/Java%E8%BF%9B%E9%98%B6/javaagent%20&%20Instrumentation/" rel="next" title="javaagent & Instrumentation">
+      javaagent & Instrumentation <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#MethodHandle"><span class="nav-number">1.</span> <span class="nav-text">MethodHandle</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#invokedynamic%E6%8C%87%E4%BB%A4"><span class="nav-number">2.</span> <span class="nav-text">invokedynamic指令</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#invokedynamic%E6%8C%87%E4%BB%A4%E5%AE%9E%E6%88%98"><span class="nav-number">3.</span> <span class="nav-text">invokedynamic指令实战</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">151</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">28</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

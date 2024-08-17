@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="认识CPU CacheCPU Cache概述随着CPU的频率不断提升，而内存的访问速度却没有质的突破，为了弥补访问内存的速度慢，充分发挥CPU的计算资源，提高CPU整体吞吐量，在CPU与内存之间引入了一级Cache。随着热点数据体积越来越大，一级Cache L1已经不满足发展的要求，引入了二级Cache L2，三级Cache L3。（注：若无特别说明，本文的Cache指CPU Cache，高速缓存">
+<meta property="og:type" content="article">
+<meta property="og:title" content="伪共享、缓存行填充和CPU缓存">
+<meta property="og:url" content="http://example.com/2024/03/12/Java/Java%E8%BF%9B%E9%98%B6/%E4%BC%AA%E5%85%B1%E4%BA%AB&%E9%9B%B6%E6%8B%B7%E8%B4%9D/%E4%BC%AA%E5%85%B1%E4%BA%AB%E3%80%81%E7%BC%93%E5%AD%98%E8%A1%8C%E5%A1%AB%E5%85%85%E5%92%8CCPU%E7%BC%93%E5%AD%98/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="认识CPU CacheCPU Cache概述随着CPU的频率不断提升，而内存的访问速度却没有质的突破，为了弥补访问内存的速度慢，充分发挥CPU的计算资源，提高CPU整体吞吐量，在CPU与内存之间引入了一级Cache。随着热点数据体积越来越大，一级Cache L1已经不满足发展的要求，引入了二级Cache L2，三级Cache L3。（注：若无特别说明，本文的Cache指CPU Cache，高速缓存">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408171025163.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408171025930.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408171025651.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408171025402.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408171025339.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408171025947.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408171025574.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408171026554.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408171026852.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408171026973.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408171026613.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408171026677.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408171026177.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408171026861.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408171027104.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408171027833.png">
+<meta property="article:published_time" content="2024-03-11T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-08-17T04:03:43.610Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408171025163.png">
+
+<link rel="canonical" href="http://example.com/2024/03/12/Java/Java%E8%BF%9B%E9%98%B6/%E4%BC%AA%E5%85%B1%E4%BA%AB&%E9%9B%B6%E6%8B%B7%E8%B4%9D/%E4%BC%AA%E5%85%B1%E4%BA%AB%E3%80%81%E7%BC%93%E5%AD%98%E8%A1%8C%E5%A1%AB%E5%85%85%E5%92%8CCPU%E7%BC%93%E5%AD%98/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>伪共享、缓存行填充和CPU缓存 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/12/Java/Java%E8%BF%9B%E9%98%B6/%E4%BC%AA%E5%85%B1%E4%BA%AB&%E9%9B%B6%E6%8B%B7%E8%B4%9D/%E4%BC%AA%E5%85%B1%E4%BA%AB%E3%80%81%E7%BC%93%E5%AD%98%E8%A1%8C%E5%A1%AB%E5%85%85%E5%92%8CCPU%E7%BC%93%E5%AD%98/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          伪共享、缓存行填充和CPU缓存
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-03-12 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-12T00:00:00+08:00">2024-03-12</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/" itemprop="url" rel="index"><span itemprop="name">Java进阶</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/%E4%BC%AA%E5%85%B1%E4%BA%AB-%E9%9B%B6%E6%8B%B7%E8%B4%9D/" itemprop="url" rel="index"><span itemprop="name">伪共享&零拷贝</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="认识CPU-Cache"><a href="#认识CPU-Cache" class="headerlink" title="认识CPU Cache"></a>认识CPU Cache</h2><h3 id="CPU-Cache概述"><a href="#CPU-Cache概述" class="headerlink" title="CPU Cache概述"></a>CPU Cache概述</h3><p>随着CPU的频率不断提升，而内存的访问速度却没有质的突破，为了弥补访问内存的速度慢，充分发挥CPU的计算资源，提高CPU整体吞吐量，在CPU与内存之间引入了一级Cache。随着热点数据体积越来越大，一级Cache L1已经不满足发展的要求，引入了二级Cache L2，三级Cache L3。（注：若无特别说明，本文的Cache指CPU Cache，高速缓存）CPU Cache在存储器层次结构中的示意如下图：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408171025163.png" alt="图片描述"></p>
+<span id="more"></span>
+
+<p>计算机早已进入多核时代，软件也越来越多的支持多核运行。一个处理器对应一个物理插槽，多处理器间通过QPI总线相连。一个处理器包含多个核，一个处理器间的多核共享L3 Cache。一个核包含寄存器、L1 Cache、L2 Cache，下图是Intel Sandy Bridge CPU架构，一个典型的NUMA多处理器结构：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408171025930.png" alt="图片描述"></p>
+<p>作为程序员，需要理解计算机存储器层次结构，它对应用程序的性能有巨大的影响。如果需要的程序是在CPU寄存器中的，指令执行时1个周期内就能访问到他们。如果在CPU Cache中，需要1<del>30个周期；如果在主存中，需要50</del>200个周期；在磁盘上，大概需要几千万个周期。充分利用它的结构和机制，可以有效的提高程序的性能。</p>
+<p>以我们常见的X86芯片为例，Cache的结构下图所示：整个Cache被分为S个组，每个组是又由E行个最小的存储单元——Cache Line所组成，而一个Cache Line中有B（B&#x3D;64）个字节用来存储数据，即每个Cache Line能存储64个字节的数据，每个Cache Line又额外包含一个有效位(valid bit)、t个标记位(tag bit)，其中valid bit用来表示该缓存行是否有效；tag bit用来协助寻址，唯一标识存储在CacheLine中的块；而Cache Line里的64个字节其实是对应内存地址中的数据拷贝。根据Cache的结构题，我们可以推算出每一级Cache的大小为B×E×S。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408171025651.png" alt="图片描述"></p>
+<p>那么如何查看自己电脑CPU的Cache信息呢？</p>
+<p>在windows下查看方式有多种方式，其中最直观的是，通过安装CPU-Z软件，直接显示Cache信息，如下图：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408171025402.png" alt="图片描述"></p>
+<p>此外，Windows下还有两种方法：</p>
+<p>①Windows API调用GetLogicalProcessorInfo。<br>②通过命令行系统内部工具CoreInfo。</p>
+<p>如果是Linux系统， 可以使用下面的命令查看Cache信息：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ls /sys/devices/system/cpu/cpu0/cache/index0</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408171025339.png" alt="图片描述"><br>还有lscpu等命令也可以查看相关信息,如果是Mac系统，可以用sysctl machdep.cpu 命令查看cpu信息。</p>
+<p>如果我们用Java编程，还可以通过CacheSize API方式来获取Cache信息， CacheSize是一个谷歌的小项目，java语言通过它可以进行访问本机Cache的信息。示例代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> CacheNotFoundException &#123;</span><br><span class="line">        <span class="type">CacheInfo</span> <span class="variable">info</span> <span class="operator">=</span> CacheInfo.getInstance(); </span><br><span class="line">        <span class="type">CacheLevelInfo</span> <span class="variable">l1Datainf</span> <span class="operator">=</span> info.getCacheInformation(CacheLevel.L1, CacheType.DATA_CACHE);</span><br><span class="line">        System.out.println(<span class="string">&quot;第一级数据缓存信息：&quot;</span>+l1Datainf.toString());</span><br><span class="line"></span><br><span class="line">        <span class="type">CacheLevelInfo</span> <span class="variable">l1Instrinf</span> <span class="operator">=</span> info.getCacheInformation(CacheLevel.L1, CacheType.INSTRUCTION_CACHE);</span><br><span class="line">        System.out.println(<span class="string">&quot;第一级指令缓存信息：&quot;</span>+l1Instrinf.toString());</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>打印输出结果如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">第一级数据缓存信息：CacheLevelInfo [cacheLevel=L1, cacheType=DATA_CACHE, cacheSets=64, cacheCoherencyLineSize=64, cachePhysicalLinePartitions=1, cacheWaysOfAssociativity=8, isFullyAssociative=false, isSelfInitializing=true, totalSizeInBytes=32768]</span><br><span class="line"></span><br><span class="line">第一级指令缓存信息：CacheLevelInfo [cacheLevel=L1, cacheType=INSTRUCTION_CACHE, cacheSets=64, cacheCoherencyLineSize=64, cachePhysicalLinePartitions=1, cacheWaysOfAssociativity=8, isFullyAssociative=false, isSelfInitializing=true, totalSizeInBytes=32768]</span><br></pre></td></tr></table></figure>
+
+<p>还可以查询L2、L3级缓存的信息，这里不做示例。从打印的信息和CPU-Z显示的信息可以看出，本机的Cache信息是一致的，L1数据&#x2F;指令缓存大小都为：C&#x3D;B×E×S&#x3D;64×8×64&#x3D;32768字节&#x3D;32KB。</p>
+<h2 id="Cache-Line伪共享及解决方案"><a href="#Cache-Line伪共享及解决方案" class="headerlink" title="Cache Line伪共享及解决方案"></a>Cache Line伪共享及解决方案</h2><h3 id="Cache-Line伪共享分析"><a href="#Cache-Line伪共享分析" class="headerlink" title="Cache Line伪共享分析"></a>Cache Line伪共享分析</h3><p>说伪共享前，先看看Cache Line 在java编程中使用的场景。如果CPU访问的内存数据不在Cache中（一级、二级、三级），这就产生了Cache Line miss问题，此时CPU不得不发出新的加载指令，从内存中获取数据。通过前面对Cache存储层次的理解，我们知道一旦CPU要从内存中访问数据就会产生一个较大的时延，程序性能显著降低，所谓远水救不了近火。为此我们不得不提高Cache命中率，也就是充分发挥局部性原理。</p>
+<p>局部性包括时间局部性、空间局部性。时间局部性：对于同一数据可能被多次使用，自第一次加载到Cache Line后，后面的访问就可以多次从Cache Line中命中，从而提高读取速度（而不是从下层缓存读取）。空间局部性：一个Cache Line有64字节块，我们可以充分利用一次加载64字节的空间，把程序后续会访问的数据，一次性全部加载进来，从而提高Cache Line命中率（而不是重新去寻址读取）。</p>
+<p>看个例子：内存地址是连续的数组（利用空间局部性），能一次被L1缓存加载完成。</p>
+<p>如下代码，长度为16的row和column数组，在Cache Line 64字节数据块上内存地址是连续的，能被一次加载到Cache Line中，所以在访问数组时，Cache Line命中率高，性能发挥到极致。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="type">int</span> <span class="title function_">run</span><span class="params">(<span class="type">int</span>[] row, <span class="type">int</span>[] column)</span> &#123;</span><br><span class="line">    <span class="type">int</span> <span class="variable">sum</span> <span class="operator">=</span> <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">for</span>(<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; <span class="number">16</span>; i++ ) &#123;</span><br><span class="line">        sum += row[i] * column[i];</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> sum;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>而上面例子中变量i则体现了时间局部性，i作为计数器被频繁操作，一直存放在寄存器中，每次从寄存器访问，而不是从主存甚至磁盘访问。虽然连续紧凑的内存分配带来高性能，但并不代表它一直都能带来高性能。如果把它放在多线程中将会发生什么呢？如图：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408171025947.png" alt="图片描述"></p>
+<p>数据X、Y、Z被加载到同一Cache Line中，线程A在Core1修改X，线程B在Core2上修改Y。根据MESI大法，假设是Core1是第一个发起操作的CPU核，Core1上的L1 Cache Line由S（共享）状态变成M（修改，脏数据）状态，然后告知其他的CPU核，图例则是Core2，引用同一地址的Cache Line已经无效了；当Core2发起写操作时，首先导致Core1将X写回主存，Cache Line状态由M变为I（无效），而后才是Core2从主存重新读取该地址内容，Cache Line状态由I变成E（独占），最后进行修改Y操作， Cache Line从E变成M。可见多个线程操作在同一Cache Line上的不同数据，相互竞争同一Cache Line，导致线程彼此牵制影响，变成了串行程序，降低了并发性。此时我们则需要将共享在多线程间的数据进行隔离，使他们不在同一个Cache Line上，从而提升多线程的性能。</p>
+<h3 id="Cache-Line伪共享处理方案"><a href="#Cache-Line伪共享处理方案" class="headerlink" title="Cache Line伪共享处理方案"></a>Cache Line伪共享处理方案</h3><p>处理伪共享的两种方式：</p>
+<ol>
+<li>增大数组元素的间隔使得不同线程存取的元素位于不同的cache line上。典型的空间换时间。（Linux cache机制与之相关）</li>
+<li>在每个线程中创建全局数组各个元素的本地拷贝，然后结束后再写回全局数组。</li>
+</ol>
+<p>在Java类中，最优化的设计是考虑清楚哪些变量是不变的，哪些是经常变化的，哪些变化是完全相互独立的，哪些属性一起变化。举个例子：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">public class Data&#123;</span><br><span class="line">    long modifyTime;</span><br><span class="line">    boolean flag;</span><br><span class="line">    long createTime;</span><br><span class="line">    char key;</span><br><span class="line">    int value;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>假如业务场景中，上述的类满足以下几个特点：</p>
+<ol>
+<li>当value变量改变时，modifyTime肯定会改变</li>
+<li>createTime变量和key变量在创建后，就不会再变化。</li>
+<li>flag也经常会变化，不过与modifyTime和value变量毫无关联。</li>
+</ol>
+<p>当上面的对象需要由多个线程同时的访问时，从Cache角度来说，就会有一些有趣的问题。当我们没有加任何措施时，Data对象所有的变量极有可能被加载在L1缓存的一行Cache Line中。在高并发访问下，会出现这种问题：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408171025574.png" alt="图片描述"></p>
+<p>如上图所示，每次value变更时，根据MESI协议，对象其他CPU上相关的Cache Line全部被设置为失效。其他的处理器想要访问未变化的数据(key 和 createTime)时，必须从内存中重新拉取数据，增大了数据访问的开销。</p>
+<h3 id="Padding-方式"><a href="#Padding-方式" class="headerlink" title="Padding 方式"></a>Padding 方式</h3><p>正确的方式应该将该对象属性分组，将一起变化的放在一组，与其他属性无关的属性放到一组，将不变的属性放到一组。这样当每次对象变化时，不会带动所有的属性重新加载缓存，提升了读取效率。在JDK1.8以前，我们一般是在属性间增加长整型变量来分隔每一组属性。被操作的每一组属性占的字节数加上前后填充属性所占的字节数，不小于一个cache line的字节数就可以达到要求：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">public class DataPadding&#123;</span><br><span class="line">    long a1,a2,a3,a4,a5,a6,a7,a8;//防止与前一个对象产生伪共享</span><br><span class="line">    int value;</span><br><span class="line">    long modifyTime;</span><br><span class="line">    long b1,b2,b3,b4,b5,b6,b7,b8;//防止不相关变量伪共享;</span><br><span class="line">    boolean flag;</span><br><span class="line">    long c1,c2,c3,c4,c5,c6,c7,c8;//</span><br><span class="line">    long createTime;</span><br><span class="line">    char key;</span><br><span class="line">    long d1,d2,d3,d4,d5,d6,d7,d8;//防止与下一个对象产生伪共享</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>通过填充变量，使不相关的变量分开</p>
+<h3 id="Contended注解方式"><a href="#Contended注解方式" class="headerlink" title="Contended注解方式"></a>Contended注解方式</h3><p>在JDK1.8中，新增了一种注解@sun.misc.Contended，来使各个变量在Cache line中分隔开。注意，jvm需要添加参数-XX:-RestrictContended才能开启此功能<br>用时，可以在类前或属性前加上此注释：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">// 类前加上代表整个类的每个变量都会在单独的cache line中</span><br><span class="line">@sun.misc.Contended</span><br><span class="line">@SuppressWarnings(&quot;restriction&quot;)</span><br><span class="line">public class ContendedData &#123;</span><br><span class="line">    int value;</span><br><span class="line">    long modifyTime;</span><br><span class="line">    boolean flag;</span><br><span class="line">    long createTime;</span><br><span class="line">    char key;</span><br><span class="line">&#125;</span><br><span class="line">或者这种：</span><br><span class="line">// 属性前加上时需要加上组标签</span><br><span class="line">@SuppressWarnings(&quot;restriction&quot;)</span><br><span class="line">public class ContendedGroupData &#123;</span><br><span class="line">    @sun.misc.Contended(&quot;group1&quot;)</span><br><span class="line">    int value;</span><br><span class="line">    @sun.misc.Contended(&quot;group1&quot;)</span><br><span class="line">    long modifyTime;</span><br><span class="line">    @sun.misc.Contended(&quot;group2&quot;)</span><br><span class="line">    boolean flag;</span><br><span class="line">    @sun.misc.Contended(&quot;group3&quot;)</span><br><span class="line">    long createTime;</span><br><span class="line">    @sun.misc.Contended(&quot;group3&quot;)</span><br><span class="line">    char key;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>采取上述措施图示：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408171026554.png" alt="图片描述"></p>
+<h3 id="JDK1-8-ConcurrentHashMap的处理"><a href="#JDK1-8-ConcurrentHashMap的处理" class="headerlink" title="JDK1.8 ConcurrentHashMap的处理"></a>JDK1.8 ConcurrentHashMap的处理</h3><p>java.util.concurrent.ConcurrentHashMap在这个如雷贯耳的Map中，有一个很基本的操作问题，在并发条件下进行++操作。因为++这个操作并不是原子的，而且在连续的Atomic中，很容易产生伪共享（false sharing）。所以在其内部有专门的数据结构来保存long型的数据:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">（openjdk\jdk\src\share\classes\java\util\concurrent\ConcurrentHashMap.java line:<span class="number">2506</span>）：</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* ---------------- Counter support -------------- */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * A padded cell for distributing counts.  Adapted from LongAdder</span></span><br><span class="line"><span class="comment">     * and Striped64.  See their internal docs for explanation.</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@sun</span>.misc.Contended <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">class</span> <span class="title class_">CounterCell</span> &#123;</span><br><span class="line">        <span class="keyword">volatile</span> <span class="type">long</span> value;</span><br><span class="line">        CounterCell(<span class="type">long</span> x) &#123; value = x; &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们看到该类中，是通过@sun.misc.Contended达到防止false sharing的目的</p>
+<h3 id="JDK1-8-Thread-的处理"><a href="#JDK1-8-Thread-的处理" class="headerlink" title="JDK1.8 Thread 的处理"></a>JDK1.8 Thread 的处理</h3><p>java.lang.Thread在java中，生成随机数是和线程有着关联。而且在很多情况下，多线程下产生随机数的操作是很常见的，JDK为了确保产生随机数的操作不会产生false sharing ,把产生随机数的三个相关值设为独占cache line。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">（openjdk\jdk\src\share\classes\java\lang\Thread.java line:<span class="number">2023</span>）</span><br><span class="line"></span><br><span class="line">    <span class="comment">// The following three initially uninitialized fields are exclusively</span></span><br><span class="line">    <span class="comment">// managed by class java.util.concurrent.ThreadLocalRandom. These</span></span><br><span class="line">    <span class="comment">// fields are used to build the high-performance PRNGs in the</span></span><br><span class="line">    <span class="comment">// concurrent code, and we can not risk accidental false sharing.</span></span><br><span class="line">    <span class="comment">// Hence, the fields are isolated with @Contended.</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/** The current seed for a ThreadLocalRandom */</span></span><br><span class="line">    <span class="meta">@sun</span>.misc.Contended(<span class="string">&quot;tlr&quot;</span>)</span><br><span class="line">    <span class="type">long</span> threadLocalRandomSeed;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/** Probe hash value; nonzero if threadLocalRandomSeed initialized */</span></span><br><span class="line">    <span class="meta">@sun</span>.misc.Contended(<span class="string">&quot;tlr&quot;</span>)</span><br><span class="line">    <span class="type">int</span> threadLocalRandomProbe;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/** Secondary seed isolated from public ThreadLocalRandom sequence */</span></span><br><span class="line">    <span class="meta">@sun</span>.misc.Contended(<span class="string">&quot;tlr&quot;</span>)</span><br><span class="line">    <span class="type">int</span> threadLocalRandomSecondarySeed;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h2 id="Java中对Cache-line经典设计"><a href="#Java中对Cache-line经典设计" class="headerlink" title="Java中对Cache line经典设计"></a>Java中对Cache line经典设计</h2><h3 id="Disruptor框架"><a href="#Disruptor框架" class="headerlink" title="Disruptor框架"></a>Disruptor框架</h3><p>认识Disruptor</p>
+<p>LMAX是在英国注册并受到FCA监管的外汇黄金交易所。也是欧洲第一家也是唯一一家采用多边交易设施Multilateral Trading Facility（MTF）拥有交易所牌照和经纪商牌照的欧洲顶级金融公司。LMAX的零售金融交易平台，是建立在JVM平台上，核心是一个业务逻辑处理器，它能够在一个线程里每秒处理6百万订单。业务逻辑处理器的核心就是Disruptor（注，本文Disruptor基于当前最新3.3.6版本），这是一个Java实现的并发组件，能够在无锁的情况下实现网络的Queue并发操作，它确保任何数据只由一个线程拥有以进行写访问，从而消除写争用的设计， 这种设计被称作“破坏者”，也是这样命名这个框架的。</p>
+<p>Disruptor是一个线程内通信框架，用于线程里共享数据。与LinkedBlockingQueue类似，提供了一个高速的生产者消费者模型，广泛用于批量IO读写，在硬盘读写相关的程序中应用的十分广泛，Apache旗下的HBase、Hive、Storm等框架都有在使用Disruptor。LMAX 创建Disruptor作为可靠消息架构的一部分，并将它设计成一种在不同组件中共享数据非常快的方法。Disruptor运行大致流程入下图：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408171026852.png" alt="图片描述"></p>
+<p>图中左侧（Input Disruptor部分）可以看作多生产者单消费者模式。外部多个线程作为多生产者并发请求业务逻辑处理器（Business Logic Processor），这些请求的信息经过Receiver存放在粉红色的圆环中，业务处理器则作为消费者从圆环中取得数据进行处理。右侧（Output Disruptor部分）则可看作单生产者多消费者模式。业务逻辑处理器作为单生产者，发布数据到粉红色圆环中，Publisher作为多个消费者接受业务逻辑处理器的结果。这里两处地方的数据共享都是通过那个粉红色的圆环，它就是Disruptor的核心设计RingBuffer。</p>
+<p>Disruptor特点</p>
+<ol>
+<li>无锁机制。</li>
+<li>没有CAS操作，避免了内存屏障指令的耗时。</li>
+<li>避开了Cache line伪共享的问题，也是Disruptor部分主要关注的主题。</li>
+</ol>
+<h3 id="Disruptor对伪共享的处理"><a href="#Disruptor对伪共享的处理" class="headerlink" title="Disruptor对伪共享的处理"></a>Disruptor对伪共享的处理</h3><p>RingBuffer类</p>
+<p>RingBuffer类（即上节中粉红色的圆环）的类关系图如下：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408171026973.png" alt="图片描述"></p>
+<p>通过源码分析，RingBuffer的父类，RingBufferFields采用数组来实现存放线程间的共享数据。下图，第57行，entries数组。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408171026613.png" alt="图片描述"></p>
+<p>前面分析过数组比链表、树更具有缓存友好性，此处不做细表。不使用LinkedBlockingQueue队列，是基于无锁机制的考虑。详细分析可参考，并发编程网的翻译。这里我们主要分析RingBuffer的继承关系中的填充，解决缓存伪共享问题。如下图：<br><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408171026677.png" alt="图片描述"></p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408171026177.png" alt="图片描述"></p>
+<p>依据JVM对象继承关系中父类属性与子类属性，内存地址连续排列布局，RingBufferPad的protected long p1,p2,p3,p4,p5,p6,p7;作为缓存前置填充，RingBuffer中的protected long p1,p2,p3,p4,p5,p6,p7;作为缓存后置填充。这样任意线程访问RingBuffer时，RingBuffer放在父类RingBufferFields的属性，都是独占一行Cache line不会产生伪共享问题。如图，RingBuffer的操作字段在RingBufferFields中，使用rbf标识：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408171026861.png" alt="图片描述"><br>按照一行缓存64字节计算，前后填充56字节（7个long)，中间大于等于8字节的内容都能独占一行Cache line，此处rbf是大于8字节的。</p>
+<p>Sequence类</p>
+<p>Sequence类用来跟踪RingBuffer和事件处理器的增长步数，支持多个并发操作包括CAS指令和写指令。同时使用了Padding方式来实现，如下为其类结构图及Padding的类。</p>
+<p>Sequence里在volatile long value前后放置了7个long padding，来解决伪共享的问题。示意如图，此处Value等于8字节：</p>
+<p>也许读者应该会认为这里的图示比上面RingBuffer的图示更好理解，这里的操作属性只有一个value，两个图相互结合就更能理解了。</p>
+<p>Sequencer的实现</p>
+<p>在RingBuffer构造函数里面存在一个Sequencer接口，用来遍历数据，在生产者和消费者之间传递数据。Sequencer有两个实现类，单生产者模式的实现SingleProducerSequencer与多生产者模式的实现MultiProducerSequencer。它们的类结构如图：</p>
+<p>单生产者是在Cache line中使用padding方式实现，源码如下：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408171027104.png" alt="图片描述"></p>
+<p>多生产者则是使用 sun.misc.Unsafe来实现的。如下图：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408171027833.png" alt="图片描述"></p>
+<h2 id="总结与使用示例"><a href="#总结与使用示例" class="headerlink" title="总结与使用示例"></a>总结与使用示例</h2><p>可见padding方式在Disruptor中是处理伪共享常见的方式，JDK1.8的@Contended很好的解决了这个问题，不知道Disruptor后面的版本是否会考虑使用它。</p>
+<p>Disruptor使用示例代码<a target="_blank" rel="noopener" href="https://github.com/EasonFeng5870/disruptor_demo%E3%80%82">https://github.com/EasonFeng5870/disruptor_demo。</a></p>
+<h3 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料:"></a>参考资料:</h3><p>7个示例科普CPU Cache：<a target="_blank" rel="noopener" href="http://coolshell.cn/articles/10249.html">http://coolshell.cn/articles/10249.html </a><br>Linux Cache 机制：<a target="_blank" rel="noopener" href="http://www.cnblogs.com/liloke/archive/2011/11/20/2255737.html">http://www.cnblogs.com/liloke/archive/2011/11/20/2255737.html</a><br>《深入理解计算机系统》：第六章部分<br>Disruptor官方文档：<a target="_blank" rel="noopener" href="https://github.com/LMAX-Exchange/disruptor/tree/master/docs">https://github.com/LMAX-Exchange/disruptor/tree/master/docs</a><br>Disruptor并发编程网文档翻译：<a target="_blank" rel="noopener" href="http://ifeve.com/disruptor/">http://ifeve.com/disruptor/</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/03/11/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B&%E7%BA%BF%E7%A8%8B%E6%B1%A0&Future/Future.get()%E5%9C%A8%E9%85%8D%E7%BD%AERejectedExecutionHandler%E4%B8%BAThreadPoolExecutor.DiscardPolicy%E7%AD%96%E7%95%A5%E6%97%B6%E4%B8%80%E7%9B%B4%E9%98%BB%E5%A1%9E/" rel="prev" title="Future.get()在配置RejectedExecutionHandler为ThreadPoolExecutor.DiscardPolicy策略时一直阻塞">
+      <i class="fa fa-chevron-left"></i> Future.get()在配置RejectedExecutionHandler为ThreadPoolExecutor.DiscardPolicy策略时一直阻塞
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/03/12/Java/Java%E8%BF%9B%E9%98%B6/%E4%BC%AA%E5%85%B1%E4%BA%AB&%E9%9B%B6%E6%8B%B7%E8%B4%9D/Zero%20Copy%EF%BC%88%E9%9B%B6%E6%8B%B7%E8%B4%9D%EF%BC%89/" rel="next" title="Zero Copy（零拷贝）">
+      Zero Copy（零拷贝） <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%AE%A4%E8%AF%86CPU-Cache"><span class="nav-number">1.</span> <span class="nav-text">认识CPU Cache</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#CPU-Cache%E6%A6%82%E8%BF%B0"><span class="nav-number">1.1.</span> <span class="nav-text">CPU Cache概述</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Cache-Line%E4%BC%AA%E5%85%B1%E4%BA%AB%E5%8F%8A%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88"><span class="nav-number">2.</span> <span class="nav-text">Cache Line伪共享及解决方案</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Cache-Line%E4%BC%AA%E5%85%B1%E4%BA%AB%E5%88%86%E6%9E%90"><span class="nav-number">2.1.</span> <span class="nav-text">Cache Line伪共享分析</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Cache-Line%E4%BC%AA%E5%85%B1%E4%BA%AB%E5%A4%84%E7%90%86%E6%96%B9%E6%A1%88"><span class="nav-number">2.2.</span> <span class="nav-text">Cache Line伪共享处理方案</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Padding-%E6%96%B9%E5%BC%8F"><span class="nav-number">2.3.</span> <span class="nav-text">Padding 方式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Contended%E6%B3%A8%E8%A7%A3%E6%96%B9%E5%BC%8F"><span class="nav-number">2.4.</span> <span class="nav-text">Contended注解方式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#JDK1-8-ConcurrentHashMap%E7%9A%84%E5%A4%84%E7%90%86"><span class="nav-number">2.5.</span> <span class="nav-text">JDK1.8 ConcurrentHashMap的处理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#JDK1-8-Thread-%E7%9A%84%E5%A4%84%E7%90%86"><span class="nav-number">2.6.</span> <span class="nav-text">JDK1.8 Thread 的处理</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Java%E4%B8%AD%E5%AF%B9Cache-line%E7%BB%8F%E5%85%B8%E8%AE%BE%E8%AE%A1"><span class="nav-number">3.</span> <span class="nav-text">Java中对Cache line经典设计</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Disruptor%E6%A1%86%E6%9E%B6"><span class="nav-number">3.1.</span> <span class="nav-text">Disruptor框架</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Disruptor%E5%AF%B9%E4%BC%AA%E5%85%B1%E4%BA%AB%E7%9A%84%E5%A4%84%E7%90%86"><span class="nav-number">3.2.</span> <span class="nav-text">Disruptor对伪共享的处理</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93%E4%B8%8E%E4%BD%BF%E7%94%A8%E7%A4%BA%E4%BE%8B"><span class="nav-number">4.</span> <span class="nav-text">总结与使用示例</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="nav-number">4.1.</span> <span class="nav-text">参考资料:</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">151</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">28</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

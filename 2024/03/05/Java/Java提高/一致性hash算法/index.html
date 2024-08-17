@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="​	网站为了支撑更大的用户访问量，往往需要对用户访问的数据做cache,服务机群和负载均衡来专门处理缓存，负载均衡的算法很多，轮循算法、哈希算法、最少连接算法、响应速度算法等，hash算法是比较常用的一种，它的常用思想是先计算出一个hash值，然后使用 CRC余数算法将hash值和机器数mod后取余数，机器的编号可以是0到N-1(N是机器数)，计算出的结果一一对应即可。 ​	缓存最关键的就是命中率">
+<meta property="og:type" content="article">
+<meta property="og:title" content="一致性hash算法">
+<meta property="og:url" content="http://example.com/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/%E4%B8%80%E8%87%B4%E6%80%A7hash%E7%AE%97%E6%B3%95/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="​	网站为了支撑更大的用户访问量，往往需要对用户访问的数据做cache,服务机群和负载均衡来专门处理缓存，负载均衡的算法很多，轮循算法、哈希算法、最少连接算法、响应速度算法等，hash算法是比较常用的一种，它的常用思想是先计算出一个hash值，然后使用 CRC余数算法将hash值和机器数mod后取余数，机器的编号可以是0到N-1(N是机器数)，计算出的结果一一对应即可。 ​	缓存最关键的就是命中率">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408170944203.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408170944012.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408170944915.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408170945899.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408170945884.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408170942486.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408170946180.png">
+<meta property="article:published_time" content="2024-03-04T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-08-17T01:51:23.499Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408170944203.png">
+
+<link rel="canonical" href="http://example.com/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/%E4%B8%80%E8%87%B4%E6%80%A7hash%E7%AE%97%E6%B3%95/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>一致性hash算法 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/%E4%B8%80%E8%87%B4%E6%80%A7hash%E7%AE%97%E6%B3%95/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          一致性hash算法
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-03-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-05T00:00:00+08:00">2024-03-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E6%8F%90%E9%AB%98/" itemprop="url" rel="index"><span itemprop="name">Java提高</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>​	网站为了支撑更大的用户访问量，往往需要对用户访问的数据做cache,服务机群和负载均衡来专门处理缓存，负载均衡的算法很多，轮循算法、哈希算法、最少连接算法、响应速度算法等，hash算法是比较常用的一种，它的常用思想是先计算出一个hash值，然后使用 CRC余数算法将hash值和机器数mod后取余数，机器的编号可以是0到N-1(N是机器数)，计算出的结果一一对应即可。</p>
+<p>​	缓存最关键的就是命中率这个因素，如果命中率非常低，那么缓存也就失去了它的意义。如采用一般的CRC取余的hash算法虽然能达到负载均衡的目的，但是它存在一个严重的问题，那就是如果其中一台服务器down掉，那么就需要在计算缓存过程中将这台服务器去掉，即N台服务器，目前就只有N-1台提供缓存服务，此时需要一个rehash过程，而reash得到的结果将导致正常的用户请求不能找到原来缓存数据的正确机器，其他N-1台服务器上的缓存数据将大量失效，此时所有的用户请求全部会集中到数据库上，严重可能导致整个生产环境挂掉.</p>
+<span id="more"></span>
+
+
+<p>​    举个例子，有5台服务器，编号分别是0(A)，1(B)，2(C)，3(D)，4(E)  ，正常情况下,假设用户数据hash值为12，那么对应的数据应该缓存在12%5&#x3D;2号服务器上，假设编号为3的服务器此时挂掉，那么将其移除后就得到一个新的0(A)，1(B)，2(C)，3(E)(注：这里的编号3其实就是原来的4号服务器)服务器列表，此时用户来取数据，同样hash值为12,rehash后的得到的机器编号12%4&#x3D;0号服务器，可见，此时用户到0号服务器去找数据明显就找不到，出现了cache不命中现象，如果不命中此时应用会从后台数据库重新读取数据再cache到0号服务器上，如果大量用户出现这种情况，那么后果不堪设想。同样，增加一台缓存服务器，也会导致同样的后果。</p>
+<p>​    可以有一种设想，要提高命中率就得减少增加或者移除服务器rehash带来的影响，那么有这样一种算法么?Consistent hashing算法就是这样一种hash算法，简单的说，在移除&#x2F;添加一个 cache 时，它能够尽可能小的改变已存在 key 映射关系，尽可能的满足单调性的要求。</p>
+<p> <strong>1．环形Hash空间</strong><br>     按照常用的hash算法来将对应的key哈希到一个具有2^32个桶的空间中，即0~(2^32)-1的数字空间中。可以将这些数字头尾相连，想象成一个闭合的环形。如下图:<br> <img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408170944203.png" alt="img"><img src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="点击并拖拽以移动">​</p>
+<p> <strong>2．把数据通过一定的hash算法处理后映射到环上</strong><br>    现在将object1、object2、object3、object4四个对象通过特定的Hash函数计算出对应的key值，然后散列到Hash环上。如下图：<br>    Hash(object1) &#x3D; key1；<br>    Hash(object2) &#x3D; key2；<br>    Hash(object3) &#x3D; key3；<br>    Hash(object4) &#x3D; key4；<br> <img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408170944012.png" alt="img"><img src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="点击并拖拽以移动">​</p>
+<p> <strong>3．将机器通过hash算法映射到环上</strong><br>    在采用一致性哈希算法的分布式集群中将新的机器加入，其原理是通过使用与对象存储一样的Hash算法将机器也映射到环中（一般情况下对机器的hash计算是采用机器的IP或者机器唯一的别名作为输入值），然后以顺时针的方向计算，将所有对象存储到离自己最近的机器中。<br>    假设现在有NODE1，NODE2，NODE3三台机器，通过Hash算法得到对应的KEY值，映射到环中，其示意图如下：<br>     Hash(NODE1) &#x3D; KEY1;<br>     Hash(NODE2) &#x3D; KEY2;<br>     Hash(NODE3) &#x3D; KEY3;<br> <img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408170944915.png" alt="img"><img src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="点击并拖拽以移动">​<br>     通过上图可以看出对象与机器处于同一哈希空间中，这样按顺时针转动object1存储到了NODE1中，object3存储到了NODE2中，object2、object4存储到了NODE3中。在这样的部署环境中，hash环是不会变更的，因此，通过算出对象的hash值就能快速的定位到对应的机器中，这样就能找到对象真正的存储位置了。</p>
+<p> <strong>4．机器的删除与添加</strong><br>     普通hash求余算法最为不妥的地方就是在有机器的添加或者删除之后会照成大量的对象存储位置失效，这样就大大的不满足单调性了。下面来分析一下一致性哈希算法是如何处理的。</p>
+<p>​     1. 节点（机器）的删除</p>
+<p>​     以上面的分布为例，如果NODE2出现故障被删除了，那么按照顺时针迁移的方法，object3将会被迁移到NODE3中，这样仅仅是object3的映射位置发生了变化，其它的对象没有任何的改动。如下图：<br> <img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408170945899.png" alt="img"><img src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="点击并拖拽以移动">​</p>
+<p>​     2. 节点（机器）的添加 </p>
+<p>​     如果往集群中添加一个新的节点NODE4，通过对应的哈希算法得到KEY4，并映射到环中，如下图：<br> <img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408170945884.png" alt="img"><img src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="点击并拖拽以移动">​<br>​     通过按顺时针迁移的规则，那么object2被迁移到了NODE4中，其它对象还保持这原有的存储位置。通过对节点的添加和删除的分析，一致性哈希算法在保持了单调性的同时，还是数据的迁移达到了最小，这样的算法对分布式集群来说是非常合适的，避免了大量数据迁移，减小了服务器的的压力。</p>
+<p> <strong>5．平衡性</strong><br>     根据上面的图解分析，一致性哈希算法满足了单调性和负载均衡的特性以及一般hash算法的分散性，但这还并不能当做其被广泛应用的原由，因为还缺少了平衡性。下面将分析一致性哈希算法是如何满足平衡性的。<br>     hash算法是不保证平衡的，如上面只部署了NODE1和NODE3的情况（NODE2被删除的图），object1存储到了NODE1中，而object2、object3、object4都存储到了NODE3中，这样NODE3节点由于承担了NODE2节点的数据，所以NODE3节点的负载会变高，NODE3节点很容易也宕机，这样依次下去可能造成整个集群都挂了。<br>     在一致性哈希算法中，为了尽可能的满足平衡性，其引入了虚拟节点。“虚拟节点”（ virtual node ）是实际节点（机器）在 hash 空间的复制品（replica），一实际个节点（机器）对应了若干个“虚拟节点”，这个对应个数也成为“复制个数”，“虚拟节点”在 hash 空间中以hash值排列。即把想象在这个环上有很多“虚拟节点”，数据的存储是沿着环的顺时针方向找一个虚拟节点，每个虚拟节点都会关联到一个真实节点。<br>     图中的A1、A2、B1、B2、C1、C2、D1、D2都是虚拟节点，机器A负载存储A1、A2的数据，机器B负载存储B1、B2的数据，机器C负载存储C1、C2的数据。由于这些虚拟节点数量很多，均匀分布，因此不会造成“雪崩”现象。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408170942486.png" alt="image-20240817094220910"></p>
+<p>   使用虚拟节点的思想，为每个物理节点（服务器）在圆上分配100～200个点。这样就能抑制分布不均匀，最大限度地减小服务器增减时的缓存重新分布。用户数据映射在虚拟节点上，就表示用户数据真正存储位置是在该虚拟节点代表的实际物理服务器上。<br>    下面有一个图描述了需要为每台物理服务器增加的虚拟节点。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408170946180.png" alt="img"></p>
+<p>x轴表示的是需要为每台物理服务器扩展的虚拟节点倍数(scale)，y轴是实际物理服务器数，可以看出，当物理服务器的数量很小时，需要更大的虚拟节点，反之则需要更少的节点，从图上可以看出，在物理服务器有10台时，差不多需要为每台服务器增加100~200个虚拟节点才能达到真正的负载均衡。</p>
+<p>简单的java代码实现：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ConsistentHash</span>&lt;T&gt; &#123;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/**</span></span><br><span class="line"><span class="comment">	 * 哈希函数</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">final</span> HashFunction hashFunction;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/**</span></span><br><span class="line"><span class="comment">	 * 虚拟节点数 ， 越大分布越均衡，但越大，在初始化和变更的时候效率差一点。 测试中，设置200基本就均衡了。</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">final</span> <span class="type">int</span> numberOfReplicas;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/**</span></span><br><span class="line"><span class="comment">	 * 环形Hash空间</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">final</span> SortedMap&lt;Integer, T&gt; circle = <span class="keyword">new</span> <span class="title class_">TreeMap</span>&lt;Integer, T&gt;();</span><br><span class="line"></span><br><span class="line">	<span class="comment">/**</span></span><br><span class="line"><span class="comment">	 * <span class="doctag">@param</span> hashFunction</span></span><br><span class="line"><span class="comment">	 *            ，哈希函数</span></span><br><span class="line"><span class="comment">	 * <span class="doctag">@param</span> numberOfReplicas</span></span><br><span class="line"><span class="comment">	 *            ，虚拟服务器系数</span></span><br><span class="line"><span class="comment">	 * <span class="doctag">@param</span> nodes</span></span><br><span class="line"><span class="comment">	 *            ，服务器节点</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="keyword">public</span> <span class="title function_">ConsistentHash</span><span class="params">(HashFunction hashFunction, <span class="type">int</span> numberOfReplicas,</span></span><br><span class="line"><span class="params">			Collection&lt;T&gt; nodes)</span> &#123;</span><br><span class="line">		<span class="built_in">this</span>.hashFunction = hashFunction;</span><br><span class="line">		<span class="built_in">this</span>.numberOfReplicas = numberOfReplicas;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">for</span> (T node : nodes) &#123;</span><br><span class="line">			<span class="built_in">this</span>.addNode(node);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/**</span></span><br><span class="line"><span class="comment">	 * 添加物理节点，每个node 会产生numberOfReplicas个虚拟节点，这些虚拟节点对应的实际节点是node</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">addNode</span><span class="params">(T node)</span> &#123;</span><br><span class="line">		<span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; numberOfReplicas; i++) &#123;</span><br><span class="line">			<span class="type">int</span> <span class="variable">hashValue</span> <span class="operator">=</span> hashFunction.hash(node.toString() + i);</span><br><span class="line">			circle.put(hashValue, node);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/**移除物理节点，将node产生的numberOfReplicas个虚拟节点全部移除</span></span><br><span class="line"><span class="comment">	 * <span class="doctag">@param</span> node</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">removeNode</span><span class="params">(T node)</span> &#123;</span><br><span class="line">		<span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; numberOfReplicas; i++) &#123;</span><br><span class="line">			<span class="type">int</span> <span class="variable">hashValue</span> <span class="operator">=</span> hashFunction.hash(node.toString() + i);</span><br><span class="line">			circle.remove(hashValue);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/**</span></span><br><span class="line"><span class="comment">	 * 得到映射的物理节点</span></span><br><span class="line"><span class="comment">	 * </span></span><br><span class="line"><span class="comment">	 * <span class="doctag">@param</span> key</span></span><br><span class="line"><span class="comment">	 * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="keyword">public</span> T <span class="title function_">getNode</span><span class="params">(Object key)</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> (circle.isEmpty()) &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="type">int</span> <span class="variable">hashValue</span> <span class="operator">=</span> hashFunction.hash(key);</span><br><span class="line"><span class="comment">//		System.out.println(&quot;key---&quot; + key + &quot; : hash---&quot; + hash);</span></span><br><span class="line">		<span class="keyword">if</span> (!circle.containsKey(hashValue)) &#123;</span><br><span class="line">			<span class="comment">// 返回键大于或等于hash的node，即沿环的顺时针找到一个虚拟节点</span></span><br><span class="line">			SortedMap&lt;Integer, T&gt; tailMap = circle.tailMap(hashValue);</span><br><span class="line">			<span class="comment">// System.out.println(tailMap);</span></span><br><span class="line">			<span class="comment">// System.out.println(circle.firstKey());</span></span><br><span class="line">			hashValue = tailMap.isEmpty() ? circle.firstKey() : tailMap.firstKey();</span><br><span class="line">		&#125;</span><br><span class="line"><span class="comment">//		System.out.println(&quot;hash---: &quot; + hash);</span></span><br><span class="line">		<span class="keyword">return</span> circle.get(hashValue);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">static</span> <span class="keyword">class</span> <span class="title class_">HashFunction</span> &#123;</span><br><span class="line">		<span class="comment">/**</span></span><br><span class="line"><span class="comment">		 * MurMurHash算法，是非加密HASH算法，性能很高，</span></span><br><span class="line"><span class="comment">		 * 比传统的CRC32,MD5，SHA-1（这两个算法都是加密HASH算法，复杂度本身就很高，带来的性能上的损害也不可避免）</span></span><br><span class="line"><span class="comment">		 * 等HASH算法要快很多，而且据说这个算法的碰撞率很低. http://murmurhash.googlepages.com/</span></span><br><span class="line"><span class="comment">		 */</span></span><br><span class="line">		<span class="type">int</span> <span class="title function_">hash</span><span class="params">(Object key)</span> &#123;</span><br><span class="line">			<span class="type">ByteBuffer</span> <span class="variable">buf</span> <span class="operator">=</span> ByteBuffer.wrap(key.toString().getBytes());</span><br><span class="line">			<span class="type">int</span> <span class="variable">seed</span> <span class="operator">=</span> <span class="number">0x1234ABCD</span>;</span><br><span class="line"></span><br><span class="line">			<span class="type">ByteOrder</span> <span class="variable">byteOrder</span> <span class="operator">=</span> buf.order();</span><br><span class="line">			buf.order(ByteOrder.LITTLE_ENDIAN);</span><br><span class="line"></span><br><span class="line">			<span class="type">long</span> <span class="variable">m</span> <span class="operator">=</span> <span class="number">0xc6a4a7935bd1e995L</span>;</span><br><span class="line">			<span class="type">int</span> <span class="variable">r</span> <span class="operator">=</span> <span class="number">47</span>;</span><br><span class="line"></span><br><span class="line">			<span class="type">long</span> <span class="variable">h</span> <span class="operator">=</span> seed ^ (buf.remaining() * m);</span><br><span class="line"></span><br><span class="line">			<span class="type">long</span> k;</span><br><span class="line">			<span class="keyword">while</span> (buf.remaining() &gt;= <span class="number">8</span>) &#123;</span><br><span class="line">				k = buf.getLong();</span><br><span class="line"></span><br><span class="line">				k *= m;</span><br><span class="line">				k ^= k &gt;&gt;&gt; r;</span><br><span class="line">				k *= m;</span><br><span class="line"></span><br><span class="line">				h ^= k;</span><br><span class="line">				h *= m;</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			<span class="keyword">if</span> (buf.remaining() &gt; <span class="number">0</span>) &#123;</span><br><span class="line">				<span class="type">ByteBuffer</span> <span class="variable">finish</span> <span class="operator">=</span> ByteBuffer.allocate(<span class="number">8</span>).order(</span><br><span class="line">						ByteOrder.LITTLE_ENDIAN);</span><br><span class="line">				finish.put(buf).rewind();</span><br><span class="line">				h ^= finish.getLong();</span><br><span class="line">				h *= m;</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			h ^= h &gt;&gt;&gt; r;</span><br><span class="line">			h *= m;</span><br><span class="line">			h ^= h &gt;&gt;&gt; r;</span><br><span class="line">			buf.order(byteOrder);</span><br><span class="line">			<span class="keyword">return</span> (<span class="type">int</span>) h;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="点击并拖拽以移动"></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Test</span> &#123;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">		HashSet&lt;String&gt; serverNode = <span class="keyword">new</span> <span class="title class_">HashSet</span>&lt;String&gt;();</span><br><span class="line">		serverNode.add(<span class="string">&quot;127.1.1.1#A&quot;</span>);</span><br><span class="line">		serverNode.add(<span class="string">&quot;127.2.2.2#B&quot;</span>);</span><br><span class="line">		serverNode.add(<span class="string">&quot;127.3.3.3#C&quot;</span>);</span><br><span class="line">		serverNode.add(<span class="string">&quot;127.4.4.4#D&quot;</span>);</span><br><span class="line"></span><br><span class="line">		Map&lt;String, Integer&gt; serverNodeMap = <span class="keyword">new</span> <span class="title class_">HashMap</span>&lt;String, Integer&gt;();</span><br><span class="line"></span><br><span class="line">		ConsistentHash&lt;String&gt; consistentHash = <span class="keyword">new</span> <span class="title class_">ConsistentHash</span>&lt;String&gt;(</span><br><span class="line">				<span class="keyword">new</span> <span class="title class_">HashFunction</span>(), <span class="number">200</span>, serverNode);</span><br><span class="line"></span><br><span class="line">		<span class="type">int</span> <span class="variable">count</span> <span class="operator">=</span> <span class="number">50000</span>;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; count; i++) &#123;</span><br><span class="line">			<span class="type">String</span> <span class="variable">serverNodeName</span> <span class="operator">=</span> consistentHash.getNode(i);</span><br><span class="line">			<span class="comment">// System.out.println(i + &quot; 映射到物理节点---&quot; + serverNodeName);</span></span><br><span class="line">			<span class="keyword">if</span> (serverNodeMap.containsKey(serverNodeName)) &#123;</span><br><span class="line">				serverNodeMap.put(serverNodeName,</span><br><span class="line">						serverNodeMap.get(serverNodeName) + <span class="number">1</span>);</span><br><span class="line">			&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">				serverNodeMap.put(serverNodeName, <span class="number">1</span>);</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// System.out.println(serverNodeMap);</span></span><br><span class="line"></span><br><span class="line">		showServer(serverNodeMap);</span><br><span class="line">		serverNodeMap.clear();</span><br><span class="line"></span><br><span class="line">		consistentHash.removeNode(<span class="string">&quot;127.1.1.1#A&quot;</span>);</span><br><span class="line">		System.out.println(<span class="string">&quot;-------------------- remove 127.1.1.1#A&quot;</span>);</span><br><span class="line"></span><br><span class="line">		<span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; count; i++) &#123;</span><br><span class="line">			<span class="type">String</span> <span class="variable">serverNodeName</span> <span class="operator">=</span> consistentHash.getNode(i);</span><br><span class="line">			<span class="comment">// System.out.println(i + &quot; 映射到物理节点---&quot; + serverNodeName);</span></span><br><span class="line">			<span class="keyword">if</span> (serverNodeMap.containsKey(serverNodeName)) &#123;</span><br><span class="line">				serverNodeMap.put(serverNodeName,</span><br><span class="line">						serverNodeMap.get(serverNodeName) + <span class="number">1</span>);</span><br><span class="line">			&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">				serverNodeMap.put(serverNodeName, <span class="number">1</span>);</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		showServer(serverNodeMap);</span><br><span class="line">		serverNodeMap.clear();</span><br><span class="line"></span><br><span class="line">		consistentHash.addNode(<span class="string">&quot;127.5.5.5#E&quot;</span>);</span><br><span class="line">		System.out.println(<span class="string">&quot;-------------------- add 127.5.5.5#E&quot;</span>);</span><br><span class="line"></span><br><span class="line">		<span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; count; i++) &#123;</span><br><span class="line">			<span class="type">String</span> <span class="variable">serverNodeName</span> <span class="operator">=</span> consistentHash.getNode(i);</span><br><span class="line">			<span class="comment">// System.out.println(i + &quot; 映射到物理节点---&quot; + serverNodeName);</span></span><br><span class="line">			<span class="keyword">if</span> (serverNodeMap.containsKey(serverNodeName)) &#123;</span><br><span class="line">				serverNodeMap.put(serverNodeName,</span><br><span class="line">						serverNodeMap.get(serverNodeName) + <span class="number">1</span>);</span><br><span class="line">			&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">				serverNodeMap.put(serverNodeName, <span class="number">1</span>);</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		showServer(serverNodeMap);</span><br><span class="line">		serverNodeMap.clear();</span><br><span class="line"></span><br><span class="line">		consistentHash.addNode(<span class="string">&quot;127.6.6.6#F&quot;</span>);</span><br><span class="line">		System.out.println(<span class="string">&quot;-------------------- add 127.6.6.6#F&quot;</span>);</span><br><span class="line">		count *= <span class="number">2</span>;</span><br><span class="line">		System.out.println(<span class="string">&quot;-------------------- 业务量加倍&quot;</span>);</span><br><span class="line">		<span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; count; i++) &#123;</span><br><span class="line">			<span class="type">String</span> <span class="variable">serverNodeName</span> <span class="operator">=</span> consistentHash.getNode(i);</span><br><span class="line">			<span class="comment">// System.out.println(i + &quot; 映射到物理节点---&quot; + serverNodeName);</span></span><br><span class="line">			<span class="keyword">if</span> (serverNodeMap.containsKey(serverNodeName)) &#123;</span><br><span class="line">				serverNodeMap.put(serverNodeName,</span><br><span class="line">						serverNodeMap.get(serverNodeName) + <span class="number">1</span>);</span><br><span class="line">			&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">				serverNodeMap.put(serverNodeName, <span class="number">1</span>);</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		showServer(serverNodeMap);</span><br><span class="line"></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/**</span></span><br><span class="line"><span class="comment">	 * 服务器运行状态</span></span><br><span class="line"><span class="comment">	 * </span></span><br><span class="line"><span class="comment">	 * <span class="doctag">@param</span> map</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">showServer</span><span class="params">(Map&lt;String, Integer&gt; map)</span> &#123;</span><br><span class="line">		<span class="keyword">for</span> (Entry&lt;String, Integer&gt; m : map.entrySet()) &#123;</span><br><span class="line">			System.out.println(m.getKey() + <span class="string">&quot;, 存储数据量 &quot;</span> + m.getValue());</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="点击并拖拽以移动"></p>
+<p>运行结果：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">127.4</span><span class="number">.4</span><span class="number">.4</span>#D, 存储数据量 <span class="number">13177</span></span><br><span class="line"><span class="number">127.2</span><span class="number">.2</span><span class="number">.2</span>#B, 存储数据量 <span class="number">11834</span></span><br><span class="line"><span class="number">127.3</span><span class="number">.3</span><span class="number">.3</span>#C, 存储数据量 <span class="number">12827</span></span><br><span class="line"><span class="number">127.1</span><span class="number">.1</span><span class="number">.1</span>#A, 存储数据量 <span class="number">12162</span></span><br><span class="line">-------------------- remove <span class="number">127.1</span><span class="number">.1</span><span class="number">.1</span>#A</span><br><span class="line"><span class="number">127.4</span><span class="number">.4</span><span class="number">.4</span>#D, 存储数据量 <span class="number">17696</span></span><br><span class="line"><span class="number">127.2</span><span class="number">.2</span><span class="number">.2</span>#B, 存储数据量 <span class="number">15114</span></span><br><span class="line"><span class="number">127.3</span><span class="number">.3</span><span class="number">.3</span>#C, 存储数据量 <span class="number">17190</span></span><br><span class="line">-------------------- add <span class="number">127.5</span><span class="number">.5</span><span class="number">.5</span>#E</span><br><span class="line"><span class="number">127.4</span><span class="number">.4</span><span class="number">.4</span>#D, 存储数据量 <span class="number">12154</span></span><br><span class="line"><span class="number">127.2</span><span class="number">.2</span><span class="number">.2</span>#B, 存储数据量 <span class="number">11878</span></span><br><span class="line"><span class="number">127.3</span><span class="number">.3</span><span class="number">.3</span>#C, 存储数据量 <span class="number">12908</span></span><br><span class="line"><span class="number">127.5</span><span class="number">.5</span><span class="number">.5</span>#E, 存储数据量 <span class="number">13060</span></span><br><span class="line">-------------------- add <span class="number">127.6</span><span class="number">.6</span><span class="number">.6</span>#F</span><br><span class="line">-------------------- 业务量加倍</span><br><span class="line"><span class="number">127.4</span><span class="number">.4</span><span class="number">.4</span>#D, 存储数据量 <span class="number">18420</span></span><br><span class="line"><span class="number">127.2</span><span class="number">.2</span><span class="number">.2</span>#B, 存储数据量 <span class="number">20197</span></span><br><span class="line"><span class="number">127.6</span><span class="number">.6</span><span class="number">.6</span>#F, 存储数据量 <span class="number">21015</span></span><br><span class="line"><span class="number">127.5</span><span class="number">.5</span><span class="number">.5</span>#E, 存储数据量 <span class="number">19038</span></span><br><span class="line"><span class="number">127.3</span><span class="number">.3</span><span class="number">.3</span>#C, 存储数据量 <span class="number">21330</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="点击并拖拽以移动"></p>
+<hr>
+<p>转载自：<br><a target="_blank" rel="noopener" href="http://blog.csdn.net/lovingprince/article/details/4645448">http://blog.csdn.net/lovingprince/article/details/4645448</a><br><a target="_blank" rel="noopener" href="http://blog.csdn.net/caigen1988/article/details/7708806">http://blog.csdn.net/caigen1988/article/details/7708806</a><br><a target="_blank" rel="noopener" href="http://blog.csdn.net/cywosp/article/details/23397179/">http://blog.csdn.net/cywosp/article/details/23397179/</a><br><a target="_blank" rel="noopener" href="http://www.blogjava.net/hello-yun/archive/2012/10/10/389289.html">http://www.blogjava.net/hello-yun/archive/2012/10/10/389289.html</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/03/01/Java/JVM/Reference/Java%E5%BC%95%E7%94%A8/" rel="prev" title="Java引用">
+      <i class="fa fa-chevron-left"></i> Java引用
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/%E9%9B%86%E5%90%88%E9%97%B4%E4%BA%92%E7%9B%B8%E8%BD%AC%E5%8C%96/" rel="next" title="集合间互相转化">
+      集合间互相转化 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">151</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">28</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

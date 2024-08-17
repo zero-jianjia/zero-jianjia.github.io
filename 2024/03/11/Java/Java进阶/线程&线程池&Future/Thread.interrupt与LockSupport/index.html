@@ -23,7 +23,7 @@
   <meta name="description" content="首先抛几个问题：  Thread.interrupt()方法和InterruptedException异常的关系？是由interrupt触发产生了InterruptedException异常？ Thread.interrupt()会中断线程什么状态的工作？ RUNNING or BLOCKING？ LockSupport.park()和unpark()，与object.wait()和notify(">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Thread.interrupt与LockSupport">
-<meta property="og:url" content="http://example.com/2024/03/11/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B&%E7%BA%BF%E7%A8%8B%E6%B1%A0/Thread.interrupt%E4%B8%8ELockSupport/index.html">
+<meta property="og:url" content="http://example.com/2024/03/11/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B&%E7%BA%BF%E7%A8%8B%E6%B1%A0&Future/Thread.interrupt%E4%B8%8ELockSupport/index.html">
 <meta property="og:site_name" content="zero&#39;s Blog">
 <meta property="og:description" content="首先抛几个问题：  Thread.interrupt()方法和InterruptedException异常的关系？是由interrupt触发产生了InterruptedException异常？ Thread.interrupt()会中断线程什么状态的工作？ RUNNING or BLOCKING？ LockSupport.park()和unpark()，与object.wait()和notify(">
 <meta property="og:locale" content="en_US">
@@ -32,7 +32,7 @@
 <meta property="article:author" content="jianjia">
 <meta name="twitter:card" content="summary">
 
-<link rel="canonical" href="http://example.com/2024/03/11/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B&%E7%BA%BF%E7%A8%8B%E6%B1%A0/Thread.interrupt%E4%B8%8ELockSupport/">
+<link rel="canonical" href="http://example.com/2024/03/11/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B&%E7%BA%BF%E7%A8%8B%E6%B1%A0&Future/Thread.interrupt%E4%B8%8ELockSupport/">
 
 
 <script id="page-configurations">
@@ -190,7 +190,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/11/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B&%E7%BA%BF%E7%A8%8B%E6%B1%A0/Thread.interrupt%E4%B8%8ELockSupport/">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/11/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B&%E7%BA%BF%E7%A8%8B%E6%B1%A0&Future/Thread.interrupt%E4%B8%8ELockSupport/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
@@ -317,12 +317,12 @@
         
     <div class="post-nav">
       <div class="post-nav-item">
-    <a href="/2024/03/11/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B&%E7%BA%BF%E7%A8%8B%E6%B1%A0/%E5%86%8D%E8%81%8A%E7%BA%BF%E7%A8%8B%E6%B1%A0/" rel="prev" title="再聊线程池">
-      <i class="fa fa-chevron-left"></i> 再聊线程池
+    <a href="/2024/03/11/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B&%E7%BA%BF%E7%A8%8B%E6%B1%A0&Future/Tomcat%E7%9A%84StandardThreadExecutor/" rel="prev" title="Tomcat的StandardThreadExecutor">
+      <i class="fa fa-chevron-left"></i> Tomcat的StandardThreadExecutor
     </a></div>
       <div class="post-nav-item">
-    <a href="/2024/03/11/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B&%E7%BA%BF%E7%A8%8B%E6%B1%A0/Tomcat%E7%9A%84StandardThreadExecutor/" rel="next" title="Tomcat的StandardThreadExecutor">
-      Tomcat的StandardThreadExecutor <i class="fa fa-chevron-right"></i>
+    <a href="/2024/03/11/Java/Java%E8%BF%9B%E9%98%B6/%E7%BA%BF%E7%A8%8B&%E7%BA%BF%E7%A8%8B%E6%B1%A0&Future/Java%E7%BA%BF%E7%A8%8B%E7%9A%846%E7%A7%8D%E7%8A%B6%E6%80%81%E5%8F%8A%E5%88%87%E6%8D%A2/" rel="next" title="Java线程的6种状态及切换">
+      Java线程的6种状态及切换 <i class="fa fa-chevron-right"></i>
     </a></div>
     </div>
       </footer>
@@ -396,7 +396,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">145</span>
+          <span class="site-state-item-count">151</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
