@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="之前使用到了Instrumentation来做字节码修改，用到了javaassist，顺便做个笔记，记录一下。 对于动态扩展现有类或接口的二进制字节码，有比较成熟的开源项目提供支持，如CGLib、ASM、Javassist等。其中，CGLib的底层基于ASM实现，是一个高效高性能的生成库；而ASM是一个轻量级的类库，但需要涉及到JVM的操作和指令；相比而言，Javassist要简单的多，完全是基于">
+<meta property="og:type" content="article">
+<meta property="og:title" content="javaassist使用">
+<meta property="og:url" content="http://example.com/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/javaassist%E4%BD%BF%E7%94%A8/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="之前使用到了Instrumentation来做字节码修改，用到了javaassist，顺便做个笔记，记录一下。 对于动态扩展现有类或接口的二进制字节码，有比较成熟的开源项目提供支持，如CGLib、ASM、Javassist等。其中，CGLib的底层基于ASM实现，是一个高效高性能的生成库；而ASM是一个轻量级的类库，但需要涉及到JVM的操作和指令；相比而言，Javassist要简单的多，完全是基于">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2024-03-04T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-08-17T15:30:19.191Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/javaassist%E4%BD%BF%E7%94%A8/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>javaassist使用 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/javaassist%E4%BD%BF%E7%94%A8/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          javaassist使用
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-03-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-05T00:00:00+08:00">2024-03-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E6%8F%90%E9%AB%98/" itemprop="url" rel="index"><span itemprop="name">Java提高</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>之前使用到了Instrumentation来做字节码修改，用到了javaassist，顺便做个笔记，记录一下。</p>
+<p>对于动态扩展现有类或接口的二进制字节码，有比较成熟的开源项目提供支持，如CGLib、ASM、Javassist等。其中，CGLib的底层基于ASM实现，是一个高效高性能的生成库；而ASM是一个轻量级的类库，但需要涉及到JVM的操作和指令；相比而言，Javassist要简单的多，完全是基于Java的API，但其性能相比前二者要差一些。</p>
+<span id="more"></span>
+
+<p>一个简单的示例，如下的代码是动态创建Java类二进制字节码并通过反射调用的示例，可供参考：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> java.lang.reflect.InvocationTargetException;</span><br><span class="line"><span class="keyword">import</span> java.lang.reflect.Method;</span><br><span class="line"> </span><br><span class="line"><span class="keyword">import</span> javassist.CannotCompileException;</span><br><span class="line"><span class="keyword">import</span> javassist.ClassPool;</span><br><span class="line"><span class="keyword">import</span> javassist.CtClass;</span><br><span class="line"><span class="keyword">import</span> javassist.CtConstructor;</span><br><span class="line"><span class="keyword">import</span> javassist.CtField;</span><br><span class="line"><span class="keyword">import</span> javassist.CtNewMethod;</span><br><span class="line"><span class="keyword">import</span> javassist.Modifier;</span><br><span class="line"><span class="keyword">import</span> javassist.NotFoundException;</span><br><span class="line"><span class="keyword">import</span> javassist.CtField.Initializer;</span><br><span class="line"> </span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">JavassistGenerator</span> &#123;</span><br><span class="line">	</span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> CannotCompileException, NotFoundException, InstantiationException, IllegalAccessException, ClassNotFoundException, SecurityException, NoSuchMethodException, IllegalArgumentException, InvocationTargetException &#123;</span><br><span class="line">		<span class="comment">// 创建类</span></span><br><span class="line">		<span class="type">ClassPool</span> <span class="variable">pool</span> <span class="operator">=</span> ClassPool.getDefault();</span><br><span class="line">		<span class="type">CtClass</span> <span class="variable">cls</span> <span class="operator">=</span> pool.makeClass(<span class="string">&quot;cn.ibm.com.TestClass&quot;</span>);</span><br><span class="line">		</span><br><span class="line">		<span class="comment">// 添加私有成员name及其getter、setter方法</span></span><br><span class="line">		<span class="type">CtField</span> <span class="variable">param</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">CtField</span>(pool.get(<span class="string">&quot;java.lang.String&quot;</span>), <span class="string">&quot;name&quot;</span>, cls);</span><br><span class="line">		param.setModifiers(Modifier.PRIVATE);</span><br><span class="line">		cls.addMethod(CtNewMethod.setter(<span class="string">&quot;setName&quot;</span>, param));</span><br><span class="line">		cls.addMethod(CtNewMethod.getter(<span class="string">&quot;getName&quot;</span>, param));</span><br><span class="line">		cls.addField(param, Initializer.constant(<span class="string">&quot;&quot;</span>));</span><br><span class="line">		</span><br><span class="line">		<span class="comment">// 添加无参的构造体</span></span><br><span class="line">		<span class="type">CtConstructor</span> <span class="variable">cons</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">CtConstructor</span>(<span class="keyword">new</span> <span class="title class_">CtClass</span>[] &#123;&#125;, cls);</span><br><span class="line">		cons.setBody(<span class="string">&quot;&#123;name = \&quot;Brant\&quot;;&#125;&quot;</span>);</span><br><span class="line">		cls.addConstructor(cons);</span><br><span class="line">		</span><br><span class="line">		<span class="comment">// 添加有参的构造体</span></span><br><span class="line">		cons = <span class="keyword">new</span> <span class="title class_">CtConstructor</span>(<span class="keyword">new</span> <span class="title class_">CtClass</span>[] &#123;pool.get(<span class="string">&quot;java.lang.String&quot;</span>)&#125;, cls);</span><br><span class="line">		cons.setBody(<span class="string">&quot;&#123;$0.name = $1;&#125;&quot;</span>);</span><br><span class="line">		cls.addConstructor(cons);</span><br><span class="line">		</span><br><span class="line">		<span class="comment">// 打印创建类的类名</span></span><br><span class="line">		System.out.println(cls.toClass());</span><br><span class="line">		</span><br><span class="line">		<span class="comment">// 通过反射创建无参的实例，并调用getName方法</span></span><br><span class="line">		<span class="type">Object</span> <span class="variable">o</span> <span class="operator">=</span> Class.forName(<span class="string">&quot;cn.ibm.com.TestClass&quot;</span>).newInstance();</span><br><span class="line">		<span class="type">Method</span> <span class="variable">getter</span> <span class="operator">=</span> o.getClass().getMethod(<span class="string">&quot;getName&quot;</span>);</span><br><span class="line">		System.out.println(getter.invoke(o));</span><br><span class="line">		</span><br><span class="line">		<span class="comment">// 调用其setName方法</span></span><br><span class="line">		<span class="type">Method</span> <span class="variable">setter</span> <span class="operator">=</span> o.getClass().getMethod(<span class="string">&quot;setName&quot;</span>, <span class="keyword">new</span> <span class="title class_">Class</span>[] &#123;String.class&#125;);</span><br><span class="line">		setter.invoke(o, <span class="string">&quot;Adam&quot;</span>);</span><br><span class="line">		System.out.println(getter.invoke(o));</span><br><span class="line">		</span><br><span class="line">		<span class="comment">// 通过反射创建有参的实例，并调用getName方法</span></span><br><span class="line">		o = Class.forName(<span class="string">&quot;cn.ibm.com.TestClass&quot;</span>).getConstructor(String.class).newInstance(<span class="string">&quot;Liu Jian&quot;</span>);</span><br><span class="line">		getter = o.getClass().getMethod(<span class="string">&quot;getName&quot;</span>);</span><br><span class="line">		System.out.println(getter.invoke(o));</span><br><span class="line">	&#125;</span><br><span class="line"> </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<p>参考：<a target="_blank" rel="noopener" href="https://www.cnblogs.com/sunfie/p/5154246.html">https://www.cnblogs.com/sunfie/p/5154246.html</a></p>
+<ol>
+<li>读取和输出字节码<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">ClassPool</span> <span class="variable">pool</span> <span class="operator">=</span> ClassPool.getDefault();</span><br><span class="line">pool.appendClassPath(<span class="keyword">new</span> <span class="title class_">LoaderClassPath</span>(Thread.currentThread().getContextClassLoader()));</span><br><span class="line"><span class="type">CtClass</span> <span class="variable">cl</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">    <span class="comment">// 从classpath中查询该类</span></span><br><span class="line">    cl = pool.get(<span class="string">&quot;com.zero.test.TestMainInJar&quot;</span>);</span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">    <span class="comment">// 获取二进制格式</span></span><br><span class="line">    <span class="type">byte</span>[] byteArr = cl.toBytecode();</span><br><span class="line">    <span class="comment">//输出.class文件到该目录中</span></span><br><span class="line">    cl.writeFile(<span class="string">&quot;/Users/zero/git/xxx/src/main/java/&quot;</span>);</span><br><span class="line">&#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">    e.printStackTrace();</span><br><span class="line">&#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (cl != <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="comment">//把CtClass object 从ClassPool中移除</span></span><br><span class="line">        cl.detach();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ol>
+<p>2.插入source 文本在方法体前或者后<br>&emsp;&emsp;CtMethod 和CtConstructor 提供了 insertBefore()、insertAfter()和 addCatch()方法，它们可以插入一个souce文本到存在的方法的相应的位置。javassist 包含了一个简单的编译器解析这souce文本成二进制插入到相应的方法体里。<br>&emsp;&emsp;Javassist提供了一些特殊的变量来代表方法参数：$1,$2,$args…</p>
+<p>2.1 $0, $1, $2, …<br>&emsp;&emsp;$0代码的是this，$1代表方法参数的第一个参数、$2代表方法参数的第二个参数,以此类推，$N代表是方法参数的第N个。例如：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//实际方法</span></span><br><span class="line"><span class="keyword">void</span> <span class="title function_">move</span><span class="params">(<span class="type">int</span> dx, <span class="type">int</span> dy)</span> </span><br><span class="line"><span class="comment">//javassist</span></span><br><span class="line"><span class="type">CtMethod</span> <span class="variable">m</span> <span class="operator">=</span> cc.getDeclaredMethod(<span class="string">&quot;move&quot;</span>);</span><br><span class="line"><span class="comment">//打印dx，和dy</span></span><br><span class="line">m.insertBefore(<span class="string">&quot;&#123; System.out.println($1); System.out.println($2); &#125;&quot;</span>);</span><br><span class="line">````</span><br><span class="line">&amp;emsp;&amp;emsp;注意：如果javassist改变了\$<span class="number">1</span>的值，那实际参数值也会改变。</span><br><span class="line"></span><br><span class="line"><span class="number">2.2</span> \$args</span><br><span class="line">&amp;emsp;&amp;emsp;\$args 指的是方法所有参数的数组，类似Object[]，如果参数中含有基本类型，则会转成其包装类型。需要注意的时候，\$args[<span class="number">0</span>]对应的是\$<span class="number">1</span>,而不是\$<span class="number">0</span>，\$<span class="number">0</span>!=\$args[<span class="number">0</span>]，\$<span class="number">0</span>=<span class="built_in">this</span>。</span><br><span class="line"></span><br><span class="line"><span class="number">2.3</span> \$\$</span><br><span class="line">&amp;emsp;&amp;emsp;\$\$是所有方法参数的简写，主要用在方法调用上。例如：</span><br><span class="line">```java</span><br><span class="line"><span class="comment">//原方法</span></span><br><span class="line">move(String a,String b)</span><br><span class="line">move($$) 相当于move($<span class="number">1</span>,$<span class="number">2</span>)</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;如果新增一个方法，方法含有move的所有参数，则可以这些写：<code>exMove($$, context)</code> 相当于<code> exMove($1, $2, context)</code></p>
+<p>2.4 $_<br>&emsp;&emsp;$_代表的是方法的返回值。</p>
+<p>2.5 $sig<br>&emsp;&emsp;$sig指的是方法参数的类型（Class）数组，数组的顺序为参数的顺序。</p>
+<p>2.6 $class<br>&emsp;&emsp;$class 指的是this的类型（Class）。也就是$0的类型。</p>
+<p>2.7 addCatch()<br>&emsp;&emsp;addCatch() 指的是在方法中加入try catch 块，需要主要的是，必须在插入的代码中，加入return 值。$e代表 异常值。比如：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">CtMethod</span> <span class="variable">m</span> <span class="operator">=</span> ...;</span><br><span class="line"><span class="type">CtClass</span> <span class="variable">etype</span> <span class="operator">=</span> ClassPool.getDefault().get(<span class="string">&quot;java.io.IOException&quot;</span>);</span><br><span class="line">m.addCatch(<span class="string">&quot;&#123; System.out.println($e); throw $e; &#125;&quot;</span>, etype);</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;实际代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">    the original method body</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">catch</span> (java.io.IOException e) &#123;</span><br><span class="line">    System.out.println(e);</span><br><span class="line">    <span class="keyword">throw</span> e;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>3、修改方法体<br>CtMethod 和CtConstructor 提供了 setBody() 的方法，可以替换方法或者构造函数里的所有内容。注意 $_变量不支持。</p>
+<p>4、新增一个方法或者field<br>&emsp;&emsp;Javassist 允许开发者一个新的方法或者构造方法。新增一个方法，例如：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">CtClass</span> <span class="variable">point</span> <span class="operator">=</span> ClassPool.getDefault().get(<span class="string">&quot;Point&quot;</span>);</span><br><span class="line"><span class="type">CtMethod</span> <span class="variable">m</span> <span class="operator">=</span> CtNewMethod.make(</span><br><span class="line">                 <span class="string">&quot;public int xmove(int dx) &#123; x += dx; &#125;&quot;</span>,</span><br><span class="line">                 point);</span><br><span class="line">point.addMethod(m);</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;在方法中调用其他方法，例如：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">CtClass</span> <span class="variable">point</span> <span class="operator">=</span> ClassPool.getDefault().get(<span class="string">&quot;Point&quot;</span>);</span><br><span class="line"><span class="type">CtMethod</span> <span class="variable">m</span> <span class="operator">=</span> CtNewMethod.make(</span><br><span class="line">                 <span class="string">&quot;public int ymove(int dy) &#123; $proceed(0, dy); &#125;&quot;</span>,</span><br><span class="line">                 point, <span class="string">&quot;this&quot;</span>, <span class="string">&quot;move&quot;</span>);</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;其效果如下：<code>public int ymove(int dy) &#123; this.move(0, dy); &#125;</code></p>
+<p>&emsp;&emsp; 新增field</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">CtClass</span> <span class="variable">point</span> <span class="operator">=</span> ClassPool.getDefault().get(<span class="string">&quot;Point&quot;</span>);</span><br><span class="line"><span class="type">CtField</span> <span class="variable">f</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">CtField</span>(CtClass.intType, <span class="string">&quot;z&quot;</span>, point);</span><br><span class="line">f.setModifiers(Modifier.PRIVATE | Modifier.STATIC | Modifier.FINAL);</span><br><span class="line">point.addField(f);</span><br><span class="line"><span class="comment">//point.addField(f, &quot;0&quot;);    // initial value is 0.</span></span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;或者：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">CtClass</span> <span class="variable">point</span> <span class="operator">=</span> ClassPool.getDefault().get(<span class="string">&quot;Point&quot;</span>);</span><br><span class="line"><span class="type">CtField</span> <span class="variable">f</span> <span class="operator">=</span> CtField.make(<span class="string">&quot;public int z = 0;&quot;</span>, point);</span><br><span class="line">point.addField(f);</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;移除方法或者field，调用removeField()或者removeMethod()即可。</p>
+<hr>
+<p>简单示例，统计方法执行时间：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">TestMain</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        <span class="type">ClassPool</span> <span class="variable">pool</span> <span class="operator">=</span> ClassPool.getDefault();</span><br><span class="line">        pool.appendClassPath(<span class="keyword">new</span> <span class="title class_">LoaderClassPath</span>(Thread.currentThread().getContextClassLoader()));</span><br><span class="line">        <span class="type">CtClass</span> <span class="variable">cl</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            cl = pool.get(<span class="string">&quot;com.zero.test.TestMainInJar&quot;</span>);</span><br><span class="line">            CtMethod[] methods = cl.getDeclaredMethods();</span><br><span class="line"></span><br><span class="line">            <span class="keyword">for</span> (CtMethod method : methods) &#123;</span><br><span class="line">                doMethod(method);</span><br><span class="line">            &#125;</span><br><span class="line"><span class="comment">//            byte[] byteArr = cl.toBytecode();</span></span><br><span class="line">            cl.writeFile(<span class="string">&quot;/Users/zero/git/javaagenttest/src/main/java/&quot;</span>);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            <span class="keyword">if</span> (cl != <span class="literal">null</span>) &#123;</span><br><span class="line">                cl.detach();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">doMethod</span><span class="params">(CtMethod ctMethod)</span> <span class="keyword">throws</span> NotFoundException, CannotCompileException &#123;</span><br><span class="line">        <span class="type">String</span> <span class="variable">methodName</span> <span class="operator">=</span> ctMethod.getName();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span>(methodName.equals(<span class="string">&quot;main&quot;</span>))&#123;</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        ctMethod.addLocalVariable(<span class="string">&quot;startTimeAgent&quot;</span>, CtClass.longType);</span><br><span class="line">        ctMethod.insertBefore(<span class="string">&quot;startTimeAgent = System.currentTimeMillis();&quot;</span>);</span><br><span class="line"></span><br><span class="line">        <span class="type">String</span> <span class="variable">systemPrintStr</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">        LinkedHashMap&lt;String, String&gt; parmAndValue = AssistUtil.getParmAndValue(ctMethod);</span><br><span class="line">        <span class="keyword">if</span> (parmAndValue != <span class="literal">null</span>) &#123;</span><br><span class="line">            systemPrintStr = AssistUtil.parmSystemPrint(parmAndValue);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        System.out.println(systemPrintStr);</span><br><span class="line">        <span class="keyword">if</span> (systemPrintStr != <span class="literal">null</span>) &#123;</span><br><span class="line">            ctMethod.insertAfter(<span class="string">&quot;System.out.println(\&quot;cost:\&quot; + (System.currentTimeMillis() - startTimeAgent) + \&quot;ms, \&quot; + &quot;</span> + systemPrintStr + <span class="string">&quot;);&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span> &#123;</span><br><span class="line">            ctMethod.insertAfter(<span class="string">&quot;System.out.println(\&quot;cost:\&quot; + (System.currentTimeMillis() - startTimeAgent) + \&quot;ms\&quot;);&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">AssistUtil</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> String <span class="title function_">replaceClassName</span><span class="params">(String className)</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> className.replace(<span class="string">&quot;/&quot;</span>, <span class="string">&quot;.&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> LinkedHashMap&lt;String, String&gt; <span class="title function_">getParmAndValue</span><span class="params">(CtMethod ctMethod)</span> <span class="keyword">throws</span> NotFoundException &#123;</span><br><span class="line">        <span class="type">int</span> <span class="variable">parmLength</span> <span class="operator">=</span> ctMethod.getParameterTypes().length;</span><br><span class="line">        <span class="keyword">if</span> (parmLength == <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="type">boolean</span> <span class="variable">isStatic</span> <span class="operator">=</span> Modifier.isStatic(ctMethod.getModifiers());</span><br><span class="line"></span><br><span class="line">        <span class="type">MethodInfo</span> <span class="variable">methodInfo</span> <span class="operator">=</span> ctMethod.getMethodInfo();</span><br><span class="line">        <span class="type">CodeAttribute</span> <span class="variable">codeAttribute</span> <span class="operator">=</span> methodInfo.getCodeAttribute();</span><br><span class="line">        <span class="type">LocalVariableAttribute</span> <span class="variable">attr</span> <span class="operator">=</span> (LocalVariableAttribute) codeAttribute.getAttribute(LocalVariableAttribute.tag);</span><br><span class="line">        <span class="keyword">if</span> (attr == <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">NotFoundException</span>(<span class="string">&quot;LocalVariableAttribute not found in &quot;</span> + ctMethod.getName());</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        LinkedHashMap&lt;String, String&gt; parmAndValue = <span class="keyword">new</span> <span class="title class_">LinkedHashMap</span>&lt;&gt;();</span><br><span class="line">        String[] paramNames = <span class="keyword">new</span> <span class="title class_">String</span>[parmLength];</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; paramNames.length; i++) &#123;</span><br><span class="line">            <span class="keyword">if</span> (isStatic) &#123;</span><br><span class="line">                <span class="comment">// 静态方法第一个 $0 是 null</span></span><br><span class="line">                parmAndValue.put(attr.variableName(i), <span class="string">&quot;$&quot;</span> + (i + <span class="number">1</span>));</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="comment">// 非静态方法第一个 $0 是 this</span></span><br><span class="line">                parmAndValue.put(attr.variableName(i + <span class="number">1</span>), <span class="string">&quot;$&quot;</span> + (i + <span class="number">1</span>));</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> parmAndValue;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> String <span class="title function_">parmSystemPrint</span><span class="params">(LinkedHashMap&lt;String, String&gt; parmAndValue)</span> &#123;</span><br><span class="line">        List&lt;String&gt; formatStringlines = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;&gt;();</span><br><span class="line">        parmAndValue.forEach((parm, value) -&gt;</span><br><span class="line">                        formatStringlines.add(<span class="string">&quot;\&quot;&quot;</span> + parm + <span class="string">&quot;: \&quot; + &quot;</span> + value)</span><br><span class="line">                            );</span><br><span class="line">        <span class="type">StringBuilder</span> <span class="variable">stringBuilder</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">StringBuilder</span>(<span class="number">32</span>);</span><br><span class="line">        stringBuilder.append(String.join(<span class="string">&quot; + \&quot;, \&quot; + &quot;</span>, formatStringlines));</span><br><span class="line">        <span class="keyword">return</span> stringBuilder.toString();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>执行后生成的.class反编译结果：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.zero.test;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> org.slf4j.Logger;</span><br><span class="line"><span class="keyword">import</span> org.slf4j.LoggerFactory;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">TestMainInJar</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">Logger</span> <span class="variable">LOGGER</span> <span class="operator">=</span> LoggerFactory.getLogger(TestMainInJar.class);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">TestMainInJar</span><span class="params">()</span> &#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> InterruptedException &#123;</span><br><span class="line">        <span class="type">boolean</span> <span class="variable">var1</span> <span class="operator">=</span> <span class="literal">false</span>;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">while</span>(<span class="literal">true</span>) &#123;</span><br><span class="line">            Thread.sleep(<span class="number">1000L</span>);</span><br><span class="line">            <span class="type">int</span> <span class="variable">number</span> <span class="operator">=</span> <span class="number">3</span>;</span><br><span class="line">            test(number);</span><br><span class="line">            (<span class="keyword">new</span> <span class="title class_">TestMainInJar</span>()).test2();</span><br><span class="line">            (<span class="keyword">new</span> <span class="title class_">TestMainInJar</span>()).test3(<span class="number">3L</span>, <span class="string">&quot;zero&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">test</span><span class="params">(<span class="type">int</span> a)</span> <span class="keyword">throws</span> InterruptedException &#123;</span><br><span class="line">        <span class="type">long</span> <span class="variable">startTimeAgent</span> <span class="operator">=</span> System.currentTimeMillis();</span><br><span class="line">        Thread.sleep(<span class="number">1000L</span>);</span><br><span class="line">        LOGGER.info(<span class="string">&quot;test a&quot;</span>);</span><br><span class="line">        <span class="type">Object</span> <span class="variable">var4</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">        System.out.println(<span class="string">&quot;cost:&quot;</span> + (System.currentTimeMillis() - startTimeAgent) + <span class="string">&quot;ms, &quot;</span> + <span class="string">&quot;a: &quot;</span> + a);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">test2</span><span class="params">()</span> <span class="keyword">throws</span> InterruptedException &#123;</span><br><span class="line">        <span class="type">long</span> <span class="variable">startTimeAgent</span> <span class="operator">=</span> System.currentTimeMillis();</span><br><span class="line">        System.out.println(<span class="string">&quot;test2&quot;</span>);</span><br><span class="line">        <span class="type">Object</span> <span class="variable">var4</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">        System.out.println(<span class="string">&quot;cost:&quot;</span> + (System.currentTimeMillis() - startTimeAgent) + <span class="string">&quot;ms&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">test3</span><span class="params">(<span class="type">long</span> a, String b)</span> <span class="keyword">throws</span> InterruptedException &#123;</span><br><span class="line">        <span class="type">long</span> <span class="variable">startTimeAgent</span> <span class="operator">=</span> System.currentTimeMillis();</span><br><span class="line">        System.out.println(<span class="string">&quot;test3: --- &quot;</span> + a + <span class="string">&quot;,&quot;</span> + b);</span><br><span class="line">        <span class="type">Object</span> <span class="variable">var7</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">        System.out.println(<span class="string">&quot;cost:&quot;</span> + (System.currentTimeMillis() - startTimeAgent) + <span class="string">&quot;ms, &quot;</span> + <span class="string">&quot;a: &quot;</span> + a + <span class="string">&quot;, &quot;</span> + <span class="string">&quot;b: &quot;</span> + b);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3%E8%AE%A1%E6%95%B0/" rel="prev" title="滑动窗口计数">
+      <i class="fa fa-chevron-left"></i> 滑动窗口计数
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/Java%E8%8E%B7%E5%8F%96%E6%B3%9B%E5%9E%8BT%E7%9A%84%E7%B1%BB%E5%9E%8B%20T.class/" rel="next" title="Java获取泛型T的类型 T.class">
+      Java获取泛型T的类型 T.class <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">168</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">29</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

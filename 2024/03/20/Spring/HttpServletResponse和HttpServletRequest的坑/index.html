@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="有时候，我们需要用拦截器对Request或者Response流里面的数据进行拦截，读取里面的一些信息，也许是作为日志检索，也许是做一些校验，但是当我们读取里请求或者回调的流数据后，会发现这些流数据在下游就无法再次被消费了，这里面是其实存在着两个潜在的坑。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="HttpServletResponse和HttpServletRequest的坑">
+<meta property="og:url" content="http://example.com/2024/03/20/Spring/HttpServletResponse%E5%92%8CHttpServletRequest%E7%9A%84%E5%9D%91/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="有时候，我们需要用拦截器对Request或者Response流里面的数据进行拦截，读取里面的一些信息，也许是作为日志检索，也许是做一些校验，但是当我们读取里请求或者回调的流数据后，会发现这些流数据在下游就无法再次被消费了，这里面是其实存在着两个潜在的坑。">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2024-03-19T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-08-17T15:13:01.411Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2024/03/20/Spring/HttpServletResponse%E5%92%8CHttpServletRequest%E7%9A%84%E5%9D%91/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>HttpServletResponse和HttpServletRequest的坑 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/20/Spring/HttpServletResponse%E5%92%8CHttpServletRequest%E7%9A%84%E5%9D%91/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          HttpServletResponse和HttpServletRequest的坑
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-03-20 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-20T00:00:00+08:00">2024-03-20</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>有时候，我们需要用拦截器对Request或者Response流里面的数据进行拦截，读取里面的一些信息，也许是作为日志检索，也许是做一些校验，但是当我们读取里请求或者回调的流数据后，会发现这些流数据在下游就无法再次被消费了，这里面是其实存在着两个潜在的坑。</p>
+<span id="more"></span>
+
+<h2 id="坑一"><a href="#坑一" class="headerlink" title="坑一"></a>坑一</h2><p>Request的 getInputStream()、getReader()、getParameter()方法互斥，也就是使用了其中一个，再使用另外的两，是获取不到数据的。<br>除了互斥外，getInputStream()和getReader()都只能使用一次，getParameter单线程上可重复使用。</p>
+<h3 id="三个方法互斥原因"><a href="#三个方法互斥原因" class="headerlink" title="三个方法互斥原因"></a>三个方法互斥原因</h3><p>org.apache.catalina.connector.Request方法实现了javax.servlet.http.HttpServletRequest接口，我们来看看这三个方法的实现：<br><strong>getInputStream</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="keyword">public</span> ServletInputStream <span class="title function_">getInputStream</span><span class="params">()</span> <span class="keyword">throws</span> IOException &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (usingReader) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">IllegalStateException</span></span><br><span class="line">            (sm.getString(<span class="string">&quot;coyoteRequest.getInputStream.ise&quot;</span>));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    usingInputStream = <span class="literal">true</span>;</span><br><span class="line">    <span class="keyword">if</span> (inputStream == <span class="literal">null</span>) &#123;</span><br><span class="line">        inputStream = <span class="keyword">new</span> <span class="title class_">CoyoteInputStream</span>(inputBuffer);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> inputStream;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>getReader</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="keyword">public</span> BufferedReader <span class="title function_">getReader</span><span class="params">()</span> <span class="keyword">throws</span> IOException &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (usingInputStream) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">IllegalStateException</span></span><br><span class="line">            (sm.getString(<span class="string">&quot;coyoteRequest.getReader.ise&quot;</span>));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    usingReader = <span class="literal">true</span>;</span><br><span class="line">    inputBuffer.checkConverter();</span><br><span class="line">    <span class="keyword">if</span> (reader == <span class="literal">null</span>) &#123;</span><br><span class="line">        reader = <span class="keyword">new</span> <span class="title class_">CoyoteReader</span>(inputBuffer);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> reader;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>首先来看getInputStream()和getReader()这两个方法，可以看到，在读流时分别用usingReader和usingInputStream标志做了限制，这两个方法的互斥很好理解。下面看一看getParameter()方法是怎么跟他们互斥的。</p>
+<p><strong>getParameter</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="keyword">public</span> String <span class="title function_">getParameter</span><span class="params">(String name)</span> &#123;</span><br><span class="line">    <span class="comment">// 只会解析一遍Parameter</span></span><br><span class="line">    <span class="keyword">if</span> (!parametersParsed) &#123;</span><br><span class="line">        parseParameters();</span><br><span class="line">    &#125;</span><br><span class="line">  	<span class="comment">// 从coyoteRequest中获取参数</span></span><br><span class="line">    <span class="keyword">return</span> coyoteRequest.getParameters().getParameter(name);</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>粗略一看好像没有互斥，别着急，继续往下看，我们进到parseParameters()方法中来看一看（可以直接看源码中间部分）：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">parseParameters</span><span class="params">()</span> &#123;</span><br><span class="line">		<span class="comment">//标识位，标志已经被解析过。</span></span><br><span class="line">    parametersParsed = <span class="literal">true</span>;</span><br><span class="line">		</span><br><span class="line">    <span class="type">Parameters</span> <span class="variable">parameters</span> <span class="operator">=</span> coyoteRequest.getParameters();</span><br><span class="line">    <span class="type">boolean</span> <span class="variable">success</span> <span class="operator">=</span> <span class="literal">false</span>;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">// Set this every time in case limit has been changed via JMX</span></span><br><span class="line">        parameters.setLimit(getConnector().getMaxParameterCount());</span><br><span class="line"></span><br><span class="line">        <span class="comment">// getCharacterEncoding() may have been overridden to search for</span></span><br><span class="line">        <span class="comment">// hidden form field containing request encoding</span></span><br><span class="line">        <span class="type">String</span> <span class="variable">enc</span> <span class="operator">=</span> getCharacterEncoding();</span><br><span class="line"></span><br><span class="line">        <span class="type">boolean</span> <span class="variable">useBodyEncodingForURI</span> <span class="operator">=</span> connector.getUseBodyEncodingForURI();</span><br><span class="line">        <span class="keyword">if</span> (enc != <span class="literal">null</span>) &#123;</span><br><span class="line">            parameters.setEncoding(enc);</span><br><span class="line">            <span class="keyword">if</span> (useBodyEncodingForURI) &#123;</span><br><span class="line">                parameters.setQueryStringEncoding(enc);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            parameters.setEncoding</span><br><span class="line">                (org.apache.coyote.Constants.DEFAULT_CHARACTER_ENCODING);</span><br><span class="line">            <span class="keyword">if</span> (useBodyEncodingForURI) &#123;</span><br><span class="line">                parameters.setQueryStringEncoding</span><br><span class="line">                    (org.apache.coyote.Constants.DEFAULT_CHARACTER_ENCODING);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        parameters.handleQueryParameters();</span><br><span class="line">		<span class="comment">// 重点看这里：这里会判断是否有读取过流。如果有，则直接return。</span></span><br><span class="line">        <span class="keyword">if</span> (usingInputStream || usingReader) &#123;</span><br><span class="line">            success = <span class="literal">true</span>;</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span>( !getConnector().isParseBodyMethod(getMethod()) ) &#123;</span><br><span class="line">            success = <span class="literal">true</span>;</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="type">String</span> <span class="variable">contentType</span> <span class="operator">=</span> getContentType();</span><br><span class="line">        <span class="keyword">if</span> (contentType == <span class="literal">null</span>) &#123;</span><br><span class="line">            contentType = <span class="string">&quot;&quot;</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="type">int</span> <span class="variable">semicolon</span> <span class="operator">=</span> contentType.indexOf(<span class="string">&#x27;;&#x27;</span>);</span><br><span class="line">        <span class="keyword">if</span> (semicolon &gt;= <span class="number">0</span>) &#123;</span><br><span class="line">            contentType = contentType.substring(<span class="number">0</span>, semicolon).trim();</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            contentType = contentType.trim();</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (<span class="string">&quot;multipart/form-data&quot;</span>.equals(contentType)) &#123;</span><br><span class="line">            parseParts(<span class="literal">false</span>);</span><br><span class="line">            success = <span class="literal">true</span>;</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (!(<span class="string">&quot;application/x-www-form-urlencoded&quot;</span>.equals(contentType))) &#123;</span><br><span class="line">            success = <span class="literal">true</span>;</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="type">int</span> <span class="variable">len</span> <span class="operator">=</span> getContentLength();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (len &gt; <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="type">int</span> <span class="variable">maxPostSize</span> <span class="operator">=</span> connector.getMaxPostSize();</span><br><span class="line">            <span class="keyword">if</span> ((maxPostSize &gt; <span class="number">0</span>) &amp;&amp; (len &gt; maxPostSize)) &#123;</span><br><span class="line">                <span class="type">Context</span> <span class="variable">context</span> <span class="operator">=</span> getContext();</span><br><span class="line">                <span class="keyword">if</span> (context != <span class="literal">null</span> &amp;&amp; context.getLogger().isDebugEnabled()) &#123;</span><br><span class="line">                    context.getLogger().debug(</span><br><span class="line">                            sm.getString(<span class="string">&quot;coyoteRequest.postTooLarge&quot;</span>));</span><br><span class="line">                &#125;</span><br><span class="line">                checkSwallowInput();</span><br><span class="line">                <span class="keyword">return</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="type">byte</span>[] formData = <span class="literal">null</span>;</span><br><span class="line">            <span class="keyword">if</span> (len &lt; CACHED_POST_LEN) &#123;</span><br><span class="line">                <span class="keyword">if</span> (postData == <span class="literal">null</span>) &#123;</span><br><span class="line">                    postData = <span class="keyword">new</span> <span class="title class_">byte</span>[CACHED_POST_LEN];</span><br><span class="line">                &#125;</span><br><span class="line">                formData = postData;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                formData = <span class="keyword">new</span> <span class="title class_">byte</span>[len];</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                <span class="keyword">if</span> (readPostBody(formData, len) != len) &#123;</span><br><span class="line">                    <span class="keyword">return</span>;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">                <span class="comment">// Client disconnect</span></span><br><span class="line">                <span class="type">Context</span> <span class="variable">context</span> <span class="operator">=</span> getContext();</span><br><span class="line">                <span class="keyword">if</span> (context != <span class="literal">null</span> &amp;&amp; context.getLogger().isDebugEnabled()) &#123;</span><br><span class="line">                    context.getLogger().debug(</span><br><span class="line">                            sm.getString(<span class="string">&quot;coyoteRequest.parseParameters&quot;</span>),</span><br><span class="line">                            e);</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">return</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            parameters.processParameters(formData, <span class="number">0</span>, len);</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (<span class="string">&quot;chunked&quot;</span>.equalsIgnoreCase(</span><br><span class="line">                coyoteRequest.getHeader(<span class="string">&quot;transfer-encoding&quot;</span>))) &#123;</span><br><span class="line">            <span class="type">byte</span>[] formData = <span class="literal">null</span>;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                formData = readChunkedPostBody();</span><br><span class="line">            &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">                <span class="comment">// Client disconnect or chunkedPostTooLarge error</span></span><br><span class="line">                <span class="type">Context</span> <span class="variable">context</span> <span class="operator">=</span> getContext();</span><br><span class="line">                <span class="keyword">if</span> (context != <span class="literal">null</span> &amp;&amp; context.getLogger().isDebugEnabled()) &#123;</span><br><span class="line">                    context.getLogger().debug(</span><br><span class="line">                            sm.getString(<span class="string">&quot;coyoteRequest.parseParameters&quot;</span>),</span><br><span class="line">                            e);</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">return</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">if</span> (formData != <span class="literal">null</span>) &#123;</span><br><span class="line">                parameters.processParameters(formData, <span class="number">0</span>, formData.length);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        success = <span class="literal">true</span>;</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (!success) &#123;</span><br><span class="line">            parameters.setParseFailed(<span class="literal">true</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这样一来，就说明了getParameter()方法也不能随意读取的。那么为什么它们都只能读取一次呢？</p>
+<h3 id="只能读取一次的原因"><a href="#只能读取一次的原因" class="headerlink" title="只能读取一次的原因"></a>只能读取一次的原因</h3><p>getInputStream()和getReader()方法都只能读取一次，而getParameter()是在单线程上可重复使用，主要是因为getParameter()中会解析流中的数据后存放在了一个LinkedHashMap中，相关的内容可以看Parameters类中的封装，在上面parseParameters()方法的源码中也可以看到一开始就生成了一个Parameters对象。后续读取的数据都存在了这个对象中。但是getInputStream()和getReader()方法就没有这样做，getInputStream()方法返回CoyoteInputStream，getReader()返回CoyoteReader，CoyoteInputStream继承了InputStream，CoyoteReader继承了BufferedReader，从源码看InputStream和BufferedReader在读取数据后，记录数据读取的坐标不会被重置，因为CoyoteInputStream和CoyoteReader都没有实现reset方法，这导致数据只能被读取一次。</p>
+<h2 id="坑二"><a href="#坑二" class="headerlink" title="坑二"></a>坑二</h2><p>Response与Request一样，getOutputStream()和getWriter()方法也是互斥的，并且Response中的body数据也只能消费一次。</p>
+<h3 id="互斥原因"><a href="#互斥原因" class="headerlink" title="互斥原因"></a>互斥原因</h3><p><strong>getOutputStream</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="keyword">public</span> ServletOutputStream <span class="title function_">getOutputStream</span><span class="params">()</span></span><br><span class="line">    <span class="keyword">throws</span> IOException &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (usingWriter) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">IllegalStateException</span></span><br><span class="line">            (sm.getString(<span class="string">&quot;coyoteResponse.getOutputStream.ise&quot;</span>));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    usingOutputStream = <span class="literal">true</span>;</span><br><span class="line">    <span class="keyword">if</span> (outputStream == <span class="literal">null</span>) &#123;</span><br><span class="line">        outputStream = <span class="keyword">new</span> <span class="title class_">CoyoteOutputStream</span>(outputBuffer);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> outputStream;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>getWriter</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="keyword">public</span> PrintWriter <span class="title function_">getWriter</span><span class="params">()</span></span><br><span class="line">    <span class="keyword">throws</span> IOException &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (usingOutputStream) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">IllegalStateException</span></span><br><span class="line">            (sm.getString(<span class="string">&quot;coyoteResponse.getWriter.ise&quot;</span>));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (ENFORCE_ENCODING_IN_GET_WRITER) &#123;</span><br><span class="line">        setCharacterEncoding(getCharacterEncoding());</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    usingWriter = <span class="literal">true</span>;</span><br><span class="line">    outputBuffer.checkConverter();</span><br><span class="line">    <span class="keyword">if</span> (writer == <span class="literal">null</span>) &#123;</span><br><span class="line">        writer = <span class="keyword">new</span> <span class="title class_">CoyoteWriter</span>(outputBuffer);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> writer;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="只能读取一次的原因-1"><a href="#只能读取一次的原因-1" class="headerlink" title="只能读取一次的原因"></a>只能读取一次的原因</h3><p>在Response中，读取是指从OutputStream中重新把body数据读出来，而OutputStream也和InputStream存在同样的问题，流只能读取一次，这里就不展开讲了。</p>
+<h2 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h2><p>在Spring库中，提供了ContentCachingResponseWrapper和ContentCachingRequestWrapper两个类，分别解决了Response和Request不能重复读以及方法互斥问题。我们可以直接用ContentCachingRequestWrapper来包装Request，ContentCachingResponseWrapper来包装Response，包装后，在读取流数据的时候会将这个数据缓存一份，等读完以后，再将流数据重新写入Request或者Response就可以了。下面是一个简单的使用示例：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">ContentCachingResponseWrapper</span> <span class="variable">responseToCache</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ContentCachingResponseWrapper</span>(response);</span><br><span class="line"><span class="type">String</span> <span class="variable">responseBody</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">String</span>(responseToCache.getContentAsByteArray());</span><br><span class="line">responseToCache.copyBodyToResponse();</span><br></pre></td></tr></table></figure>
+
+<p>缓存一份流数据，这就是基本的解决思路，下面我们从源码层面来看一看，主要关注getContentAsByteArray()、copyBodyToResponse()方法就行：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br><span class="line">219</span><br><span class="line">220</span><br><span class="line">221</span><br><span class="line">222</span><br><span class="line">223</span><br><span class="line">224</span><br><span class="line">225</span><br><span class="line">226</span><br><span class="line">227</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ContentCachingResponseWrapper</span> <span class="keyword">extends</span> <span class="title class_">HttpServletResponseWrapper</span> &#123;</span><br><span class="line"></span><br><span class="line">   <span class="keyword">private</span> <span class="keyword">final</span> <span class="type">FastByteArrayOutputStream</span> <span class="variable">content</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">FastByteArrayOutputStream</span>(<span class="number">1024</span>);</span><br><span class="line"></span><br><span class="line">   <span class="keyword">private</span> <span class="keyword">final</span> <span class="type">ServletOutputStream</span> <span class="variable">outputStream</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ResponseServletOutputStream</span>();</span><br><span class="line"></span><br><span class="line">   <span class="keyword">private</span> PrintWriter writer;</span><br><span class="line"></span><br><span class="line">   <span class="keyword">private</span> <span class="type">int</span> <span class="variable">statusCode</span> <span class="operator">=</span> HttpServletResponse.SC_OK;</span><br><span class="line"></span><br><span class="line">   <span class="keyword">private</span> Integer contentLength;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">   <span class="comment">/**</span></span><br><span class="line"><span class="comment">    * Create a new ContentCachingResponseWrapper for the given servlet response.</span></span><br><span class="line"><span class="comment">    * <span class="doctag">@param</span> response the original servlet response</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">   <span class="keyword">public</span> <span class="title function_">ContentCachingResponseWrapper</span><span class="params">(HttpServletResponse response)</span> &#123;</span><br><span class="line">      <span class="built_in">super</span>(response);</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">   <span class="meta">@Override</span></span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setStatus</span><span class="params">(<span class="type">int</span> sc)</span> &#123;</span><br><span class="line">      <span class="built_in">super</span>.setStatus(sc);</span><br><span class="line">      <span class="built_in">this</span>.statusCode = sc;</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   <span class="meta">@SuppressWarnings(&quot;deprecation&quot;)</span></span><br><span class="line">   <span class="meta">@Override</span></span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setStatus</span><span class="params">(<span class="type">int</span> sc, String sm)</span> &#123;</span><br><span class="line">      <span class="built_in">super</span>.setStatus(sc, sm);</span><br><span class="line">      <span class="built_in">this</span>.statusCode = sc;</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   <span class="meta">@Override</span></span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">sendError</span><span class="params">(<span class="type">int</span> sc)</span> <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">      copyBodyToResponse(<span class="literal">false</span>);</span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">         <span class="built_in">super</span>.sendError(sc);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">catch</span> (IllegalStateException ex) &#123;</span><br><span class="line">         <span class="comment">// Possibly on Tomcat when called too late: fall back to silent setStatus</span></span><br><span class="line">         <span class="built_in">super</span>.setStatus(sc);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="built_in">this</span>.statusCode = sc;</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   <span class="meta">@Override</span></span><br><span class="line">   <span class="meta">@SuppressWarnings(&quot;deprecation&quot;)</span></span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">sendError</span><span class="params">(<span class="type">int</span> sc, String msg)</span> <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">      copyBodyToResponse(<span class="literal">false</span>);</span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">         <span class="built_in">super</span>.sendError(sc, msg);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">catch</span> (IllegalStateException ex) &#123;</span><br><span class="line">         <span class="comment">// Possibly on Tomcat when called too late: fall back to silent setStatus</span></span><br><span class="line">         <span class="built_in">super</span>.setStatus(sc, msg);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="built_in">this</span>.statusCode = sc;</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   <span class="meta">@Override</span></span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">sendRedirect</span><span class="params">(String location)</span> <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">      copyBodyToResponse(<span class="literal">false</span>);</span><br><span class="line">      <span class="built_in">super</span>.sendRedirect(location);</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   <span class="meta">@Override</span></span><br><span class="line">   <span class="keyword">public</span> ServletOutputStream <span class="title function_">getOutputStream</span><span class="params">()</span> <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="built_in">this</span>.outputStream;</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   <span class="meta">@Override</span></span><br><span class="line">   <span class="keyword">public</span> PrintWriter <span class="title function_">getWriter</span><span class="params">()</span> <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">      <span class="keyword">if</span> (<span class="built_in">this</span>.writer == <span class="literal">null</span>) &#123;</span><br><span class="line">         <span class="type">String</span> <span class="variable">characterEncoding</span> <span class="operator">=</span> getCharacterEncoding();</span><br><span class="line">         <span class="built_in">this</span>.writer = (characterEncoding != <span class="literal">null</span> ? <span class="keyword">new</span> <span class="title class_">ResponsePrintWriter</span>(characterEncoding) :</span><br><span class="line">               <span class="keyword">new</span> <span class="title class_">ResponsePrintWriter</span>(WebUtils.DEFAULT_CHARACTER_ENCODING));</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">return</span> <span class="built_in">this</span>.writer;</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   <span class="meta">@Override</span></span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">flushBuffer</span><span class="params">()</span> <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">      <span class="comment">// do not flush the underlying response as the content as not been copied to it yet</span></span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   <span class="meta">@Override</span></span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setContentLength</span><span class="params">(<span class="type">int</span> len)</span> &#123;</span><br><span class="line">      <span class="keyword">if</span> (len &gt; <span class="built_in">this</span>.content.size()) &#123;</span><br><span class="line">         <span class="built_in">this</span>.content.resize(len);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="built_in">this</span>.contentLength = len;</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   <span class="comment">// Overrides Servlet 3.1 setContentLengthLong(long) at runtime</span></span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setContentLengthLong</span><span class="params">(<span class="type">long</span> len)</span> &#123;</span><br><span class="line">      <span class="keyword">if</span> (len &gt; Integer.MAX_VALUE) &#123;</span><br><span class="line">         <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">IllegalArgumentException</span>(<span class="string">&quot;Content-Length exceeds ContentCachingResponseWrapper&#x27;s maximum (&quot;</span> +</span><br><span class="line">               Integer.MAX_VALUE + <span class="string">&quot;): &quot;</span> + len);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="type">int</span> <span class="variable">lenInt</span> <span class="operator">=</span> (<span class="type">int</span>) len;</span><br><span class="line">      <span class="keyword">if</span> (lenInt &gt; <span class="built_in">this</span>.content.size()) &#123;</span><br><span class="line">         <span class="built_in">this</span>.content.resize(lenInt);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="built_in">this</span>.contentLength = lenInt;</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   <span class="meta">@Override</span></span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setBufferSize</span><span class="params">(<span class="type">int</span> size)</span> &#123;</span><br><span class="line">      <span class="keyword">if</span> (size &gt; <span class="built_in">this</span>.content.size()) &#123;</span><br><span class="line">         <span class="built_in">this</span>.content.resize(size);</span><br><span class="line">      &#125;</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   <span class="meta">@Override</span></span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">resetBuffer</span><span class="params">()</span> &#123;</span><br><span class="line">      <span class="built_in">this</span>.content.reset();</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   <span class="meta">@Override</span></span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">reset</span><span class="params">()</span> &#123;</span><br><span class="line">      <span class="built_in">super</span>.reset();</span><br><span class="line">      <span class="built_in">this</span>.content.reset();</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   <span class="comment">/**</span></span><br><span class="line"><span class="comment">    * Return the status code as specified on the response.</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">   <span class="keyword">public</span> <span class="type">int</span> <span class="title function_">getStatusCode</span><span class="params">()</span> &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="built_in">this</span>.statusCode;</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   <span class="comment">/**</span></span><br><span class="line"><span class="comment">    * Return the cached response content as a byte array.</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">   <span class="keyword">public</span> <span class="type">byte</span>[] getContentAsByteArray() &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="built_in">this</span>.content.toByteArray();</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   <span class="comment">/**</span></span><br><span class="line"><span class="comment">    * Return an &#123;<span class="doctag">@link</span> InputStream&#125; to the cached content.</span></span><br><span class="line"><span class="comment">    * <span class="doctag">@since</span> 4.2</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">   <span class="keyword">public</span> InputStream <span class="title function_">getContentInputStream</span><span class="params">()</span> &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="built_in">this</span>.content.getInputStream();</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   <span class="comment">/**</span></span><br><span class="line"><span class="comment">    * Return the current size of the cached content.</span></span><br><span class="line"><span class="comment">    * <span class="doctag">@since</span> 4.2</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">   <span class="keyword">public</span> <span class="type">int</span> <span class="title function_">getContentSize</span><span class="params">()</span> &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="built_in">this</span>.content.size();</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   <span class="comment">/**</span></span><br><span class="line"><span class="comment">    * Copy the complete cached body content to the response.</span></span><br><span class="line"><span class="comment">    * <span class="doctag">@since</span> 4.2</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">copyBodyToResponse</span><span class="params">()</span> <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">      copyBodyToResponse(<span class="literal">true</span>);</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   <span class="comment">/**</span></span><br><span class="line"><span class="comment">    * Copy the cached body content to the response.</span></span><br><span class="line"><span class="comment">    * <span class="doctag">@param</span> complete whether to set a corresponding content length</span></span><br><span class="line"><span class="comment">    * for the complete cached body content</span></span><br><span class="line"><span class="comment">    * <span class="doctag">@since</span> 4.2</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">   <span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">copyBodyToResponse</span><span class="params">(<span class="type">boolean</span> complete)</span> <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">      <span class="keyword">if</span> (<span class="built_in">this</span>.content.size() &gt; <span class="number">0</span>) &#123;</span><br><span class="line">         <span class="type">HttpServletResponse</span> <span class="variable">rawResponse</span> <span class="operator">=</span> (HttpServletResponse) getResponse();</span><br><span class="line">         <span class="keyword">if</span> ((complete || <span class="built_in">this</span>.contentLength != <span class="literal">null</span>) &amp;&amp; !rawResponse.isCommitted()) &#123;</span><br><span class="line">            rawResponse.setContentLength(complete ? <span class="built_in">this</span>.content.size() : <span class="built_in">this</span>.contentLength);</span><br><span class="line">            <span class="built_in">this</span>.contentLength = <span class="literal">null</span>;</span><br><span class="line">         &#125;</span><br><span class="line">         <span class="built_in">this</span>.content.writeTo(rawResponse.getOutputStream());</span><br><span class="line">         <span class="built_in">this</span>.content.reset();</span><br><span class="line">         <span class="keyword">if</span> (complete) &#123;</span><br><span class="line">            <span class="built_in">super</span>.flushBuffer();</span><br><span class="line">         &#125;</span><br><span class="line">      &#125;</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">   <span class="keyword">private</span> <span class="keyword">class</span> <span class="title class_">ResponseServletOutputStream</span> <span class="keyword">extends</span> <span class="title class_">ServletOutputStream</span> &#123;</span><br><span class="line"></span><br><span class="line">      <span class="meta">@Override</span></span><br><span class="line">      <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">write</span><span class="params">(<span class="type">int</span> b)</span> <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">         content.write(b);</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="meta">@Override</span></span><br><span class="line">      <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">write</span><span class="params">(<span class="type">byte</span>[] b, <span class="type">int</span> off, <span class="type">int</span> len)</span> <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">         content.write(b, off, len);</span><br><span class="line">      &#125;</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">   <span class="keyword">private</span> <span class="keyword">class</span> <span class="title class_">ResponsePrintWriter</span> <span class="keyword">extends</span> <span class="title class_">PrintWriter</span> &#123;</span><br><span class="line"></span><br><span class="line">      <span class="keyword">public</span> <span class="title function_">ResponsePrintWriter</span><span class="params">(String characterEncoding)</span> <span class="keyword">throws</span> UnsupportedEncodingException &#123;</span><br><span class="line">         <span class="built_in">super</span>(<span class="keyword">new</span> <span class="title class_">OutputStreamWriter</span>(content, characterEncoding));</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="meta">@Override</span></span><br><span class="line">      <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">write</span><span class="params">(<span class="type">char</span> buf[], <span class="type">int</span> off, <span class="type">int</span> len)</span> &#123;</span><br><span class="line">         <span class="built_in">super</span>.write(buf, off, len);</span><br><span class="line">         <span class="built_in">super</span>.flush();</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="meta">@Override</span></span><br><span class="line">      <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">write</span><span class="params">(String s, <span class="type">int</span> off, <span class="type">int</span> len)</span> &#123;</span><br><span class="line">         <span class="built_in">super</span>.write(s, off, len);</span><br><span class="line">         <span class="built_in">super</span>.flush();</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="meta">@Override</span></span><br><span class="line">      <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">write</span><span class="params">(<span class="type">int</span> c)</span> &#123;</span><br><span class="line">         <span class="built_in">super</span>.write(c);</span><br><span class="line">         <span class="built_in">super</span>.flush();</span><br><span class="line">      &#125;</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>而ContentCachingRequestWrapper的解决思路也是差不多，这里就不展开了，有兴趣的可以直接查看源码。</p>
+<hr>
+<p>转载自：<br><a target="_blank" rel="noopener" href="https://juejin.im/post/5e6aee11e51d452703137ce6">https://juejin.im/post/5e6aee11e51d452703137ce6</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/03/13/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5&%E9%94%81&volatile/AbstractQueuedSynchronizer%EF%BC%88%E4%BA%8C%EF%BC%89/" rel="prev" title="AbstractQueuedSynchronizer（二）">
+      <i class="fa fa-chevron-left"></i> AbstractQueuedSynchronizer（二）
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/03/20/Spring/%E4%BA%8B%E5%8A%A1/%E4%B8%89%E9%97%AESpring%E4%BA%8B%E5%8A%A1%EF%BC%9A%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%EF%BC%9F%E5%AD%98%E5%9C%A8%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F/" rel="next" title="三问Spring事务：解决什么问题？如何解决？存在什么问题？">
+      三问Spring事务：解决什么问题？如何解决？存在什么问题？ <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9D%91%E4%B8%80"><span class="nav-number">1.</span> <span class="nav-text">坑一</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%89%E4%B8%AA%E6%96%B9%E6%B3%95%E4%BA%92%E6%96%A5%E5%8E%9F%E5%9B%A0"><span class="nav-number">1.1.</span> <span class="nav-text">三个方法互斥原因</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%AA%E8%83%BD%E8%AF%BB%E5%8F%96%E4%B8%80%E6%AC%A1%E7%9A%84%E5%8E%9F%E5%9B%A0"><span class="nav-number">1.2.</span> <span class="nav-text">只能读取一次的原因</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9D%91%E4%BA%8C"><span class="nav-number">2.</span> <span class="nav-text">坑二</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BA%92%E6%96%A5%E5%8E%9F%E5%9B%A0"><span class="nav-number">2.1.</span> <span class="nav-text">互斥原因</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%AA%E8%83%BD%E8%AF%BB%E5%8F%96%E4%B8%80%E6%AC%A1%E7%9A%84%E5%8E%9F%E5%9B%A0-1"><span class="nav-number">2.2.</span> <span class="nav-text">只能读取一次的原因</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88"><span class="nav-number">3.</span> <span class="nav-text">解决方案</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">168</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">29</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
