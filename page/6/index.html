@@ -187,6 +187,194 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/06/MQ/%E9%97%B2%E8%81%8AMQ%E8%AE%BE%E8%AE%A1%E4%B9%8B%E5%BC%82%EF%BC%88Kafka%E3%80%81RocketMQ%20%E3%80%81Pulsar%20%EF%BC%89/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/06/MQ/%E9%97%B2%E8%81%8AMQ%E8%AE%BE%E8%AE%A1%E4%B9%8B%E5%BC%82%EF%BC%88Kafka%E3%80%81RocketMQ%20%E3%80%81Pulsar%20%EF%BC%89/" class="post-title-link" itemprop="url">闲聊MQ设计之异（Kafka、RocketMQ 、Pulsar ）</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-06 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-06T00:00:00+08:00">2024-04-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/MQ/" itemprop="url" rel="index"><span itemprop="name">MQ</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>[toc]</p>
+<h1 id="Kafka"><a href="#Kafka" class="headerlink" title="Kafka"></a>Kafka</h1><ol>
+<li>Kafka 架构中，服务节点没有主从之分，主从概念是针对某个 topic 下的分区。 </li>
+<li>存储单位为分区，通过不同方式分散在各个节点，形成各种架构图。</li>
+<li>生产者数量为 1，消费者数量为 1，分区数为 2，副本数为 3，服务节点数为 3。</li>
+<li>图中有两块绿色图案，分别为 topic1-partition1 分区和 topic1-partition2 分区，浅绿色方块为它们的副本。</li>
+<li>对于服务节点 1，topic1-partition1 是主节点；对于服务节点 2，topic1-partition2 是主节点。</li>
+</ol>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408031504810.png" alt="在这里插入图片描述"></p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/04/06/MQ/%E9%97%B2%E8%81%8AMQ%E8%AE%BE%E8%AE%A1%E4%B9%8B%E5%BC%82%EF%BC%88Kafka%E3%80%81RocketMQ%20%E3%80%81Pulsar%20%EF%BC%89/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/Redis/Redis%20Cluster%E6%A8%A1%E5%BC%8F%E6%9E%B6%E6%9E%84%E4%BB%8B%E7%BB%8D/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/Redis/Redis%20Cluster%E6%A8%A1%E5%BC%8F%E6%9E%B6%E6%9E%84%E4%BB%8B%E7%BB%8D/" class="post-title-link" itemprop="url">Redis Cluster模式架构介绍</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-06 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-06T00:00:00+08:00">2024-04-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93-%E7%BC%93%E5%AD%98/" itemprop="url" rel="index"><span itemprop="name">数据库&缓存</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93-%E7%BC%93%E5%AD%98/Redis/" itemprop="url" rel="index"><span itemprop="name">Redis</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>[toc]</p>
+<h1 id="1-概述"><a href="#1-概述" class="headerlink" title="1. 概述"></a>1. 概述</h1><p>Redis Cluster，采用了去中心化的多主多从架构，以提高数据的可用性和伸缩性。Redis集群的目的是实现数据的横向伸缩，把一块数据分片保存到多个机器，可以横向扩展数据库大小，扩展带宽，计算能力等。</p>
+<p>以下是Redis Cluster的几个关键特点和优势的详细阐述：</p>
+<ul>
+<li><p><strong>去中心化的多主多从架构</strong>：</p>
+<ul>
+<li>每个从节点都复制主节点的数据，但不直接参与读写操作，主要用于数据备份和故障恢复。</li>
+<li>这种架构使得每个节点都可以在需要时承担主节点的角色，从而提高了整体系统的可靠性和容错能力。</li>
+</ul>
+</li>
+<li><p><strong>数据处理与性能</strong>：</p>
+<ul>
+<li>Redis Cluster在处理涉及多个键的操作时可能面临性能挑战，尤其是在数据量大和高并发的场景下。这是因为多key操作可能需要跨多个节点进行，从而增加了操作的复杂性。</li>
+<li>然而，对于单key操作，Redis Cluster能够保持其一贯的高性能，特别是在读操作上。</li>
+</ul>
+</li>
+<li><p><strong>动态扩容和收缩能力</strong>：</p>
+<ul>
+<li>Redis Cluster支持动态地添加或移除节点，这意味着可以根据实际需求调整集群的规模，无需停机或中断服务。</li>
+<li>这一特性对于处理不断变化的负载和数据量非常重要，使得Redis Cluster在大型应用中更具弹性。</li>
+</ul>
+</li>
+<li><p><strong>节点间的通信与故障转移</strong>：</p>
+<ul>
+<li>在Redis Cluster中，主节点之间会进行定期的健康检查和状态同步，确保数据的一致性。</li>
+<li>当主节点出现故障时，其他主节点可以通过选举机制快速选出新的主节点，实现故障的自动转移，从而确保服务的连续性。</li>
+</ul>
+</li>
+</ul>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/Redis/Redis%20Cluster%E6%A8%A1%E5%BC%8F%E6%9E%B6%E6%9E%84%E4%BB%8B%E7%BB%8D/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
     <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/06/%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1/RST%E5%8F%8Ajava%20socket%E5%85%B3%E9%97%AD%E5%90%8E%E8%AF%BB%E5%86%99%E7%9A%84%E5%90%84%E7%A7%8D%E5%BC%82%E5%B8%B8/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -824,170 +1012,10 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F%E7%9A%84%E6%8E%A5%E5%8F%A3%E5%B9%82%E7%AD%89%E6%80%A7/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F%E7%9A%84%E6%8E%A5%E5%8F%A3%E5%B9%82%E7%AD%89%E6%80%A7/" class="post-title-link" itemprop="url">分布式系统的接口幂等性</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-04-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-05T00:00:00+08:00">2024-04-05</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/" itemprop="url" rel="index"><span itemprop="name">分布式与微服务</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>[toc]</p>
-<h1 id="一、-背景"><a href="#一、-背景" class="headerlink" title="一、 背景"></a>一、 背景</h1><p>实际系统中有很多操作，不管做多少次，都应该产生一样的效果或返回一样的结果。比如完成一个订单流程时经常遇到下面的场景：</p>
-<ol>
-<li>一个订单创建接口，第一次调用超时了，然后调用方重试了一次</li>
-<li>在订单创建时，需要去扣减库存，这时接口发生了超时，调用方重试了一次</li>
-<li>当这笔订单开始支付，在支付请求发出之后，在服务端发生了扣钱操作，接口响应超时了，调用方重试了一次</li>
-<li>一个订单状态更新接口，调用方连续发送了两个消息，一个是已创建，一个是已付款。但是先接收到已付款，然后又接收到了已创建</li>
-<li>在支付完成订单之后，需要发送一条短信，当一台机器接收到短信发送的消息之后，处理较慢。消息中间件又把消息投递给另外一台机器处理。</li>
-</ol>
-<p>为了解决以上问题，就需要保证接口的幂等性。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F%E7%9A%84%E6%8E%A5%E5%8F%A3%E5%B9%82%E7%AD%89%E6%80%A7/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/" class="post-title-link" itemprop="url">分布式锁</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-04-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-05T00:00:00+08:00">2024-04-05</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/" itemprop="url" rel="index"><span itemprop="name">分布式与微服务</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>[toc]<br>如果在公司里落地生产环境用分布式锁的时候，一定是会用开源类库的，比如Redis分布式锁，一般就是用Redisson框架就好了，非常的简便易用。感兴趣可以去Redisson官网看看如何在项目中引入Redisson的依赖，然后基于Redis实现分布式锁的加锁与释放锁。</p>
-<p>一段简单的使用代码片段，先直观的感受一下：</p>
-<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291824484.jpeg" alt="再有人问你分布式锁，就把这个丢给他！"></p>
-<p>是不是感觉简单的不行！此外，还支持Redis单实例、Redis哨兵、Redis Cluster、redis master-slave等各种部署架构，都可以完美实现。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/04/05/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/5/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/5/">5</a><span class="page-number current">6</span><a class="page-number" href="/page/7/">7</a><span class="space">&hellip;</span><a class="page-number" href="/page/17/">17</a><a class="extend next" rel="next" href="/page/7/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/5/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/5/">5</a><span class="page-number current">6</span><a class="page-number" href="/page/7/">7</a><span class="space">&hellip;</span><a class="page-number" href="/page/18/">18</a><a class="extend next" rel="next" href="/page/7/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -1053,14 +1081,14 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">168</span>
+          <span class="site-state-item-count">179</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">29</span>
+        <span class="site-state-item-count">30</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
   </nav>

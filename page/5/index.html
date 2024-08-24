@@ -187,6 +187,183 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/Redis/Redis%E8%BF%87%E6%9C%9F%E7%AD%96%E7%95%A5%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/Redis/Redis%E8%BF%87%E6%9C%9F%E7%AD%96%E7%95%A5%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/" class="post-title-link" itemprop="url">Redis过期策略实现原理</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-06 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-06T00:00:00+08:00">2024-04-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93-%E7%BC%93%E5%AD%98/" itemprop="url" rel="index"><span itemprop="name">数据库&缓存</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93-%E7%BC%93%E5%AD%98/Redis/" itemprop="url" rel="index"><span itemprop="name">Redis</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>我们在使用redis时，一般会设置一个过期时间，当然也有不设置过期时间的，也就是永久不过期。<br>当我们设置了过期时间，redis是如何判断是否过期，以及根据什么策略来进行删除的。</p>
+<p>1.redis设置过期时间：expire 只针对顶级key有效，即哈希结构不支持过期</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">expire key time(以秒为单位)--这是最常用的方式</span><br><span class="line"></span><br><span class="line">setex(String key, int seconds, String value)--字符串独有的方式</span><br></pre></td></tr></table></figure>
+<p>注：<br>除了字符串自己独有设置过期时间的方法外，其他方法都需要依靠expire方法来设置时间;<br>如果没有设置时间，那缓存就是永不过期;<br>如果设置了过期时间，之后又想让缓存永不过期，使用persist key;</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/Redis/Redis%E8%BF%87%E6%9C%9F%E7%AD%96%E7%95%A5%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/MySQL/%E5%8E%9F%E7%90%86/InnoDB%E7%9A%84%E9%94%81/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/MySQL/%E5%8E%9F%E7%90%86/InnoDB%E7%9A%84%E9%94%81/" class="post-title-link" itemprop="url">通过SQL分析数据库加锁</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-06 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-06T00:00:00+08:00">2024-04-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93-%E7%BC%93%E5%AD%98/" itemprop="url" rel="index"><span itemprop="name">数据库&缓存</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93-%E7%BC%93%E5%AD%98/MySQL/" itemprop="url" rel="index"><span itemprop="name">MySQL</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93-%E7%BC%93%E5%AD%98/MySQL/%E5%8E%9F%E7%90%86/" itemprop="url" rel="index"><span itemprop="name">原理</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>[toc]<br>&emsp;&emsp;InnoDB与MyISAM的最大不同有两点：一是支持事务（TRANSACTION）；二是采用了行级锁。（还有一个支持外键）</p>
+<h3 id="获取InnoDB行锁争用情况"><a href="#获取InnoDB行锁争用情况" class="headerlink" title="获取InnoDB行锁争用情况"></a>获取InnoDB行锁争用情况</h3><p>&emsp;&emsp;可以通过检查InnoDB_row_lock状态变量来分析系统上的行锁的争夺情况：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; show status like &#x27;innodb_row_lock%&#x27;;</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;如果发现锁争用比较严重，如InnoDB_row_lock_waits和InnoDB_row_lock_time_avg的值比较高，还可以通过设置InnoDB Monitors来进一步观察发生锁冲突的表、数据行等，并分析锁争用的原因。</p>
+<h3 id="InnoDB的行锁模式及加锁方法"><a href="#InnoDB的行锁模式及加锁方法" class="headerlink" title="InnoDB的行锁模式及加锁方法"></a>InnoDB的行锁模式及加锁方法</h3><p>&emsp;&emsp;InnoDB实现了以下两种类型的行锁。</p>
+<ul>
+<li>共享锁（S, shared locks）：允许一个事务去读一行，阻止其他事务获得相同数据集的排他锁。</li>
+<li>排他锁（X, exclusive locks）：允许获得排他锁的事务更新数据，阻止其他事务取得相同数据集的共享读锁和排他写锁。</li>
+</ul>
+<p>&emsp;&emsp;InnoDB支持多粒度的锁，也即，除了行锁外还支持表锁，表锁通过意向锁实现，用以提示事务即将对表中的行添加什么样的锁。InnoDB有两种内部使用的意向锁（Intention Locks）：</p>
+<ul>
+<li>意向共享锁（IS）：事务打算给数据行加行共享锁，事务在给一个数据行加共享锁前必须先取得该表的IS锁。</li>
+<li>意向排他锁（IX）：事务打算给数据行加行排他锁，事务在给一个数据行加排他锁前必须先取得该表的IX锁。</li>
+</ul>
+<p>&emsp;&emsp;上述锁模式的兼容情况具体如表:<br><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171003468.png"></p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/MySQL/%E5%8E%9F%E7%90%86/InnoDB%E7%9A%84%E9%94%81/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
     <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/MySQL/%E5%8E%9F%E7%90%86/redo%20log%E3%80%81undo%20log%E3%80%81binlog/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -841,198 +1018,10 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/06/MQ/%E9%97%B2%E8%81%8AMQ%E8%AE%BE%E8%AE%A1%E4%B9%8B%E5%BC%82%EF%BC%88Kafka%E3%80%81RocketMQ%20%E3%80%81Pulsar%20%EF%BC%89/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/04/06/MQ/%E9%97%B2%E8%81%8AMQ%E8%AE%BE%E8%AE%A1%E4%B9%8B%E5%BC%82%EF%BC%88Kafka%E3%80%81RocketMQ%20%E3%80%81Pulsar%20%EF%BC%89/" class="post-title-link" itemprop="url">闲聊MQ设计之异（Kafka、RocketMQ 、Pulsar ）</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-04-06 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-06T00:00:00+08:00">2024-04-06</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/MQ/" itemprop="url" rel="index"><span itemprop="name">MQ</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>[toc]</p>
-<h1 id="Kafka"><a href="#Kafka" class="headerlink" title="Kafka"></a>Kafka</h1><ol>
-<li>Kafka 架构中，服务节点没有主从之分，主从概念是针对某个 topic 下的分区。 </li>
-<li>存储单位为分区，通过不同方式分散在各个节点，形成各种架构图。</li>
-<li>生产者数量为 1，消费者数量为 1，分区数为 2，副本数为 3，服务节点数为 3。</li>
-<li>图中有两块绿色图案，分别为 topic1-partition1 分区和 topic1-partition2 分区，浅绿色方块为它们的副本。</li>
-<li>对于服务节点 1，topic1-partition1 是主节点；对于服务节点 2，topic1-partition2 是主节点。</li>
-</ol>
-<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408031504810.png" alt="在这里插入图片描述"></p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/04/06/MQ/%E9%97%B2%E8%81%8AMQ%E8%AE%BE%E8%AE%A1%E4%B9%8B%E5%BC%82%EF%BC%88Kafka%E3%80%81RocketMQ%20%E3%80%81Pulsar%20%EF%BC%89/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/Redis/Redis%20Cluster%E6%A8%A1%E5%BC%8F%E6%9E%B6%E6%9E%84%E4%BB%8B%E7%BB%8D/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/Redis/Redis%20Cluster%E6%A8%A1%E5%BC%8F%E6%9E%B6%E6%9E%84%E4%BB%8B%E7%BB%8D/" class="post-title-link" itemprop="url">Redis Cluster模式架构介绍</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-04-06 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-06T00:00:00+08:00">2024-04-06</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93-%E7%BC%93%E5%AD%98/" itemprop="url" rel="index"><span itemprop="name">数据库&缓存</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93-%E7%BC%93%E5%AD%98/Redis/" itemprop="url" rel="index"><span itemprop="name">Redis</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>[toc]</p>
-<h1 id="1-概述"><a href="#1-概述" class="headerlink" title="1. 概述"></a>1. 概述</h1><p>Redis Cluster，采用了去中心化的多主多从架构，以提高数据的可用性和伸缩性。Redis集群的目的是实现数据的横向伸缩，把一块数据分片保存到多个机器，可以横向扩展数据库大小，扩展带宽，计算能力等。</p>
-<p>以下是Redis Cluster的几个关键特点和优势的详细阐述：</p>
-<ul>
-<li><p><strong>去中心化的多主多从架构</strong>：</p>
-<ul>
-<li>每个从节点都复制主节点的数据，但不直接参与读写操作，主要用于数据备份和故障恢复。</li>
-<li>这种架构使得每个节点都可以在需要时承担主节点的角色，从而提高了整体系统的可靠性和容错能力。</li>
-</ul>
-</li>
-<li><p><strong>数据处理与性能</strong>：</p>
-<ul>
-<li>Redis Cluster在处理涉及多个键的操作时可能面临性能挑战，尤其是在数据量大和高并发的场景下。这是因为多key操作可能需要跨多个节点进行，从而增加了操作的复杂性。</li>
-<li>然而，对于单key操作，Redis Cluster能够保持其一贯的高性能，特别是在读操作上。</li>
-</ul>
-</li>
-<li><p><strong>动态扩容和收缩能力</strong>：</p>
-<ul>
-<li>Redis Cluster支持动态地添加或移除节点，这意味着可以根据实际需求调整集群的规模，无需停机或中断服务。</li>
-<li>这一特性对于处理不断变化的负载和数据量非常重要，使得Redis Cluster在大型应用中更具弹性。</li>
-</ul>
-</li>
-<li><p><strong>节点间的通信与故障转移</strong>：</p>
-<ul>
-<li>在Redis Cluster中，主节点之间会进行定期的健康检查和状态同步，确保数据的一致性。</li>
-<li>当主节点出现故障时，其他主节点可以通过选举机制快速选出新的主节点，实现故障的自动转移，从而确保服务的连续性。</li>
-</ul>
-</li>
-</ul>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/Redis/Redis%20Cluster%E6%A8%A1%E5%BC%8F%E6%9E%B6%E6%9E%84%E4%BB%8B%E7%BB%8D/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/4/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/4/">4</a><span class="page-number current">5</span><a class="page-number" href="/page/6/">6</a><span class="space">&hellip;</span><a class="page-number" href="/page/17/">17</a><a class="extend next" rel="next" href="/page/6/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/4/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/4/">4</a><span class="page-number current">5</span><a class="page-number" href="/page/6/">6</a><span class="space">&hellip;</span><a class="page-number" href="/page/18/">18</a><a class="extend next" rel="next" href="/page/6/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -1098,14 +1087,14 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">168</span>
+          <span class="site-state-item-count">179</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">29</span>
+        <span class="site-state-item-count">30</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
   </nav>

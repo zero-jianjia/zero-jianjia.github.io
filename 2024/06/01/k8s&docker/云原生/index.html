@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="转载自：https:&#x2F;&#x2F;blog.csdn.net&#x2F;csdnnews&#x2F;article&#x2F;details&#x2F;90093190&emsp;&emsp;&emsp;&emsp;https:&#x2F;&#x2F;www.cnblogs.com&#x2F;IT-Evan&#x2F;p&#x2F;CloudNative.html [toc] 前言&emsp;&emsp;自 2013 年容器（虚拟）技术（Docker）成熟后，后端的架构方式进入快速迭代的阶段，出">
+<meta property="og:type" content="article">
+<meta property="og:title" content="元原生">
+<meta property="og:url" content="http://example.com/2024/06/01/k8s&docker/%E4%BA%91%E5%8E%9F%E7%94%9F/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="转载自：https:&#x2F;&#x2F;blog.csdn.net&#x2F;csdnnews&#x2F;article&#x2F;details&#x2F;90093190&emsp;&emsp;&emsp;&emsp;https:&#x2F;&#x2F;www.cnblogs.com&#x2F;IT-Evan&#x2F;p&#x2F;CloudNative.html [toc] 前言&emsp;&emsp;自 2013 年容器（虚拟）技术（Docker）成熟后，后端的架构方式进入快速迭代的阶段，出">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408182142983.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408182142792.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408182142439.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408182142600.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408182143118.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408182143761.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408182143882.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408182143558.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408182143261.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408182143810.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408182143398.webp">
+<meta property="article:published_time" content="2024-05-31T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-08-18T13:45:14.913Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408182142983.png">
+
+<link rel="canonical" href="http://example.com/2024/06/01/k8s&docker/%E4%BA%91%E5%8E%9F%E7%94%9F/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>元原生 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/06/01/k8s&docker/%E4%BA%91%E5%8E%9F%E7%94%9F/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          元原生
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-06-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-06-01T00:00:00+08:00">2024-06-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/k8s-docker/" itemprop="url" rel="index"><span itemprop="name">k8s&docker</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>转载自：<a target="_blank" rel="noopener" href="https://blog.csdn.net/csdnnews/article/details/90093190">https://blog.csdn.net/csdnnews/article/details/90093190</a><br>&emsp;&emsp;&emsp;&emsp;<a target="_blank" rel="noopener" href="https://www.cnblogs.com/IT-Evan/p/CloudNative.html">https://www.cnblogs.com/IT-Evan/p/CloudNative.html</a></p>
+<p>[toc]</p>
+<h3 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h3><p>&emsp;&emsp;自 2013 年容器（虚拟）技术（Docker）成熟后，后端的架构方式进入快速迭代的阶段，出现了很多新兴概念：</p>
+<blockquote>
+<ul>
+<li>微服务</li>
+<li>k8s</li>
+<li>Serverless</li>
+<li>IaaS：基础设施服务，Infrastructure-as-a-service</li>
+<li>PaaS：平台服务，Platform-as-a-service</li>
+<li>SaaS：软件服务，Software-as-a-service</li>
+<li>Cloud Native： 云原生</li>
+<li>Service Mesh</li>
+</ul>
+</blockquote>
+<p>&emsp;&emsp;后端架构的变迁和云计算的发展密切相关，架构其实在不断地适应云计算，特别是云原生，被誉为未来架构，在 2019 年，云原生落地方案 Service Mesh 在国内外全面开花，我认为，未来已来。</p>
+<span id="more"></span>
+
+<h3 id="云原生-Cloud-Native"><a href="#云原生-Cloud-Native" class="headerlink" title="云原生 Cloud Native"></a>云原生 Cloud Native</h3><p>&emsp;&emsp;如何理解“云原生”？之所以将这个话题放在前面，是因为，这是对云原生概念的最基本的理解，而这会直接影响到后续的所有认知。云原生的定义一直在发展，每个人对云原生的理解都可能不同。2018 年 CNCF (Cloud Native Computing Foundation)更新了云原生的定义。<br><img src='https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408182142983.png'><br>&emsp;&emsp;这是新定义中描述的代表技术，其中容器和微服务两项在不同时期的不同定义中都有出现，而服务网格这个在 2017 年才开始被社区接纳的新热点技术被非常醒目的列出来，和微服务并列，而不是我们通常认为的服务网格只是微服务在实施时的一种新的方式。<br>&emsp;&emsp;那我们该如何理解云原生呢？我们尝试一下，将 Cloud Native 这个词汇拆开来理解，先看看什么是 Cloud。</p>
+<h4 id="什么是云-Cloud"><a href="#什么是云-Cloud" class="headerlink" title="什么是云 Cloud"></a>什么是云 Cloud</h4><p>&emsp;&emsp;云计算的出现和虚拟化技术的发展和成熟密切相关，2000 年前后 x86 的虚拟机技术成熟后，云计算逐渐发展起来。<br>&emsp;&emsp;基于虚拟机技术，陆续出现了 IaaS&#x2F;PaaS&#x2F;FaaS 等形态，以及他们的开源版本。<br>&emsp;&emsp;2013 年 docker 出现，容器技术成熟，然后围绕容器编排一场大战，最后在 2017 年底，kubernetes 胜出。2015 年 CNCF 成立，并在近年形成了 cloud native 生态。<br>&emsp;&emsp;在这个过程中，云的形态一直变化，可以看到：供应商提供的功能越来越多，而客户或者说应用需要自己管理的功能越来越少。</p>
+<h4 id="什么是原生-Native"><a href="#什么是原生-Native" class="headerlink" title="什么是原生 Native"></a>什么是原生 Native</h4><p>&emsp;&emsp;云原生代表着原生为云设计。详细的解释是：应用原生被设计为在云上以最佳方式运行，充分发挥云的优势。<br>&emsp;&emsp;这个理解有点空泛，但是考虑到云原生的定义和特征在这些年间不停的变化，以及完全可以预料到的在未来的必然变化，我觉得，对云原生的理解似乎也只能回到云原生的出发点，而不是如何具体实现。</p>
+<h4 id="Cloud-Native-是道，Service-Mesh-是术"><a href="#Cloud-Native-是道，Service-Mesh-是术" class="headerlink" title="Cloud Native 是道，Service Mesh 是术"></a>Cloud Native 是道，Service Mesh 是术</h4><p>&emsp;&emsp;那在这么一个云原生理解的背景下，再来介绍一下对云原生应用的设想，也就是云原生应用应该是什么样子。<br><img src='https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408182142792.png'><br>&emsp;&emsp;在云原生之前，底层平台负责向上提供基本运行资源。而应用需要满足业务需求和非业务需求，为了更好的代码复用，通用型好的非业务需求的实现往往会以类库和开发框架的方式提供，另外在 SOA&#x2F; 微服务时代部分功能会以后端服务的方式存在，这样在应用中就被简化为对其客户端的调用代码。然后应用将这些功能，连同自身的业务实现代码，一起打包。<br><img src='https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408182142439.png'><br>&emsp;&emsp;而云的出现，可以在提供各种资源之外，还提供各种能力，从而帮助应用，使得应用可以专注于业务需求的实现。非业务需求相关的功能都被移到云，或者说基础设施中去了，以及下沉到基础设施的中间件。</p>
+<p>&emsp;&emsp;以服务间通讯为例：需要实现下面列举的各种功能。<br><img src='https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408182142600.png'><br>&emsp;&emsp;SDK 的思路：在应用层添加一个胖客户端，在这个客户端中实现各种功能。<br><img src='https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408182143118.png'><br>&emsp;&emsp;Service Mesh 的思路，体现在将 SDK 客户端的功能剥离出来，放到 Sidecar 中。就是把更多的事情下沉，下沉到基础设施中。<br><img src='https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408182143761.png'><br>&emsp;&emsp;从整体来看，应用是这样的：<br><img src='https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408182143882.png'><br>&emsp;&emsp;但在用户看来，应用长这样：<br><img src='https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408182143558.png'></p>
+<p>&emsp;&emsp;</p>
+<h3 id="Service-Mesh"><a href="#Service-Mesh" class="headerlink" title="Service Mesh"></a>Service Mesh</h3><p>&emsp;&emsp;其中文译名是服务网格，这个词最早使用由开发Linkerd的Buoyant公司提出，并在内部使用。<br>&emsp;&emsp;定义和基本构成<br><img src='https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408182143261.png'><br><img src='https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408182143810.png'></p>
+<h4 id="Istio"><a href="#Istio" class="headerlink" title="Istio"></a>Istio</h4><p>&emsp;&emsp;Istio 是当前最受欢迎的 Service Mesh 框架，一句话定义 Istio：一个用来连接、管理和保护微服务的开放平台。它能给我们的微服务提供哪些功能呢？</p>
+<h5 id="连接"><a href="#连接" class="headerlink" title="连接"></a>连接</h5><blockquote>
+<ul>
+<li>动态路由</li>
+<li>超时重试</li>
+<li>熔断</li>
+<li>故障注入</li>
+</ul>
+</blockquote>
+<h5 id="保护"><a href="#保护" class="headerlink" title="保护"></a>保护</h5><p>&emsp;&emsp;安全问题一开始就要做好，在 Istio 实现安全通讯是非常方便的。Istio 支持双向 TLS 加密</p>
+<h5 id="控制"><a href="#控制" class="headerlink" title="控制"></a>控制</h5><blockquote>
+<ul>
+<li>速率限制</li>
+<li>黑白名单</li>
+</ul>
+</blockquote>
+<h5 id="观测"><a href="#观测" class="headerlink" title="观测"></a>观测</h5><blockquote>
+<ul>
+<li>指标度量：每秒请求数，Prometheus 与 Grafana</li>
+<li>分布式追踪：Jaeger 或 Zipkin</li>
+<li>日志：非应用日志</li>
+<li>网格可视化：快速理清服务的关系</li>
+</ul>
+</blockquote>
+<p>&emsp;&emsp;</p>
+<hr>
+<hr>
+<p>&emsp;&emsp;</p>
+<h3 id="何谓云原生？"><a href="#何谓云原生？" class="headerlink" title="何谓云原生？"></a>何谓云原生？</h3><p>&emsp;&emsp;云原生是一种构建和运行应用程序的方法，是一套技术体系和方法论。云原生（CloudNative）是一个组合词，Cloud+Native。<br>&emsp;&emsp;Cloud表示应用程序位于云中，而不是传统的数据中心；Native表示应用程序从设计之初即考虑到云的环境，原生为云而设计，在云上以最佳姿势运行，充分利用和发挥云平台的弹性+分布式优势。<br>&emsp;&emsp;何为云原生？大概说一下最容易记住和理解的定义：DevOps+持续交付+微服务+容器。符合云原生架构的应用程序应该是：采用开源堆栈（K8S+Docker）进行容器化，基于微服务架构提高灵活性和可维护性，借助敏捷方法、DevOps支持持续迭代和运维自动化，利用云平台设施实现弹性伸缩、动态调度、优化资源利用率。<br><img src='https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408182143398.webp'></p>
+<h3 id="云元素的四要素"><a href="#云元素的四要素" class="headerlink" title="云元素的四要素"></a>云元素的四要素</h3><h4 id="微服务："><a href="#微服务：" class="headerlink" title="微服务："></a>微服务：</h4><p>&emsp;&emsp;微服务架构的好处就是按function切了之后，服务解耦，内聚更强，变更更易；另一个划分服务的技巧据说是依据DDD来搞。</p>
+<h4 id="容器化："><a href="#容器化：" class="headerlink" title="容器化："></a>容器化：</h4><p>&emsp;&emsp;Docker是应用最为广泛的容器引擎，容器化为微服务提供实施保障，起到应用隔离作用，K8S是容器编排系统，用于容器管理，容器间的负载均衡。</p>
+<h4 id="DevOps："><a href="#DevOps：" class="headerlink" title="DevOps："></a>DevOps：</h4><p>&emsp;&emsp;这是个组合词，Dev+Ops，就是开发和运维合体，实际上DevOps应该还包括测试，DevOps是一个敏捷思维，是一个沟通文化，也是组织形式，为云原生提供持续交付能力。</p>
+<h4 id="持续交付："><a href="#持续交付：" class="headerlink" title="持续交付："></a>持续交付：</h4><p>&emsp;&emsp;持续交付是不误时开发，不停机更新，小步快跑，反传统瀑布式开发模型，这要求开发版本和稳定版本并存，其实需要很多流程和工具支撑。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/05/16/%E7%9B%AE%E5%BD%95%E5%BE%85%E5%AE%9A/%E7%9B%91%E6%8E%A7%E7%B3%BB%E7%BB%9F%E4%BB%8B%E7%BB%8D/" rel="prev" title="监控系统介绍">
+      <i class="fa fa-chevron-left"></i> 监控系统介绍
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/06/01/k8s&docker/%E4%BB%80%E4%B9%88%E6%98%AF%E5%85%83%E5%8E%9F%E7%94%9F/" rel="next" title="什么是元原生">
+      什么是元原生 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%89%8D%E8%A8%80"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BA%91%E5%8E%9F%E7%94%9F-Cloud-Native"><span class="nav-number">2.</span> <span class="nav-text">云原生 Cloud Native</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF%E4%BA%91-Cloud"><span class="nav-number">2.1.</span> <span class="nav-text">什么是云 Cloud</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF%E5%8E%9F%E7%94%9F-Native"><span class="nav-number">2.2.</span> <span class="nav-text">什么是原生 Native</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Cloud-Native-%E6%98%AF%E9%81%93%EF%BC%8CService-Mesh-%E6%98%AF%E6%9C%AF"><span class="nav-number">2.3.</span> <span class="nav-text">Cloud Native 是道，Service Mesh 是术</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Service-Mesh"><span class="nav-number">3.</span> <span class="nav-text">Service Mesh</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Istio"><span class="nav-number">3.1.</span> <span class="nav-text">Istio</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#%E8%BF%9E%E6%8E%A5"><span class="nav-number">3.1.1.</span> <span class="nav-text">连接</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E4%BF%9D%E6%8A%A4"><span class="nav-number">3.1.2.</span> <span class="nav-text">保护</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E6%8E%A7%E5%88%B6"><span class="nav-number">3.1.3.</span> <span class="nav-text">控制</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E8%A7%82%E6%B5%8B"><span class="nav-number">3.1.4.</span> <span class="nav-text">观测</span></a></li></ol></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BD%95%E8%B0%93%E4%BA%91%E5%8E%9F%E7%94%9F%EF%BC%9F"><span class="nav-number">4.</span> <span class="nav-text">何谓云原生？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BA%91%E5%85%83%E7%B4%A0%E7%9A%84%E5%9B%9B%E8%A6%81%E7%B4%A0"><span class="nav-number">5.</span> <span class="nav-text">云元素的四要素</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%BE%AE%E6%9C%8D%E5%8A%A1%EF%BC%9A"><span class="nav-number">5.1.</span> <span class="nav-text">微服务：</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%AE%B9%E5%99%A8%E5%8C%96%EF%BC%9A"><span class="nav-number">5.2.</span> <span class="nav-text">容器化：</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#DevOps%EF%BC%9A"><span class="nav-number">5.3.</span> <span class="nav-text">DevOps：</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%8C%81%E7%BB%AD%E4%BA%A4%E4%BB%98%EF%BC%9A"><span class="nav-number">5.4.</span> <span class="nav-text">持续交付：</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">179</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">30</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

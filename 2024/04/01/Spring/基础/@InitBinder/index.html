@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="转载自：　　https:&#x2F;&#x2F;blog.csdn.net&#x2F;ai_xiangjuan&#x2F;article&#x2F;details&#x2F;79842385　　https:&#x2F;&#x2F;blog.csdn.net&#x2F;ai_xiangjuan&#x2F;article&#x2F;details&#x2F;79696639 　　@InitBinder用于在@Controller中标注于方法上，表示为当前控制器注册一个属性编辑器，只对当前的Controller有效。@I">
+<meta property="og:type" content="article">
+<meta property="og:title" content="注解@InitBinder">
+<meta property="og:url" content="http://example.com/2024/04/01/Spring/%E5%9F%BA%E7%A1%80/@InitBinder/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="转载自：　　https:&#x2F;&#x2F;blog.csdn.net&#x2F;ai_xiangjuan&#x2F;article&#x2F;details&#x2F;79842385　　https:&#x2F;&#x2F;blog.csdn.net&#x2F;ai_xiangjuan&#x2F;article&#x2F;details&#x2F;79696639 　　@InitBinder用于在@Controller中标注于方法上，表示为当前控制器注册一个属性编辑器，只对当前的Controller有效。@I">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2024-03-31T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-08-24T15:46:59.600Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2024/04/01/Spring/%E5%9F%BA%E7%A1%80/@InitBinder/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>注解@InitBinder | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Spring/%E5%9F%BA%E7%A1%80/@InitBinder/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          注解@InitBinder
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/%E5%9F%BA%E7%A1%80/" itemprop="url" rel="index"><span itemprop="name">基础</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>转载自：<br>　　<a target="_blank" rel="noopener" href="https://blog.csdn.net/ai_xiangjuan/article/details/79842385">https://blog.csdn.net/ai_xiangjuan/article/details/79842385</a><br>　　<a target="_blank" rel="noopener" href="https://blog.csdn.net/ai_xiangjuan/article/details/79696639">https://blog.csdn.net/ai_xiangjuan/article/details/79696639</a></p>
+<p>　　<code>@InitBinder</code>用于在<code>@Controller</code>中标注于方法上，表示为当前控制器注册一个属性编辑器，只对当前的Controller有效。<code>@InitBinder</code>标注的方法必须有一个参数<code>WebDataBinder</code>。所谓的属性编辑器可以理解就是帮助我们完成参数绑定。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">@ResponseBody</span><br><span class="line">@RequestMapping(value = &quot;/test&quot;)</span><br><span class="line">public String test(@RequestParam String name,@RequestParam Date date) throws Exception &#123;</span><br><span class="line">    System.out.println(name);</span><br><span class="line">    System.out.println(date);</span><br><span class="line">    return name;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@InitBinder</span><br><span class="line">public void initBinder(WebDataBinder binder)&#123;</span><br><span class="line">    binder.registerCustomEditor(String.class,</span><br><span class="line">            new StringTrimmerEditor(true));</span><br><span class="line"></span><br><span class="line">    binder.registerCustomEditor(Date.class,</span><br><span class="line">            new CustomDateEditor(new SimpleDateFormat(&quot;yyyy-MM-dd&quot;), false));</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>　　上面例子中，<code>@InitBinder</code>方法会帮助我们把String类型的参数先trim再绑定，而对于Date类型的参数会先格式化在绑定。例如当请求是<code>/test?name=%20zero%20&amp;date=2018-05-22</code>时，会把zero绑定到name，再把时间串格式化为Date类型，再绑定到date。</p>
+<span id="more"></span>    
+<p>　　这里的<code>@InitBinder</code>方法只对当前Controller生效，要想全局生效，可以使用<code>@ControllerAdvice</code>。通过<code>@ControllerAdvice</code>可以将对于控制器的全局配置放置在同一个位置，注解了<code>@ControllerAdvice</code>的类的方法可以使用<code>@ExceptionHandler</code>，<code>@InitBinder</code>，<code>@ModelAttribute</code>注解到方法上，这对所有注解了<code>@RequestMapping</code>的控制器内的方法有效。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">@ControllerAdvice</span><br><span class="line">public class GlobalControllerAdvice &#123;</span><br><span class="line"></span><br><span class="line">    @InitBinder</span><br><span class="line">    public void initBinder(WebDataBinder binder) &#123;</span><br><span class="line">        binder.registerCustomEditor(String.class,</span><br><span class="line">                new StringTrimmerEditor(true));</span><br><span class="line"></span><br><span class="line">        binder.registerCustomEditor(Date.class,</span><br><span class="line">                new CustomDateEditor(new SimpleDateFormat(&quot;yyyy-MM-dd&quot;), false));</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>　　除了使用<code>@ControllerAdvice</code>来配置全局的<code>WebDataBinder</code>，还可以使用<code>RequestMappingHandlerAdapter</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">@Bean</span><br><span class="line">public RequestMappingHandlerAdapter webBindingInitializer() &#123;</span><br><span class="line">    RequestMappingHandlerAdapter adapter = new RequestMappingHandlerAdapter();</span><br><span class="line">    adapter.setWebBindingInitializer(new WebBindingInitializer()&#123;</span><br><span class="line"></span><br><span class="line">        @Override</span><br><span class="line">        public void initBinder(WebDataBinder binder, WebRequest request) &#123;</span><br><span class="line">            binder.registerCustomEditor(Date.class, new CustomDateEditor(new SimpleDateFormat(&quot;yyyy-MM-dd&quot;), false));</span><br><span class="line"></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line">    return adapter;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>　　   如上示例，可以实现同样的效果。</p>
+<hr>
+<p>　　<code>@ControllerAdvice</code>中除了配置<code>@InitBinder</code>,还可以有<code>@ExceptionHandler</code>用于全局处理控制器里面的异常；<code>@ModelAttribute</code>作用是绑定键值对到Model里，让全局的<code>@RequestMapping</code>都能获得在此处设置的键值对。</p>
+<p>　　补充：如果 <code>@ExceptionHandler </code>注解中未声明要处理的异常类型，则默认为方法参数列表中的异常类型。示例：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">@ControllerAdvice</span><br><span class="line">public class GlobalExceptionHandler &#123;</span><br><span class="line"></span><br><span class="line">    @ExceptionHandler(Exception.class)</span><br><span class="line">    @ResponseBody</span><br><span class="line">    String handleException(Exception e)&#123;</span><br><span class="line">        return &quot;Exception Deal! &quot; + e.getMessage();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/03/20/Spring/UnexpectedRollbackExceptionTransaction%EF%BC%9Arolled%20back%20because%20it%20has%20been%20marked%20as%20rollback-only/" rel="prev" title="UnexpectedRollbackException:Transaction rolled back because it has been marked as rollback-only">
+      <i class="fa fa-chevron-left"></i> UnexpectedRollbackException:Transaction rolled back because it has been marked as rollback-only
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/04/01/Spring/%E5%9F%BA%E7%A1%80/@Conditional/" rel="next" title="注解@Conditional">
+      注解@Conditional <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">179</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">30</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
