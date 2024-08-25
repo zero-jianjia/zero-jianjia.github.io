@@ -187,6 +187,91 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/07/02/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5&%E9%94%81&volatile/ObjectMonitor%E5%AF%B9%E8%B1%A1/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/07/02/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5&%E9%94%81&volatile/ObjectMonitor%E5%AF%B9%E8%B1%A1/" class="post-title-link" itemprop="url">ObjectMonitor对象</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-07-02 00:00:00" itemprop="dateCreated datePublished" datetime="2024-07-02T00:00:00+08:00">2024-07-02</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/" itemprop="url" rel="index"><span itemprop="name">Java进阶</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5-%E9%94%81-volatile/" itemprop="url" rel="index"><span itemprop="name">同步&锁&volatile</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><strong>内置锁ObjectMonitor类</strong><br>Monitor可以理解为一个同步工具或一种同步机制，通常被描述为一个对象。每一个Java对象就有一把看不见的锁，称为内部锁或者Monitor锁。</p>
+<p>通常所说的对象的内置锁，是对象头Mark Word中的重量级锁指针指向的monitor对象，每个对象都存在着一个 Monitor对象与之关联。执行 monitorenter 指令就是线程试图去获取 Monitor 的所有权，抢到了就是成功获取锁了；执行 monitorexit 指令则是释放了Monitor的所有权。</p>
+<p>该对象是在HotSpot底层C++语言编写的(openjdk里面看)，简单看一下代码：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//结构体如下</span></span><br><span class="line">ObjectMonitor::<span class="built_in">ObjectMonitor</span>() &#123;  </span><br><span class="line">  _header       = <span class="literal">NULL</span>;  </span><br><span class="line">  _count       = <span class="number">0</span>;  </span><br><span class="line">  _waiters      = <span class="number">0</span>,  </span><br><span class="line">  _recursions   = <span class="number">0</span>;       <span class="comment">//线程的重入次数</span></span><br><span class="line">  _object       = <span class="literal">NULL</span>;  </span><br><span class="line">  _owner        = <span class="literal">NULL</span>;    <span class="comment">//标识拥有该monitor的线程</span></span><br><span class="line">  _WaitSet      = <span class="literal">NULL</span>;    <span class="comment">//等待线程组成的双向循环链表，_WaitSet是第一个节点</span></span><br><span class="line">  _WaitSetLock  = <span class="number">0</span> ;  </span><br><span class="line">  _Responsible  = <span class="literal">NULL</span> ;  </span><br><span class="line">  _succ         = <span class="literal">NULL</span> ;  </span><br><span class="line">  _cxq          = <span class="literal">NULL</span> ;    <span class="comment">//多线程竞争锁进入时的单向链表</span></span><br><span class="line">  FreeNext      = <span class="literal">NULL</span> ;  </span><br><span class="line">  _EntryList    = <span class="literal">NULL</span> ;    <span class="comment">//_owner从该双向循环链表中唤醒线程结点，_EntryList是第一个节点</span></span><br><span class="line">  _SpinFreq     = <span class="number">0</span> ;  </span><br><span class="line">  _SpinClock    = <span class="number">0</span> ;  </span><br><span class="line">  OwnerIsThread = <span class="number">0</span> ;  </span><br><span class="line">&#125;  </span><br></pre></td></tr></table></figure>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/07/02/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5&%E9%94%81&volatile/ObjectMonitor%E5%AF%B9%E8%B1%A1/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
     <link itemprop="mainEntityOfPage" href="http://example.com/2024/07/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/ZGC%E7%9A%84%E6%8E%A2%E7%B4%A2%E4%B8%8E%E5%AE%9E%E8%B7%B5/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -979,89 +1064,10 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/06/08/Java/Java%E8%BF%9B%E9%98%B6/%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E6%96%B9%E6%B3%95%E5%8F%8D%E5%B0%84/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/06/08/Java/Java%E8%BF%9B%E9%98%B6/%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E6%96%B9%E6%B3%95%E5%8F%8D%E5%B0%84/" class="post-title-link" itemprop="url">深入分析Java方法反射</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-06-08 00:00:00" itemprop="dateCreated datePublished" datetime="2024-06-08T00:00:00+08:00">2024-06-08</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/" itemprop="url" rel="index"><span itemprop="name">Java进阶</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>&emsp;&emsp;线上服务器jmap发现 Perm Generation使用量持续增长, 查看dump信息发现有很多sun.reflect.DelegatingClassLoader、sun.reflect.GeneratedConstructorAccessor77。原因是反射调用引起的，类越來越多。</p>
-<p>&emsp;&emsp;当使用Java反射时，Java虚拟机有两种方法获取被反射的类的信息。它可以使用一个JNI存取器。如果使用Java字节码存取器，则需要拥有它自己的Java类和类加载器（sun&#x2F;reflect&#x2F;GeneratedMethodAccessor类和sun&#x2F;reflect&#x2F;DelegatingClassLoader)。这些类和类加载器使用本机内存。字节码存取器也可以被JIT编译，这样会增加本机内存的使用。如果Java反射被频繁使用，会显著地增加本机内存的使用。<br>&emsp;&emsp;Java虚拟机会首先使用JNI存取器，然后在访问了同一个类若干次后，会改为使用Java字节码存取器。注意使用字节码方式第一次有加载的成本比正常执行慢3-4倍，但是后面的执行会有20倍以上的性能提升，这样整体性能会有很大的提升。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/06/08/Java/Java%E8%BF%9B%E9%98%B6/%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90Java%E6%96%B9%E6%B3%95%E5%8F%8D%E5%B0%84/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="page-number current">2</span><a class="page-number" href="/page/3/">3</a><span class="space">&hellip;</span><a class="page-number" href="/page/18/">18</a><a class="extend next" rel="next" href="/page/3/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="page-number current">2</span><a class="page-number" href="/page/3/">3</a><span class="space">&hellip;</span><a class="page-number" href="/page/19/">19</a><a class="extend next" rel="next" href="/page/3/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -1127,7 +1133,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">179</span>
+          <span class="site-state-item-count">184</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>

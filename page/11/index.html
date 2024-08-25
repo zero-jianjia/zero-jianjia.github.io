@@ -187,6 +187,88 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Java/JVM/Thread.State/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/01/Java/JVM/Thread.State/" class="post-title-link" itemprop="url">Thread.State</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/JVM/" itemprop="url" rel="index"><span itemprop="name">JVM</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>一般查看Java程序堆栈信息时，会使用jstack工具来获得java stack和native stack的信息，如果现在运行的java程序呈现hung的状态，jstack是非常有用的。<br>如果是在64位机器上，需要指定选项 -J-d64，Windows的jstack使用方式只支持jstack [-l] pid。<br>命令格式：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">jstack [ option ] pid</span><br><span class="line">jstack [ option ] executable core</span><br></pre></td></tr></table></figure>
+
+<p>常用参数说明：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">-F   当’jstack [-l] pid’没有相应的时候强制打印栈信息</span><br><span class="line">-l   长列表. 打印关于锁的附加信息,例如属于java.util.concurrent的ownable synchronizers列表.</span><br><span class="line">-m   打印java和<span class="keyword">native</span> c/c++框架的所有栈信息.</span><br><span class="line">-h | -help   打印帮助信息</span><br></pre></td></tr></table></figure>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/04/01/Java/JVM/Thread.State/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
     <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Spring/%E5%9F%BA%E7%A1%80/@Configuration%E5%92%8C@Component%E5%8C%BA%E5%88%AB/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -839,7 +921,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/20/Spring/UnexpectedRollbackExceptionTransaction%EF%BC%9Arolled%20back%20because%20it%20has%20been%20marked%20as%20rollback-only/">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Spring/spring%20boot/Spring%20Boot%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
@@ -853,7 +935,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2024/03/20/Spring/UnexpectedRollbackExceptionTransaction%EF%BC%9Arolled%20back%20because%20it%20has%20been%20marked%20as%20rollback-only/" class="post-title-link" itemprop="url">UnexpectedRollbackException:Transaction rolled back because it has been marked as rollback-only</a>
+            <a href="/2024/04/01/Spring/spring%20boot/Spring%20Boot%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" class="post-title-link" itemprop="url">Spring Boot启动过程源码分析</a>
         </h2>
 
         <div class="post-meta">
@@ -863,7 +945,7 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2024-03-20 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-20T00:00:00+08:00">2024-03-20</time>
+              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -873,82 +955,9 @@
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
                   <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
                 </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><strong>PROPAGATION_REQUIRES_NEW</strong>：原有事务A新起事务B，事务B中的commit和rollback不会影响外部事务A的commit和rollback，相互独立，如果事务B抛出异常，肯定会影响外事务A的。</p>
-<p><strong>PROPAGATION_NESTED</strong>：表示嵌套事务，看如下示例:</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">ServiceA &#123;  </span><br><span class="line">    <span class="comment">/** </span></span><br><span class="line"><span class="comment">     * 事务属性配置为 PROPAGATION_REQUIRED </span></span><br><span class="line"><span class="comment">     */</span>  </span><br><span class="line">    <span class="meta">@Transactional(propagation=Propagation.REQUIRED)</span> <span class="comment">// 1</span></span><br><span class="line">    <span class="keyword">void</span> <span class="title function_">methodA</span><span class="params">()</span> &#123;</span><br><span class="line">        insertData(); <span class="comment">//2</span></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            ServiceB.methodB();   <span class="comment">//3</span></span><br><span class="line">        &#125; <span class="keyword">catch</span> (SomeException) &#123;  </span><br><span class="line">            <span class="comment">// 执行其他业务, 如 ServiceC.methodC();   //5</span></span><br><span class="line">        &#125;</span><br><span class="line">        updateData(); <span class="comment">//6</span></span><br><span class="line">    &#125;  </span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">ServiceB &#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Transactional(propagation=Propagation.NESTED)</span></span><br><span class="line">    <span class="keyword">void</span> <span class="title function_">methodB</span><span class="params">()</span>&#123;</span><br><span class="line">        <span class="comment">//</span></span><br><span class="line">        updateData(); <span class="comment">//4</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>在上面的1，将开起新事务A，2的时候会插入数据，此时事务A挂起，没有commit，3的时候，使用<strong>PROPAGATION_NESTED</strong>传播，将在3点的时候新建一个savepoint保存2插入的数据，不提交。<br>如果methodB出现异常，将回滚4的操作，不影响2的操作，同时可以处理后面的5,6逻辑，最后一起commit: 2,5,6；<br>如果methodB没有出现异常，那么将一起commit: 2,4,6。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/03/20/Spring/UnexpectedRollbackExceptionTransaction%EF%BC%9Arolled%20back%20because%20it%20has%20been%20marked%20as%20rollback-only/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/20/Spring/Spring%20Boot%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%80%A7%E8%83%BD%E9%99%8D%E4%B9%9D%E6%88%90%EF%BC%81%E7%94%A8Arthas%E5%AE%9A%E6%A0%B9%E5%9B%A0/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/03/20/Spring/Spring%20Boot%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%80%A7%E8%83%BD%E9%99%8D%E4%B9%9D%E6%88%90%EF%BC%81%E7%94%A8Arthas%E5%AE%9A%E6%A0%B9%E5%9B%A0/" class="post-title-link" itemprop="url">Spring Boot微服务性能降九成！用Arthas定根因</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-03-20 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-20T00:00:00+08:00">2024-03-20</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
+                  , 
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
+                  <a href="/categories/Spring/Spring-Boot/" itemprop="url" rel="index"><span itemprop="name">Spring Boot</span></a>
                 </span>
             </span>
 
@@ -964,16 +973,21 @@
 
       
           <p>[toc]</p>
-<h3 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h3><p>接收到公司业务部门的开发反馈，应用在升级公司内部框架后，UAT（预生产）环境接口性能压测不达标。<br>升级前压测报告：</p>
-<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291727596.png" alt="1.png"></p>
-<p>升级后压测报告：</p>
-<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291727434.png" alt="img"></p>
-<p>在机器配置（1C4G）相同的情况下，吞吐量从原来的 53.9&#x2F;s 下降到了 6.4&#x2F;s，且 CPU 负载较高。</p>
-<p>并且开发反馈从公司全链路监控系统 SkyWalking 中查询到的链路信息可以得知大部分请求 Feign 调用的耗时不太正常（390ms），而实际被调用的下游服务响应速度很快（3ms）。</p>
-<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202406291727321.png" alt="img"></p>
+<h2 id="Application实例化"><a href="#Application实例化" class="headerlink" title="Application实例化"></a>Application实例化</h2><p>Spring Boot的启动始于：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">SpringApplication.run(DemoApplication.class, args);</span><br></pre></td></tr></table></figure>
+
+<p>相应实现：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> ConfigurableApplicationContext <span class="title function_">run</span><span class="params">(Object source, String... args)</span> &#123;</span><br><span class="line">	<span class="keyword">return</span> run(<span class="keyword">new</span> <span class="title class_">Object</span>[] &#123; source &#125;, args);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> ConfigurableApplicationContext <span class="title function_">run</span><span class="params">(Object[] sources, String[] args)</span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">SpringApplication</span>(sources).run(args);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>它实际上会构造一个SpringApplication的实例，然后运行它的run方法：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="title function_">SpringApplication</span><span class="params">(Object... sources)</span> &#123;</span><br><span class="line">	initialize(sources);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">initialize</span><span class="params">(Object[] sources)</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (sources != <span class="literal">null</span> &amp;&amp; sources.length &gt; <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="built_in">this</span>.sources.addAll(Arrays.asList(sources));</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">this</span>.webEnvironment = deduceWebEnvironment();</span><br><span class="line">    setInitializers((Collection) getSpringFactoriesInstances(</span><br><span class="line">        ApplicationContextInitializer.class));</span><br><span class="line">    setListeners((Collection) getSpringFactoriesInstances(ApplicationListener.class));</span><br><span class="line">    <span class="built_in">this</span>.mainApplicationClass = deduceMainApplicationClass();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
           <!--noindex-->
             <div class="post-button">
-              <a class="btn" href="/2024/03/20/Spring/Spring%20Boot%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%80%A7%E8%83%BD%E9%99%8D%E4%B9%9D%E6%88%90%EF%BC%81%E7%94%A8Arthas%E5%AE%9A%E6%A0%B9%E5%9B%A0/#more" rel="contents">
+              <a class="btn" href="/2024/04/01/Spring/spring%20boot/Spring%20Boot%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/#more" rel="contents">
                 Read more &raquo;
               </a>
             </div>
@@ -996,7 +1010,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/10/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/10/">10</a><span class="page-number current">11</span><a class="page-number" href="/page/12/">12</a><span class="space">&hellip;</span><a class="page-number" href="/page/18/">18</a><a class="extend next" rel="next" href="/page/12/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/10/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/10/">10</a><span class="page-number current">11</span><a class="page-number" href="/page/12/">12</a><span class="space">&hellip;</span><a class="page-number" href="/page/19/">19</a><a class="extend next" rel="next" href="/page/12/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -1062,7 +1076,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">179</span>
+          <span class="site-state-item-count">184</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>

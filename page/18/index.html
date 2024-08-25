@@ -187,6 +187,416 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/%E8%87%AA%E5%AE%9A%E4%B9%89ClassLoader%E5%AE%9E%E7%8E%B0%E9%9A%94%E7%A6%BB%E8%BF%90%E8%A1%8C%E4%B8%8D%E5%90%8C%E7%89%88%E6%9C%ACjar%E5%8C%85/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/%E8%87%AA%E5%AE%9A%E4%B9%89ClassLoader%E5%AE%9E%E7%8E%B0%E9%9A%94%E7%A6%BB%E8%BF%90%E8%A1%8C%E4%B8%8D%E5%90%8C%E7%89%88%E6%9C%ACjar%E5%8C%85/" class="post-title-link" itemprop="url">自定义ClassLoader实现隔离运行不同版本jar包</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-03-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-05T00:00:00+08:00">2024-03-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E6%8F%90%E9%AB%98/" itemprop="url" rel="index"><span itemprop="name">Java提高</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>现在假定有这样一个需求，实现针对集群（比如 Hadoop 集群）版本为 V1 与 V2 的对应的执行程序，那么假定有如下项目：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Executor-Parent: 提供基础的 Maven 引用，可利用 Maven 一键打包所有的子模块/项目</span><br><span class="line">Executor-Common: 提供基础的接口，已经有公有的实现等</span><br><span class="line">Executor-Proxy: 执行不同版本程序的代理程序</span><br><span class="line">Executor-V1: 版本为V1的执行程序</span><br><span class="line">Executor-V2: 版本为V2的执行程序</span><br></pre></td></tr></table></figure>
+<p>这里为了更凸显 ClassLoader 的实现，不做 Executor-Parent 的实现，同时为了简便，也没有设置包名。</p>
+<ol>
+<li>Executor-Common<br>在 Executor-Common 中提供一个接口，声明执行的具体方法：<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">public interface Executor &#123;</span><br><span class="line">    void execute(final String name);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ol>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/%E8%87%AA%E5%AE%9A%E4%B9%89ClassLoader%E5%AE%9E%E7%8E%B0%E9%9A%94%E7%A6%BB%E8%BF%90%E8%A1%8C%E4%B8%8D%E5%90%8C%E7%89%88%E6%9C%ACjar%E5%8C%85/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/%E9%9B%86%E5%90%88%E9%97%B4%E4%BA%92%E7%9B%B8%E8%BD%AC%E5%8C%96/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/%E9%9B%86%E5%90%88%E9%97%B4%E4%BA%92%E7%9B%B8%E8%BD%AC%E5%8C%96/" class="post-title-link" itemprop="url">集合间互相转化</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-03-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-05T00:00:00+08:00">2024-03-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E6%8F%90%E9%AB%98/" itemprop="url" rel="index"><span itemprop="name">Java提高</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>[toc]<br>Java8之前集合之间互相转化，例如List -&gt; Map需要写许多代码，但是Java8之后可以使用Lambda表达式简化代码。<br>示例：</p>
+<h1 id="1-List-Map"><a href="#1-List-Map" class="headerlink" title="1.List&lt;T&gt; ---&gt; Map&lt;K, V&gt;"></a>1.<code>List&lt;T&gt; ---&gt; Map&lt;K, V&gt;</code></h1><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">List&lt;String&gt; list = Arrays.asList(<span class="string">&quot;zero&quot;</span>);</span><br><span class="line">Map&lt;String, Integer&gt; map = list.stream().collect(</span><br><span class="line">        Collectors.toMap(<span class="keyword">new</span> <span class="title class_">Function</span>&lt;String, String&gt;() &#123;</span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="keyword">public</span> String <span class="title function_">apply</span><span class="params">(String e)</span> &#123;</span><br><span class="line">                <span class="keyword">return</span> e;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;, <span class="keyword">new</span> <span class="title class_">Function</span>&lt;String, Integer&gt;() &#123;</span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="keyword">public</span> Integer <span class="title function_">apply</span><span class="params">(String e)</span> &#123;</span><br><span class="line">                <span class="keyword">return</span> e.hashCode();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;));</span><br><span class="line">System.out.println(map);</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>示例中，Collectors.toMap接收两个Function参数，第一个Function是生成key，第二个Function是生成value，两个Function&lt;T，X&gt;的第一个泛型参数类型是对应的list的类型，这里即是String。</p>
+<p>使用Lambda表达式简化后：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">List&lt;String&gt; list = Arrays.asList(<span class="string">&quot;zero&quot;</span>);</span><br><span class="line">Map&lt;String, Integer&gt; map = list.stream().collect(</span><br><span class="line">        Collectors.toMap(e -&gt; e, e -&gt; e.hashCode())); </span><br></pre></td></tr></table></figure>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/%E9%9B%86%E5%90%88%E9%97%B4%E4%BA%92%E7%9B%B8%E8%BD%AC%E5%8C%96/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/%E4%B8%80%E8%87%B4%E6%80%A7hash%E7%AE%97%E6%B3%95/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/%E4%B8%80%E8%87%B4%E6%80%A7hash%E7%AE%97%E6%B3%95/" class="post-title-link" itemprop="url">一致性hash算法</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-03-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-05T00:00:00+08:00">2024-03-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E6%8F%90%E9%AB%98/" itemprop="url" rel="index"><span itemprop="name">Java提高</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>​	网站为了支撑更大的用户访问量，往往需要对用户访问的数据做cache,服务机群和负载均衡来专门处理缓存，负载均衡的算法很多，轮循算法、哈希算法、最少连接算法、响应速度算法等，hash算法是比较常用的一种，它的常用思想是先计算出一个hash值，然后使用 CRC余数算法将hash值和机器数mod后取余数，机器的编号可以是0到N-1(N是机器数)，计算出的结果一一对应即可。</p>
+<p>​	缓存最关键的就是命中率这个因素，如果命中率非常低，那么缓存也就失去了它的意义。如采用一般的CRC取余的hash算法虽然能达到负载均衡的目的，但是它存在一个严重的问题，那就是如果其中一台服务器down掉，那么就需要在计算缓存过程中将这台服务器去掉，即N台服务器，目前就只有N-1台提供缓存服务，此时需要一个rehash过程，而reash得到的结果将导致正常的用户请求不能找到原来缓存数据的正确机器，其他N-1台服务器上的缓存数据将大量失效，此时所有的用户请求全部会集中到数据库上，严重可能导致整个生产环境挂掉.</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/%E4%B8%80%E8%87%B4%E6%80%A7hash%E7%AE%97%E6%B3%95/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/Java8%E9%80%9A%E7%94%A8Builder/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/Java8%E9%80%9A%E7%94%A8Builder/" class="post-title-link" itemprop="url">Java8通用Builder</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-03-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-05T00:00:00+08:00">2024-03-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E6%8F%90%E9%AB%98/" itemprop="url" rel="index"><span itemprop="name">Java提高</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line">import java.util.ArrayList;</span><br><span class="line">import java.util.List;</span><br><span class="line">import java.util.function.Consumer;</span><br><span class="line">import java.util.function.Supplier;</span><br><span class="line"></span><br><span class="line">public class Builder&lt;T&gt; &#123;</span><br><span class="line">    private final Supplier&lt;T&gt; instantiator;</span><br><span class="line">    private List&lt;Consumer&lt;T&gt;&gt; setterList = new ArrayList&lt;&gt;();</span><br><span class="line"></span><br><span class="line">    private Builder(Supplier&lt;T&gt; instantiator) &#123;</span><br><span class="line">        this.instantiator = instantiator;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public static &lt;T&gt; Builder&lt;T&gt; of(Supplier&lt;T&gt; instantiator) &#123;</span><br><span class="line">        return new Builder&lt;&gt;(instantiator);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public &lt;P&gt; Builder&lt;T&gt; with(IOneParamSetter&lt;T, P&gt; setter, P p) &#123;</span><br><span class="line">        Consumer&lt;T&gt; c = instance -&gt; setter.accept(instance, p);</span><br><span class="line">        setterList.add(c);</span><br><span class="line">        return this;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public &lt;P0, P1&gt; Builder&lt;T&gt; with(ITwoParamSetter&lt;T, P0, P1&gt; setter, P0 p0, P1 p1) &#123;</span><br><span class="line">        Consumer&lt;T&gt; c = instance -&gt; setter.accept(instance, p0, p1);</span><br><span class="line">        setterList.add(c);</span><br><span class="line">        return this;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public T build() &#123;</span><br><span class="line">        T value = instantiator.get();</span><br><span class="line">        setterList.forEach(setter -&gt; setter.accept(value));</span><br><span class="line">        setterList.clear();</span><br><span class="line">        return value;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @FunctionalInterface</span><br><span class="line">    public interface IOneParamSetter&lt;T, P&gt; &#123;</span><br><span class="line">        void accept(T t, P p);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @FunctionalInterface</span><br><span class="line">    public interface ITwoParamSetter&lt;T, P0, P1&gt; &#123;</span><br><span class="line">        void accept(T t, P0 p0, P1 p1);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/Java8%E9%80%9A%E7%94%A8Builder/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/05/Java/Java%E8%BF%9B%E9%98%B6/Java%E5%8F%8D%E5%B0%84/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/03/05/Java/Java%E8%BF%9B%E9%98%B6/Java%E5%8F%8D%E5%B0%84/" class="post-title-link" itemprop="url">Java反射</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-03-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-05T00:00:00+08:00">2024-03-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/" itemprop="url" rel="index"><span itemprop="name">Java进阶</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>&emsp;&emsp;JAVA反射机制是在运行状态中,对于任意一个类,都能够得到这个类的所有属性和方法;对于任意一个对象,都能够调用它的任意一个方法;这种动态获取的信息以及动态调用对象的方法的功能称为java语言的反射机制。<br>&emsp;&emsp;简而言之，反射就是可以通过名称来得到对象(类,属性,方法)的技术。</p>
+<h3 id="一．获取类对应的Class对象"><a href="#一．获取类对应的Class对象" class="headerlink" title="一．获取类对应的Class对象"></a>一．获取类对应的Class对象</h3><ol>
+<li>getClass()方式: Object类中的方法,每个类都拥有此方法，如: <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">String str = new String();</span><br><span class="line">Class cls = str.getClass();</span><br></pre></td></tr></table></figure></li>
+</ol>
+<p>2.类名.class方式，如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Class cls = String.class;</span><br></pre></td></tr></table></figure>
+
+<ol start="3">
+<li>Class.forName()方式，如：<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">try &#123;</span><br><span class="line">		Class cls = Class.forName(&quot;java.lang.String&quot;);</span><br><span class="line">&#125; catch (ClassNotFoundException e) &#123;</span><br><span class="line">		// TODO Auto-generated catch block</span><br><span class="line">		e.printStackTrace();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ol>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/03/05/Java/Java%E8%BF%9B%E9%98%B6/Java%E5%8F%8D%E5%B0%84/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
     <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/Java%E8%8E%B7%E5%8F%96%E6%B3%9B%E5%9E%8BT%E7%9A%84%E7%B1%BB%E5%9E%8B%20T.class/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -578,345 +988,10 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/01/Java/JVM/Reference/Java%E5%BC%95%E7%94%A8/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/03/01/Java/JVM/Reference/Java%E5%BC%95%E7%94%A8/" class="post-title-link" itemprop="url">Java引用</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-03-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-01T00:00:00+08:00">2024-03-01</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/JVM/" itemprop="url" rel="index"><span itemprop="name">JVM</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/JVM/Reference/" itemprop="url" rel="index"><span itemprop="name">Reference</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>[toc]</p>
-<h1 id="1-强可及对象（strongly-reachable）："><a href="#1-强可及对象（strongly-reachable）：" class="headerlink" title="1)强可及对象（strongly reachable）："></a>1)强可及对象（strongly reachable）：</h1><p>　　可以通过强引用访问的对象，一般来说，平时写代码的方式都是使用的强引用对象，比如下边的代码段：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">　　StringBuilder builder= <span class="keyword">new</span> <span class="title class_">StringBuilder</span>()；</span><br></pre></td></tr></table></figure>
-
-<p>上边代码builder这个引用将引用内存堆中的一个对象，这种情况下，只要引用存在，垃圾回收器就永远不会释放该对象的存储空间。</p>
-<p>这种对象又成为强引用（Strong references），这种强引用方式就是Java语言的原生的Java引用。上边代码JVM存储了一个StringBuilder类型的对象的强引用在变量builder。强引用和GC的交互是这样的，如果一个对象通过强引用可达或者通过强引用链可达的话这种对象就成为强可及对象，这种情况下的对象垃圾回收器不予理睬。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/03/01/Java/JVM/Reference/Java%E5%BC%95%E7%94%A8/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/01/Java/JVM/Reference/FinalReference%E5%AE%8C%E5%85%A8%E8%A7%A3%E8%AF%BB/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/03/01/Java/JVM/Reference/FinalReference%E5%AE%8C%E5%85%A8%E8%A7%A3%E8%AF%BB/" class="post-title-link" itemprop="url">FinalReference完全解读</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-03-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-01T00:00:00+08:00">2024-03-01</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/JVM/" itemprop="url" rel="index"><span itemprop="name">JVM</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/JVM/Reference/" itemprop="url" rel="index"><span itemprop="name">Reference</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>[toc]<br>JAVA对象引用体系除了强引用之外，出于对性能、可扩展性等方面考虑还特地实现了四种其他引用：SoftReference、WeakReference、PhantomReference、FinalReference，本文主要想讲的是FinalReference，因为在使用内存分析工具比如zprofiler、mat等在分析一些oom的heap的时候，经常能看到 java.lang.ref.Finalizer占用的内存大小远远排在前面，而这个类占用的内存大小又和FinalReference有着密不可分的关系。</p>
-<p>对于FinalReference及关联的内容，可能有如下印象：自己代码里从没有使用过，线程dump之后，能看到一个叫做Finalizer的java线程，偶尔能注意到java.lang.ref.Finalizer的存在、我们在类里可能会写finalize方法。</p>
-<p>那FinalReference到底存在的意义是什么，以怎样的形式和我们的代码相关联呢？</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/03/01/Java/JVM/Reference/FinalReference%E5%AE%8C%E5%85%A8%E8%A7%A3%E8%AF%BB/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/01/Java/JVM/Reference/ReferenceQueue%E3%80%81Reference%E8%AF%A6%E8%A7%A3/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/03/01/Java/JVM/Reference/ReferenceQueue%E3%80%81Reference%E8%AF%A6%E8%A7%A3/" class="post-title-link" itemprop="url">ReferenceQueue、Reference详解</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-03-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-01T00:00:00+08:00">2024-03-01</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/JVM/" itemprop="url" rel="index"><span itemprop="name">JVM</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/JVM/Reference/" itemprop="url" rel="index"><span itemprop="name">Reference</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>[toc]</p>
-<h3 id="ReferenceQueue"><a href="#ReferenceQueue" class="headerlink" title="ReferenceQueue"></a>ReferenceQueue</h3><p>引用队列，在检测到适当的可到达性更改后，垃圾回收器将已注册的引用对象添加到该队列中，ReferenceQueue实现了入队（enqueue）和出队（poll），还有remove)操作，内部元素head就是泛型的Reference：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">volatile</span> Reference&lt;? <span class="keyword">extends</span> <span class="title class_">T</span>&gt; head = <span class="literal">null</span>;</span><br></pre></td></tr></table></figure>
-
-<p>ReferenceQueue的实现是由Reference自身的链表结构（单向循环链表）所实现的。所以说ReferenceQueue名义上是一个队列，但实际内部并非有实际的存储结构，它的存储是依赖于内部节点之间的关系来表达。来看下它的入队方法：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">boolean</span> <span class="title function_">enqueue</span><span class="params">(Reference&lt;? extends T&gt; r)</span> &#123; <span class="comment">/* Called only by Reference class */</span></span><br><span class="line">    <span class="keyword">synchronized</span> (lock) &#123;</span><br><span class="line">        <span class="comment">// Check that since getting the lock this reference hasn&#x27;t already been</span></span><br><span class="line">        <span class="comment">// enqueued (and even then removed)</span></span><br><span class="line">        ReferenceQueue&lt;?&gt; queue = r.queue;</span><br><span class="line">        <span class="keyword">if</span> ((queue == NULL) || (queue == ENQUEUED)) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">assert</span> queue == <span class="built_in">this</span>;</span><br><span class="line">        r.queue = ENQUEUED;</span><br><span class="line">        r.next = (head == <span class="literal">null</span>) ? r : head;</span><br><span class="line">        head = r;</span><br><span class="line">        queueLength++;</span><br><span class="line">        <span class="keyword">if</span> (r <span class="keyword">instanceof</span> FinalReference) &#123;</span><br><span class="line">            sun.misc.VM.addFinalRefCount(<span class="number">1</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        lock.notifyAll();</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>​    从enqueue()代码可以看出来，queue仅存储当前的head节点，而后面的节点由每个reference节点通过自己的next来保持的。而且queue是一个后进先出的队列。当新的节点进入时成为了head，然后出队时也是先出的head。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/03/01/Java/JVM/Reference/ReferenceQueue%E3%80%81Reference%E8%AF%A6%E8%A7%A3/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2015/09/23/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/Archetype&Specification&Publish-Subscribe/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2015/09/23/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/Archetype&Specification&Publish-Subscribe/" class="post-title-link" itemprop="url">Archetype&Specification&Publish-Subscribe</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2015-09-23 00:00:00" itemprop="dateCreated datePublished" datetime="2015-09-23T00:00:00+08:00">2015-09-23</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" itemprop="url" rel="index"><span itemprop="name">设计模式</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>[toc]</p>
-<h2 id="Archetype"><a href="#Archetype" class="headerlink" title="Archetype"></a>Archetype</h2><p>Archetype设计模式的目的是将业务处理逻辑和具体实现分离，所以至少需要两个参与者：Decorator和Delegate，它们都实现同一个接口，Decorator负责处理业务逻辑，而Delegate负责具体的实现，在Decorator的通用业务逻辑处理过程中，会把具体实现委派给Delegate。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2015/09/23/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/Archetype&Specification&Publish-Subscribe/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/17/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/17/">17</a><span class="page-number current">18</span>
+    <a class="extend prev" rel="prev" href="/page/17/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/17/">17</a><span class="page-number current">18</span><a class="page-number" href="/page/19/">19</a><a class="extend next" rel="next" href="/page/19/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -982,7 +1057,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">179</span>
+          <span class="site-state-item-count">184</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>

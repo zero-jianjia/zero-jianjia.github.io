@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="&emsp;&emsp;SpringMVC的核心就是DispatcherServlet，DispatcherServlet实质也是一个HttpServlet。DispatcherSevlet负责将请求分发，所有的请求都有经过它来统一分发。 &emsp;&emsp;大致看下SpringMVC请求处理的流程：&emsp;&emsp;用户向服务器发送请求，请求会到DispatcherServlet，Di">
+<meta property="og:type" content="article">
+<meta property="og:title" content="DispatcherServlet解读">
+<meta property="og:url" content="http://example.com/2024/03/20/Spring/DispatcherServlet%E8%A7%A3%E8%AF%BB/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="&emsp;&emsp;SpringMVC的核心就是DispatcherServlet，DispatcherServlet实质也是一个HttpServlet。DispatcherSevlet负责将请求分发，所有的请求都有经过它来统一分发。 &emsp;&emsp;大致看下SpringMVC请求处理的流程：&emsp;&emsp;用户向服务器发送请求，请求会到DispatcherServlet，Di">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408250911910.jpeg">
+<meta property="article:published_time" content="2024-03-19T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-08-25T01:16:17.030Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408250911910.jpeg">
+
+<link rel="canonical" href="http://example.com/2024/03/20/Spring/DispatcherServlet%E8%A7%A3%E8%AF%BB/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>DispatcherServlet解读 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/20/Spring/DispatcherServlet%E8%A7%A3%E8%AF%BB/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          DispatcherServlet解读
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-03-20 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-20T00:00:00+08:00">2024-03-20</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>&emsp;&emsp;SpringMVC的核心就是DispatcherServlet，DispatcherServlet实质也是一个HttpServlet。DispatcherSevlet负责将请求分发，所有的请求都有经过它来统一分发。</p>
+<p>&emsp;&emsp;大致看下SpringMVC请求处理的流程：<br><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408250911910.jpeg"><br>&emsp;&emsp;用户向服务器发送请求，请求会到DispatcherServlet，DispatcherServlet 对请求URL进行解析，得到请求资源标识符（URI），然后根据该URI，调用HandlerMapping获得该Handler配置的所有相关的对象（包括一个Handler处理器对象、多个HandlerInterceptor拦截器对象），最后以HandlerExecutionChain对象的形式返回。<br>&emsp;&emsp;DispatcherServlet 根据获得的Handler，选择一个合适的HandlerAdapter。提取Request中的模型数据，填充Handler入参，开始执行Handler（Controller)。 在填充Handler的入参过程中，根据你的配置，Spring将帮你做一些额外的工作：</p>
+<blockquote>
+<ul>
+<li>HttpMessageConveter： 将请求消息（如Json、xml等数据）转换成一个对象，将对象转换为指定的响应信息</li>
+<li>数据转换：对请求消息进行数据转换。如String转换成Integer、Double等</li>
+<li>数据格式化：对请求消息进行数据格式化。 如将字符串转换成格式化数字或格式化日期等</li>
+<li>数据验证： 验证数据的有效性（长度、格式等），验证结果存储到BindingResult或Error中</li>
+</ul>
+</blockquote>
+<p>&emsp;&emsp;Handler执行完成后，向DispatcherServlet 返回一个ModelAndView对象；根据返回的ModelAndView，选择一个适合的ViewResolver返回给DispatcherServlet；ViewResolver 结合Model和View，来渲染视图，最后将渲染结果返回给客户端。</p>
+<span id="more"></span>
+
+<hr>
+<hr>
+<p>&emsp;&emsp;DispatcherSevlet中最重要的是doService方法：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line">   //获取请求，设置一些request的参数，然后分发给doDispatch</span><br><span class="line">@Override</span><br><span class="line">protected void doService(HttpServletRequest request, HttpServletResponse response) throws Exception &#123;</span><br><span class="line">	if (logger.isDebugEnabled()) &#123;</span><br><span class="line">		String resumed = WebAsyncUtils.getAsyncManager(request).hasConcurrentResult() ? &quot; resumed&quot; : &quot;&quot;;</span><br><span class="line">		logger.debug(&quot;DispatcherServlet with name &#x27;&quot; + getServletName() + &quot;&#x27;&quot; + resumed +</span><br><span class="line">				&quot; processing &quot; + request.getMethod() + &quot; request for [&quot; + getRequestUri(request) + &quot;]&quot;);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	// Keep a snapshot of the request attributes in case of an include,</span><br><span class="line">	// to be able to restore the original attributes after the include.</span><br><span class="line">	Map&lt;String, Object&gt; attributesSnapshot = null;</span><br><span class="line">	if (WebUtils.isIncludeRequest(request)) &#123;</span><br><span class="line">		attributesSnapshot = new HashMap&lt;String, Object&gt;();</span><br><span class="line">		Enumeration&lt;?&gt; attrNames = request.getAttributeNames();</span><br><span class="line">		while (attrNames.hasMoreElements()) &#123;</span><br><span class="line">			String attrName = (String) attrNames.nextElement();</span><br><span class="line">			if (this.cleanupAfterInclude || attrName.startsWith(&quot;org.springframework.web.servlet&quot;)) &#123;</span><br><span class="line">				attributesSnapshot.put(attrName, request.getAttribute(attrName));</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	// Make framework objects available to handlers and view objects.</span><br><span class="line">	/* 设置web应用上下文**/</span><br><span class="line">	request.setAttribute(WEB_APPLICATION_CONTEXT_ATTRIBUTE, getWebApplicationContext());</span><br><span class="line">	/* 国际化本地**/</span><br><span class="line">	request.setAttribute(LOCALE_RESOLVER_ATTRIBUTE, this.localeResolver);</span><br><span class="line">	/* 样式**/</span><br><span class="line">	request.setAttribute(THEME_RESOLVER_ATTRIBUTE, this.themeResolver);</span><br><span class="line">	//设置样式资源</span><br><span class="line">	request.setAttribute(THEME_SOURCE_ATTRIBUTE, getThemeSource());</span><br><span class="line">	//请求刷新时保存属性</span><br><span class="line">	FlashMap inputFlashMap = this.flashMapManager.retrieveAndUpdate(request, response);</span><br><span class="line">	if (inputFlashMap != null) &#123;</span><br><span class="line">		request.setAttribute(INPUT_FLASH_MAP_ATTRIBUTE, Collections.unmodifiableMap(inputFlashMap));</span><br><span class="line">	&#125;</span><br><span class="line">	//Flash attributes 在对请求的重定向生效之前被临时存储（通常是在session)中，并且在重定向之后被立即移除</span><br><span class="line">	request.setAttribute(OUTPUT_FLASH_MAP_ATTRIBUTE, new FlashMap());</span><br><span class="line">	//FlashMap 被用来管理 flash attributes 而 FlashMapManager 则被用来存储，获取和管理 FlashMap 实体.</span><br><span class="line">	request.setAttribute(FLASH_MAP_MANAGER_ATTRIBUTE, this.flashMapManager);</span><br><span class="line"></span><br><span class="line">	try &#123;</span><br><span class="line">		doDispatch(request, response);</span><br><span class="line">	&#125;</span><br><span class="line">	finally &#123;</span><br><span class="line">		if (!WebAsyncUtils.getAsyncManager(request).isConcurrentHandlingStarted()) &#123;</span><br><span class="line">			// Restore the original attribute snapshot, in case of an include.</span><br><span class="line">			if (attributesSnapshot != null) &#123;</span><br><span class="line">				restoreAttributesAfterInclude(request, attributesSnapshot);</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;doService方法对Request设置了一些全局属性，最终接下来的操作是在doDispatcher：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br></pre></td><td class="code"><pre><span class="line">    /**</span><br><span class="line"> *将Handler进行分发，handler会被handlerMapping有序的获得</span><br><span class="line"> *通过查询servlet安装的HandlerAdapters来获得HandlerAdapters来查找第一个支持handler的类</span><br><span class="line"> *所有的HTTP的方法都会被这个方法掌控。取决于HandlerAdapters 或者handlers 他们自己去决定哪些方法是可用</span><br><span class="line"> *@param request current HTTP request</span><br><span class="line"> *@param response current HTTP response</span><br><span class="line"> */</span><br><span class="line">protected void doDispatch(HttpServletRequest request, HttpServletResponse response) throws Exception &#123;</span><br><span class="line">	/* 当前HTTP请求**/</span><br><span class="line">	HttpServletRequest processedRequest = request;</span><br><span class="line">	HandlerExecutionChain mappedHandler = null;</span><br><span class="line">	boolean multipartRequestParsed = false;</span><br><span class="line"></span><br><span class="line">	WebAsyncManager asyncManager = WebAsyncUtils.getAsyncManager(request);</span><br><span class="line"></span><br><span class="line">	try &#123;</span><br><span class="line">		ModelAndView mv = null;</span><br><span class="line">		Exception dispatchException = null;</span><br><span class="line"></span><br><span class="line">		try &#123;</span><br><span class="line">			//判断是否有文件上传</span><br><span class="line">			processedRequest = checkMultipart(request);</span><br><span class="line">			multipartRequestParsed = (processedRequest != request);</span><br><span class="line"></span><br><span class="line">			// getHandler中遍历HandlerMapping，获取对应的HandlerExecutionChain</span><br><span class="line">               // HandlerExecutionChain，包含HandlerIntercrptor和HandlerMethod</span><br><span class="line">			mappedHandler = getHandler(processedRequest);</span><br><span class="line">			if (mappedHandler == null || mappedHandler.getHandler() == null) &#123;</span><br><span class="line">				noHandlerFound(processedRequest, response);</span><br><span class="line">				return;</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			</span><br><span class="line">			//获得HandlerAdapter</span><br><span class="line">			HandlerAdapter ha = getHandlerAdapter(mappedHandler.getHandler());</span><br><span class="line"></span><br><span class="line">			//获得HTTP请求方法</span><br><span class="line">			String method = request.getMethod();</span><br><span class="line">			boolean isGet = &quot;GET&quot;.equals(method);</span><br><span class="line">			if (isGet || &quot;HEAD&quot;.equals(method)) &#123;</span><br><span class="line">				long lastModified = ha.getLastModified(request, mappedHandler.getHandler());</span><br><span class="line">				if (logger.isDebugEnabled()) &#123;</span><br><span class="line">					logger.debug(&quot;Last-Modified value for [&quot; + getRequestUri(request) + &quot;] is: &quot; + lastModified);</span><br><span class="line">				&#125;</span><br><span class="line">				if (new ServletWebRequest(request, response).checkNotModified(lastModified) &amp;&amp; isGet) &#123;</span><br><span class="line">					return;</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">			//如果有拦截器的话，会执行拦截器的preHandler方法</span><br><span class="line">			if (!mappedHandler.applyPreHandle(processedRequest, response)) &#123;</span><br><span class="line">				return;</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			//返回ModelAndView</span><br><span class="line">			mv = ha.handle(processedRequest, response, mappedHandler.getHandler());</span><br><span class="line"></span><br><span class="line">			if (asyncManager.isConcurrentHandlingStarted()) &#123;</span><br><span class="line">				return;</span><br><span class="line">			&#125;</span><br><span class="line">			//当view为空时，，根据request设置默认view</span><br><span class="line">			applyDefaultViewName(processedRequest, mv);</span><br><span class="line">			//执行拦截器的postHandle</span><br><span class="line">			mappedHandler.applyPostHandle(processedRequest, response, mv);</span><br><span class="line">		&#125;</span><br><span class="line">		catch (Exception ex) &#123;</span><br><span class="line">			dispatchException = ex;</span><br><span class="line">		&#125;</span><br><span class="line">		processDispatchResult(processedRequest, response, mappedHandler, mv, dispatchException);</span><br><span class="line">	&#125;</span><br><span class="line">	catch (Exception ex) &#123;</span><br><span class="line">		triggerAfterCompletion(processedRequest, response, mappedHandler, ex);</span><br><span class="line">	&#125;</span><br><span class="line">	catch (Error err) &#123;</span><br><span class="line">		triggerAfterCompletionWithError(processedRequest, response, mappedHandler, err);</span><br><span class="line">	&#125;</span><br><span class="line">	finally &#123;</span><br><span class="line">		//判断是否是异步请求</span><br><span class="line">		if (asyncManager.isConcurrentHandlingStarted()) &#123;</span><br><span class="line">			// Instead of postHandle and afterCompletion</span><br><span class="line">			if (mappedHandler != null) &#123;</span><br><span class="line">				mappedHandler.applyAfterConcurrentHandlingStarted(processedRequest, response);</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		else &#123;</span><br><span class="line">			// Clean up any resources used by a multipart request.</span><br><span class="line">			//删除上传资源</span><br><span class="line">			if (multipartRequestParsed) &#123;</span><br><span class="line">				cleanupMultipart(processedRequest);</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;</p>
+<h4 id="HandlerInterceptor拦截器"><a href="#HandlerInterceptor拦截器" class="headerlink" title="HandlerInterceptor拦截器"></a>HandlerInterceptor拦截器</h4><p>&emsp;&emsp;在doDispatcher方法中：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mappedHandler = getHandler(processedRequest);</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">protected HandlerExecutionChain getHandler(HttpServletRequest request) throws Exception &#123;</span><br><span class="line">   for (HandlerMapping hm : this.handlerMappings) &#123;</span><br><span class="line">      if (logger.isTraceEnabled()) &#123;</span><br><span class="line">         logger.trace(</span><br><span class="line">               &quot;Testing handler map [&quot; + hm + &quot;] in DispatcherServlet with name &#x27;&quot; + getServletName() + &quot;&#x27;&quot;);</span><br><span class="line">      &#125;</span><br><span class="line">      HandlerExecutionChain handler = hm.getHandler(request);</span><br><span class="line">      if (handler != null) &#123;</span><br><span class="line">         return handler;</span><br><span class="line">      &#125;</span><br><span class="line">   &#125;</span><br><span class="line">   return null;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;遍历HandlerMapping，获取对应的HandlerExecutionChain，HandlerExecutionChain中有3个变量:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">private final Object handler; // HandlerMethod</span><br><span class="line">private HandlerInterceptor[] interceptors; //所有的HandlerInterceptor的数组</span><br><span class="line">private List&lt;HandlerInterceptor&gt; interceptorList; //所有的HandlerInterceptor的链表</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;在执行Controller的方法调用之前先执行：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">if (!mappedHandler.applyPreHandle(processedRequest, response)) &#123;</span><br><span class="line">   return;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;<code>HandlerExecutionChain#applyPreHandle</code>即调用<code>HandlerInterceptor# preHandler</code>方法。在Controller的方法调用之后：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mappedHandler.applyPostHandle(processedRequest, response, mv);</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;<code>HandlerExecutionChain#applyPostHandle</code>即调用<code>HandlerInterceptor# postHandle</code>方法。最后</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">processDispatchResult(processedRequest, response, mappedHandler, mv, dispatchException);</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;方法会调用：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mappedHandler.triggerAfterCompletion(request, response, null);</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;调用<code>HandlerInterceptor#afterCompletion</code>方法。<br>&emsp;&emsp;详细用法参考 <a target="_blank" rel="noopener" href="https://blog.csdn.net/zero__007/article/details/80028720">https://blog.csdn.net/zero__007/article/details/80028720</a></p>
+<p>&emsp;&emsp;</p>
+<h4 id="HandlerExceptionResolver异常处理"><a href="#HandlerExceptionResolver异常处理" class="headerlink" title="HandlerExceptionResolver异常处理"></a>HandlerExceptionResolver异常处理</h4><p>&emsp;&emsp;在doDispatcher方法中会catch住Controller方法调用的异常，之后再处理：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">processDispatchResult(processedRequest, response, mappedHandler, mv, dispatchException);</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">private void processDispatchResult(HttpServletRequest request, HttpServletResponse response,</span><br><span class="line">      HandlerExecutionChain mappedHandler, ModelAndView mv, Exception exception) throws Exception &#123;</span><br><span class="line"></span><br><span class="line">   boolean errorView = false;</span><br><span class="line"></span><br><span class="line">   if (exception != null) &#123;</span><br><span class="line">      if (exception instanceof ModelAndViewDefiningException) &#123;</span><br><span class="line">         logger.debug(&quot;ModelAndViewDefiningException encountered&quot;, exception);</span><br><span class="line">         mv = ((ModelAndViewDefiningException) exception).getModelAndView();</span><br><span class="line">      &#125;</span><br><span class="line">      else &#123;</span><br><span class="line">         Object handler = (mappedHandler != null ? mappedHandler.getHandler() : null);</span><br><span class="line">         mv = processHandlerException(request, response, handler, exception);</span><br><span class="line">         errorView = (mv != null);</span><br><span class="line">      &#125;</span><br><span class="line">   &#125;</span><br><span class="line">   // …</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;如果有exception，调用processHandlerException：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">protected ModelAndView processHandlerException(HttpServletRequest request, HttpServletResponse response,</span><br><span class="line">      Object handler, Exception ex) throws Exception &#123;</span><br><span class="line"></span><br><span class="line">   // Check registered HandlerExceptionResolvers...</span><br><span class="line">   ModelAndView exMv = null;</span><br><span class="line">   for (HandlerExceptionResolver handlerExceptionResolver : this.handlerExceptionResolvers) &#123;</span><br><span class="line">      exMv = handlerExceptionResolver.resolveException(request, response, handler, ex);</span><br><span class="line">      if (exMv != null) &#123;</span><br><span class="line">         break;</span><br><span class="line">      &#125;</span><br><span class="line">   &#125;</span><br><span class="line">   if (exMv != null) &#123;</span><br><span class="line">      if (exMv.isEmpty()) &#123;</span><br><span class="line">         request.setAttribute(EXCEPTION_ATTRIBUTE, ex);</span><br><span class="line">         return null;</span><br><span class="line">      &#125;</span><br><span class="line">      // We might still need view name translation for a plain error model...</span><br><span class="line">      if (!exMv.hasView()) &#123;</span><br><span class="line">         exMv.setViewName(getDefaultViewName(request));</span><br><span class="line">      &#125;</span><br><span class="line">      if (logger.isDebugEnabled()) &#123;</span><br><span class="line">         logger.debug(&quot;Handler execution resulted in exception - forwarding to resolved error view: &quot; + exMv, ex);</span><br><span class="line">      &#125;</span><br><span class="line">      WebUtils.exposeErrorRequestAttributes(request, ex, getServletName());</span><br><span class="line">      return exMv;</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   throw ex;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;SpringMVC启动加载时会将所有的异常处理HandlerExceptionResolver实现类存放到handlerExceptionResolvers中，当默认执行时，只要返回的exMv不为空就中止执行其他的异常处理实现类。<br>&emsp;&emsp;可以实现多个HandlerExceptionResolver的异常处理类，执行顺序由其order属性决定, order值越小，越是优先执行, 在执行到第一个返回不是null的ModelAndView的Resolver时，不再执行后续的尚未执行的Resolver的异常处理方法。</p>
+<p>&emsp;&emsp;</p>
+<h4 id="HandlerMethodArgumentResolver参数解析器"><a href="#HandlerMethodArgumentResolver参数解析器" class="headerlink" title="HandlerMethodArgumentResolver参数解析器"></a>HandlerMethodArgumentResolver参数解析器</h4><p>&emsp;&emsp;HandlerMethodArgumentResolver是用来为处理器解析参数的，主要用在HandlerMethod中，每个Resolver对应一种类型的参数，其实现类特别的多。HandlerMethodArgumentResolver的接口定义如下：</p>
+<blockquote>
+<ul>
+<li>supportsParameter 用于判断是否支持对某种参数的解析</li>
+<li>resolveArgument  将请求中的参数值解析为某种对象</li>
+</ul>
+</blockquote>
+<p>&emsp;&emsp;参数的处理是在InvocableHandlerMethod类中，当执行具体的请求处理时执行invokeForRequest：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">public Object invokeForRequest(NativeWebRequest request, ModelAndViewContainer mavContainer,</span><br><span class="line">      Object... providedArgs) throws Exception &#123;</span><br><span class="line">   //获取执行Controller的函数的参数对象</span><br><span class="line">   Object[] args = getMethodArgumentValues(request, mavContainer, providedArgs);</span><br><span class="line">   if (logger.isTraceEnabled()) &#123;</span><br><span class="line">      logger.trace(&quot;Invoking &#x27;&quot; + ClassUtils.getQualifiedMethodName(getMethod(), getBeanType()) +</span><br><span class="line">            &quot;&#x27; with arguments &quot; + Arrays.toString(args));</span><br><span class="line">   &#125;</span><br><span class="line">   Object returnValue = doInvoke(args);</span><br><span class="line">   if (logger.isTraceEnabled()) &#123;</span><br><span class="line">      logger.trace(&quot;Method [&quot; + ClassUtils.getQualifiedMethodName(getMethod(), getBeanType()) +</span><br><span class="line">            &quot;] returned [&quot; + returnValue + &quot;]&quot;);</span><br><span class="line">   &#125;</span><br><span class="line">   return returnValue;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;具体的参数解析器的选择和使用参数解析器去解析参数的实现都在getMethodArgumentValues中。SpringMVC在启动时会将所有的参数解析器放到HandlerMethodArgumentResolverComposite，然后从HandlerMethodArgumentResolverComposite参数解析器集合中选择一个支持对parameter解析的参数解析器，之后就使用支持参数解析的解析器进行参数解析。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line">private Object[] getMethodArgumentValues(NativeWebRequest request, ModelAndViewContainer mavContainer,</span><br><span class="line">			Object... providedArgs) throws Exception &#123;</span><br><span class="line">		//获取执行的具体函数的参数</span><br><span class="line">		MethodParameter[] parameters = getMethodParameters();</span><br><span class="line">		Object[] args = new Object[parameters.length];</span><br><span class="line">		for (int i = 0; i &lt; parameters.length; i++) &#123;</span><br><span class="line">			MethodParameter parameter = parameters[i];</span><br><span class="line">			parameter.initParameterNameDiscovery(this.parameterNameDiscoverer);</span><br><span class="line">			GenericTypeResolver.resolveParameterType(parameter, getBean().getClass());</span><br><span class="line">			//获取参数值对象</span><br><span class="line">			args[i] = resolveProvidedArgument(parameter, providedArgs);</span><br><span class="line">			if (args[i] != null) &#123;</span><br><span class="line">				continue;</span><br><span class="line">			&#125;</span><br><span class="line">			//首先判断是否有参数解析器支持参数parameter，采用职责链的设计模式</span><br><span class="line">			if (this.argumentResolvers.supportsParameter(parameter)) &#123;</span><br><span class="line">				try &#123;</span><br><span class="line">					//如果参数解析器支持解析参数parameter，那么解析参数成Controller的函数需要的格式</span><br><span class="line">					args[i] = this.argumentResolvers.resolveArgument(</span><br><span class="line">							parameter, mavContainer, request, this.dataBinderFactory);</span><br><span class="line">					continue;</span><br><span class="line">				&#125;</span><br><span class="line">				catch (Exception ex) &#123;</span><br><span class="line">					if (logger.isDebugEnabled()) &#123;</span><br><span class="line">						logger.debug(getArgumentResolutionErrorMessage(&quot;Error resolving argument&quot;, i), ex);</span><br><span class="line">					&#125;</span><br><span class="line">					throw ex;</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">			if (args[i] == null) &#123;</span><br><span class="line">				String msg = getArgumentResolutionErrorMessage(&quot;No suitable resolver for argument&quot;, i);</span><br><span class="line">				throw new IllegalStateException(msg);</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		//返回参数值</span><br><span class="line">		return args;</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;以上代码会将URL链接提交的参数值转换为对象值。</p>
+<p>&emsp;&emsp;</p>
+<h4 id="HandlerMethodReturnValueHandler返回值解析器"><a href="#HandlerMethodReturnValueHandler返回值解析器" class="headerlink" title="HandlerMethodReturnValueHandler返回值解析器"></a>HandlerMethodReturnValueHandler返回值解析器</h4><p>&emsp;&emsp;HandlerMethodReturnValueHandler是用于对Controller中函数执行的返回值进行处理操作的。接口HandlerMethodReturnValueHandler定义的抽象方法如下：</p>
+<blockquote>
+<ul>
+<li>supportsReturnType用于判断是否支持对返回值的处理。</li>
+<li>handleReturnValue实现对返回值的处理操作。</li>
+</ul>
+</blockquote>
+<p>&emsp;&emsp;执行过程是在ServletInvocableHandlerMethod的invokeAndHandle中：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">public void invokeAndHandle(ServletWebRequest webRequest,</span><br><span class="line">			ModelAndViewContainer mavContainer, Object... providedArgs) throws Exception &#123;</span><br><span class="line">		// 获取返回值</span><br><span class="line">		Object returnValue = invokeForRequest(webRequest, mavContainer, providedArgs);</span><br><span class="line">		.......</span><br><span class="line">		//对返回值进行处理操作</span><br><span class="line">		this.returnValueHandlers.handleReturnValue(</span><br><span class="line">					returnValue, getReturnValueType(returnValue), mavContainer, webRequest);</span><br><span class="line">		.........</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;具体实现是在HandlerMethodReturnValueHandlerComposite中，HandlerMethodReturnValueHandlerComposite中包含了所有springMVC提供的返回值处理器。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">public void handleReturnValue(Object returnValue, MethodParameter returnType,</span><br><span class="line">      ModelAndViewContainer mavContainer, NativeWebRequest webRequest) throws Exception &#123;</span><br><span class="line">   //选择可以处理返回值的处理器</span><br><span class="line">   HandlerMethodReturnValueHandler handler = selectHandler(returnValue, returnType);</span><br><span class="line">   if (handler == null) &#123;</span><br><span class="line">      throw new IllegalArgumentException(&quot;Unknown return value type: &quot; + returnType.getParameterType().getName());</span><br><span class="line">   &#125;</span><br><span class="line">    //处理返回值</span><br><span class="line">   handler.handleReturnValue(returnValue, returnType, mavContainer, webRequest);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">private HandlerMethodReturnValueHandler selectHandler(Object value, MethodParameter returnType) &#123;</span><br><span class="line">   boolean isAsyncValue = isAsyncReturnValue(value, returnType);</span><br><span class="line">   for (HandlerMethodReturnValueHandler handler : this.returnValueHandlers) &#123;</span><br><span class="line">      if (isAsyncValue &amp;&amp; !(handler instanceof AsyncHandlerMethodReturnValueHandler)) &#123;</span><br><span class="line">         continue;</span><br><span class="line">      &#125;</span><br><span class="line">      if (handler.supportsReturnType(returnType)) &#123;</span><br><span class="line">         return handler;</span><br><span class="line">      &#125;</span><br><span class="line">   &#125;</span><br><span class="line">   return null;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/03/13/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5&%E9%94%81&volatile/AbstractQueuedSynchronizer%EF%BC%88%E4%BA%8C%EF%BC%89/" rel="prev" title="AbstractQueuedSynchronizer（二）">
+      <i class="fa fa-chevron-left"></i> AbstractQueuedSynchronizer（二）
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/03/20/Spring/Spring%20Bean%E5%8A%A0%E8%BD%BD%E8%BF%87%E7%A8%8B/" rel="next" title="Spring Bean加载过程">
+      Spring Bean加载过程 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-4"><a class="nav-link" href="#HandlerInterceptor%E6%8B%A6%E6%88%AA%E5%99%A8"><span class="nav-number">1.</span> <span class="nav-text">HandlerInterceptor拦截器</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#HandlerExceptionResolver%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86"><span class="nav-number">2.</span> <span class="nav-text">HandlerExceptionResolver异常处理</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#HandlerMethodArgumentResolver%E5%8F%82%E6%95%B0%E8%A7%A3%E6%9E%90%E5%99%A8"><span class="nav-number">3.</span> <span class="nav-text">HandlerMethodArgumentResolver参数解析器</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#HandlerMethodReturnValueHandler%E8%BF%94%E5%9B%9E%E5%80%BC%E8%A7%A3%E6%9E%90%E5%99%A8"><span class="nav-number">4.</span> <span class="nav-text">HandlerMethodReturnValueHandler返回值解析器</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">184</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">30</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

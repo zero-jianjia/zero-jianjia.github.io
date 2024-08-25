@@ -187,6 +187,90 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/G1%E6%97%A5%E5%BF%97/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/G1%E6%97%A5%E5%BF%97/" class="post-title-link" itemprop="url">G1日志</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/JVM/" itemprop="url" rel="index"><span itemprop="name">JVM</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/JVM/GC%E7%9B%B8%E5%85%B3/" itemprop="url" rel="index"><span itemprop="name">GC相关</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="Young-Collection日志"><a href="#Young-Collection日志" class="headerlink" title="Young Collection日志"></a>Young Collection日志</h1> <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">2016-09-29T16:58:43.298+0800: 84662.983: [GC pause (G1 Evacuation Pause) (young)</span><br><span class="line">   [Parallel Time: 39.5 ms, GC Workers: 13]</span><br><span class="line">      [GC Worker Start (ms): Min: 84662997.2, Avg: 84662997.6, Max: 84662997.8, Diff: 0.6]</span><br><span class="line">      [Ext Root Scanning (ms): Min: 1.0, Avg: 1.6, Max: 6.2, Diff: 5.2, Sum: 21.0]</span><br><span class="line">      [Update RS (ms): Min: 8.1, Avg: 12.4, Max: 13.1, Diff: 5.0, Sum: 161.1]</span><br><span class="line">         [Processed Buffers: Min: 9, Avg: 17.8, Max: 26, Diff: 17, Sum: 231]</span><br><span class="line">      [Scan RS (ms): Min: 5.8, Avg: 6.2, Max: 6.3, Diff: 0.5, Sum: 80.2]</span><br><span class="line">      [Code Root Scanning (ms): Min: 0.0, Avg: 0.0, Max: 0.0, Diff: 0.0, Sum: 0.0]</span><br><span class="line">      [Object Copy (ms): Min: 18.4, Avg: 18.6, Max: 18.7, Diff: 0.3, Sum: 241.2]</span><br><span class="line">      [Termination (ms): Min: 0.0, Avg: 0.2, Max: 0.2, Diff: 0.2, Sum: 2.1]</span><br><span class="line">         [Termination Attempts: Min: 1, Avg: 149.4, Max: 197, Diff: 196, Sum: 1942]</span><br><span class="line">      [GC Worker Other (ms): Min: 0.0, Avg: 0.1, Max: 0.1, Diff: 0.1, Sum: 1.1]</span><br><span class="line">      [GC Worker Total (ms): Min: 38.7, Avg: 39.0, Max: 39.3, Diff: 0.6, Sum: 506.8]</span><br><span class="line">      [GC Worker End (ms): Min: 84663036.5, Avg: 84663036.5, Max: 84663036.6, Diff: 0.1]</span><br><span class="line">   [Code Root Fixup: 0.1 ms]</span><br><span class="line">   [Code Root Purge: 0.0 ms]</span><br><span class="line">   [Clear CT: 1.1 ms]</span><br><span class="line">   [Other: 17.8 ms]</span><br><span class="line">      [Choose CSet: 0.0 ms]</span><br><span class="line">      [Ref Proc: 1.9 ms]</span><br><span class="line">      [Ref Enq: 0.1 ms]</span><br><span class="line">      [Redirty Cards: 0.4 ms]</span><br><span class="line">      [Humongous Register: 11.8 ms]</span><br><span class="line">      [Humongous Reclaim: 0.1 ms]</span><br><span class="line">      [Free CSet: 1.1 ms]</span><br><span class="line">   [Eden: 7968.0M(7968.0M)-&gt;0.0B(13.8G) Survivors: 0.0B-&gt;0.0B Heap: 31.9G(96.0G)-&gt;24.3G(96.0G)]</span><br></pre></td></tr></table></figure>
+
+<p>GC pause (G1 Evacuation Pause) (young) - 表示此时GC暂停是YGC。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/G1%E6%97%A5%E5%BF%97/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
     <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/G1%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E5%99%A8/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -926,90 +1010,10 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Spring/spring%20boot/%E4%BD%A0%E7%9A%84Spring%20Boot%E5%BA%94%E7%94%A8%E5%90%AF%E5%8A%A8%E5%BE%88%E6%85%A2%EF%BC%9F%E4%B8%8D%E5%A6%A8%E8%AF%95%E8%AF%95%E8%BF%99%E4%B8%AA%E5%B7%A5%E5%85%B7%EF%BC%81/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/04/01/Spring/spring%20boot/%E4%BD%A0%E7%9A%84Spring%20Boot%E5%BA%94%E7%94%A8%E5%90%AF%E5%8A%A8%E5%BE%88%E6%85%A2%EF%BC%9F%E4%B8%8D%E5%A6%A8%E8%AF%95%E8%AF%95%E8%BF%99%E4%B8%AA%E5%B7%A5%E5%85%B7%EF%BC%81/" class="post-title-link" itemprop="url">你的Spring Boot应用启动很慢？不妨试试这个工具！</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Spring/Spring-Boot/" itemprop="url" rel="index"><span itemprop="name">Spring Boot</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>在GitHub上看到一个不错的开源项目：<strong>Spring Startup Analyzer</strong>。</p>
-<p>从项目名称中就大概能猜到，这是一个分析Spring应用启动过程的工具。Spring Startup Analyzer通过采集Spring应用启动过程的数据，进而生成一个交互式的分析报告，帮助用户发现Spring应用启动慢的位置。同时，Spring Startup Analyzer还提供了Spring Bean异步初始化的工具，来帮助开发者加快Spring应用的启动时间。</p>
-<p>下面一起来看看其提供的强大功能。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/04/01/Spring/spring%20boot/%E4%BD%A0%E7%9A%84Spring%20Boot%E5%BA%94%E7%94%A8%E5%90%AF%E5%8A%A8%E5%BE%88%E6%85%A2%EF%BC%9F%E4%B8%8D%E5%A6%A8%E8%AF%95%E8%AF%95%E8%BF%99%E4%B8%AA%E5%B7%A5%E5%85%B7%EF%BC%81/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/8/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/8/">8</a><span class="page-number current">9</span><a class="page-number" href="/page/10/">10</a><span class="space">&hellip;</span><a class="page-number" href="/page/18/">18</a><a class="extend next" rel="next" href="/page/10/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/8/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/8/">8</a><span class="page-number current">9</span><a class="page-number" href="/page/10/">10</a><span class="space">&hellip;</span><a class="page-number" href="/page/19/">19</a><a class="extend next" rel="next" href="/page/10/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -1075,7 +1079,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">179</span>
+          <span class="site-state-item-count">184</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
