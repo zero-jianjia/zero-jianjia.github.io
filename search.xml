@@ -12301,7 +12301,9 @@
 <figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">private</span> Class&lt;?&gt; deduceMainApplicationClass() &#123;</span><br><span class="line">	<span class="keyword">try</span> &#123;</span><br><span class="line">		StackTraceElement[] stackTrace = <span class="keyword">new</span> <span class="title class_">RuntimeException</span>().getStackTrace();</span><br><span class="line">		<span class="keyword">for</span> (StackTraceElement stackTraceElement : stackTrace) &#123;</span><br><span class="line">			<span class="keyword">if</span> (<span class="string">&quot;main&quot;</span>.equals(stackTraceElement.getMethodName())) &#123;</span><br><span class="line">				<span class="keyword">return</span> Class.forName(stackTraceElement.getClassName());</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">catch</span> (ClassNotFoundException ex) &#123;</span><br><span class="line">		<span class="comment">// Swallow and continue</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 <p>它通过构造一个运行时异常，通过异常栈中方法名为main的栈帧来得到入口类的名字。至此，对于SpringApplication实例的初始化过程就结束了。</p>
-<h2 id="Application-run"><a href="#Application-run" class="headerlink" title="Application#run()"></a>Application#run()</h2><p> 完成了实例化，下面开始调用run方法：</p>
+<h2 id="Application-run"><a href="#Application-run" class="headerlink" title="Application#run()"></a>Application#run()</h2><p> 完成了实例化，下面开始调用run方法。流程图如下：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408262126837.png" alt="img"></p>
+<p>源码：</p>
 <figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> ConfigurableApplicationContext <span class="title function_">run</span><span class="params">(String... args)</span> &#123;</span><br><span class="line">    <span class="comment">// 计时工具</span></span><br><span class="line">    <span class="type">StopWatch</span> <span class="variable">stopWatch</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">StopWatch</span>();</span><br><span class="line">    stopWatch.start();</span><br><span class="line"></span><br><span class="line">    <span class="type">ConfigurableApplicationContext</span> <span class="variable">context</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">    <span class="type">FailureAnalyzers</span> <span class="variable">analyzers</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">    <span class="comment">// 设置java.awt.headless系统属性为true - 没有图形化界面</span></span><br><span class="line">    configureHeadlessProperty();</span><br><span class="line"></span><br><span class="line">    <span class="type">SpringApplicationRunListeners</span> <span class="variable">listeners</span> <span class="operator">=</span> getRunListeners(args);</span><br><span class="line">    listeners.starting();</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="type">ApplicationArguments</span> <span class="variable">applicationArguments</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">DefaultApplicationArguments</span>(</span><br><span class="line">            args);</span><br><span class="line">        <span class="type">ConfigurableEnvironment</span> <span class="variable">environment</span> <span class="operator">=</span> prepareEnvironment(listeners,</span><br><span class="line">                                                                 applicationArguments);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Banner打印器，就是启动Spring Boot的时候打印在console上的	</span></span><br><span class="line">        <span class="type">Banner</span> <span class="variable">printedBanner</span> <span class="operator">=</span> printBanner(environment);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 创建Spring上下文</span></span><br><span class="line">        context = createApplicationContext();</span><br><span class="line">        analyzers = <span class="keyword">new</span> <span class="title class_">FailureAnalyzers</span>(context);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Spring上下文前置处理</span></span><br><span class="line">        prepareContext(context, environment, listeners, applicationArguments,</span><br><span class="line">                       printedBanner);</span><br><span class="line"></span><br><span class="line">        refreshContext(context);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Spring上下文后置处理</span></span><br><span class="line">        afterRefresh(context, applicationArguments);</span><br><span class="line">        listeners.finished(context, <span class="literal">null</span>);</span><br><span class="line">        stopWatch.stop();</span><br><span class="line">        <span class="keyword">if</span> (<span class="built_in">this</span>.logStartupInfo) &#123;</span><br><span class="line">            <span class="keyword">new</span> <span class="title class_">StartupInfoLogger</span>(<span class="built_in">this</span>.mainApplicationClass)</span><br><span class="line">                .logStarted(getApplicationLog(), stopWatch);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> context;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">catch</span> (Throwable ex) &#123;</span><br><span class="line">        handleRunFailure(context, listeners, analyzers, ex);</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">IllegalStateException</span>(ex);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 <p>第23行createApplicationContext()即创建Spring的主要组件ApplicationContext，对于Web应用，上ApplicationContext就是AnnotationConfigEmbeddedWebApplicationContext。</p>
@@ -12537,6 +12539,561 @@
 <p>&emsp;&emsp;具体实现是在HandlerMethodReturnValueHandlerComposite中，HandlerMethodReturnValueHandlerComposite中包含了所有springMVC提供的返回值处理器。</p>
 <figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">public void handleReturnValue(Object returnValue, MethodParameter returnType,</span><br><span class="line">      ModelAndViewContainer mavContainer, NativeWebRequest webRequest) throws Exception &#123;</span><br><span class="line">   //选择可以处理返回值的处理器</span><br><span class="line">   HandlerMethodReturnValueHandler handler = selectHandler(returnValue, returnType);</span><br><span class="line">   if (handler == null) &#123;</span><br><span class="line">      throw new IllegalArgumentException(&quot;Unknown return value type: &quot; + returnType.getParameterType().getName());</span><br><span class="line">   &#125;</span><br><span class="line">    //处理返回值</span><br><span class="line">   handler.handleReturnValue(returnValue, returnType, mavContainer, webRequest);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">private HandlerMethodReturnValueHandler selectHandler(Object value, MethodParameter returnType) &#123;</span><br><span class="line">   boolean isAsyncValue = isAsyncReturnValue(value, returnType);</span><br><span class="line">   for (HandlerMethodReturnValueHandler handler : this.returnValueHandlers) &#123;</span><br><span class="line">      if (isAsyncValue &amp;&amp; !(handler instanceof AsyncHandlerMethodReturnValueHandler)) &#123;</span><br><span class="line">         continue;</span><br><span class="line">      &#125;</span><br><span class="line">      if (handler.supportsReturnType(returnType)) &#123;</span><br><span class="line">         return handler;</span><br><span class="line">      &#125;</span><br><span class="line">   &#125;</span><br><span class="line">   return null;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>]]></content>
+      <categories>
+        <category>Spring</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>Spring中的循环依赖</title>
+    <url>/2024/03/20/Spring/Spring%E4%B8%AD%E7%9A%84%E5%BE%AA%E7%8E%AF%E4%BE%9D%E8%B5%96/</url>
+    <content><![CDATA[<p>&emsp;&emsp;在之前的文章中，分析了<code>AbstractBeanFactory#getBean()</code>获取bean时，会调用到<code>AbstractBeanFactory#doGetBean()</code> ，在该方法中调用到<code>AbstractAutowireCapableBeanFactory#createBean()</code>，最终是调用了<code>AbstractAutowireCapableBeanFactory#doCreateBean</code>，这里面会清晰的看到创建Bean的几个过程：<br><img src='https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408262145740.png' height="50%" width="50%"></p>
+<p>&emsp;&emsp;在调用<code>AbstractBeanFactory#doGetBean()</code>方法中会调用<code>DefaultSingletonBeanRegistry#getSingleton()</code>来看这个beanName是否已经加载并被<code>DefaultSingletonBeanRegistry</code>缓存了。</p>
+<span id="more"></span>　　
+<p>&emsp;&emsp;<code>DefaultSingletonBeanRegistry</code>是共享bean实例的通用注册表，里面会缓存bean，主要关注类中的下面几个filed：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">/** 缓存singleton对象 */</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> Map&lt;String, Object&gt; singletonObjects = <span class="keyword">new</span> <span class="title class_">ConcurrentHashMap</span>&lt;String, Object&gt;(<span class="number">256</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">/** 缓存制造singleton的工厂对象 */</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> Map&lt;String, ObjectFactory&lt;?&gt;&gt; singletonFactories = <span class="keyword">new</span> <span class="title class_">HashMap</span>&lt;String, ObjectFactory&lt;?&gt;&gt;(<span class="number">16</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">/** 缓存singletonFactory制造出来的singleton  */</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> Map&lt;String, Object&gt; earlySingletonObjects = <span class="keyword">new</span> <span class="title class_">HashMap</span>&lt;String, Object&gt;(<span class="number">16</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">/** 单例注册表 */</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> Set&lt;String&gt; registeredSingletons = <span class="keyword">new</span> <span class="title class_">LinkedHashSet</span>&lt;String&gt;(<span class="number">256</span>);</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;来看getSingleton(beanName)方法：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="keyword">public</span> Object <span class="title function_">getSingleton</span><span class="params">(String beanName)</span> &#123;</span><br><span class="line">	<span class="keyword">return</span> getSingleton(beanName, <span class="literal">true</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">protected</span> Object <span class="title function_">getSingleton</span><span class="params">(String beanName, <span class="type">boolean</span> allowEarlyReference)</span> &#123;</span><br><span class="line">	<span class="type">Object</span> <span class="variable">singletonObject</span> <span class="operator">=</span> <span class="built_in">this</span>.singletonObjects.get(beanName);</span><br><span class="line">	<span class="keyword">if</span> (singletonObject == <span class="literal">null</span> &amp;&amp; isSingletonCurrentlyInCreation(beanName)) &#123;</span><br><span class="line">		<span class="keyword">synchronized</span> (<span class="built_in">this</span>.singletonObjects) &#123;</span><br><span class="line">			singletonObject = <span class="built_in">this</span>.earlySingletonObjects.get(beanName);</span><br><span class="line">			<span class="keyword">if</span> (singletonObject == <span class="literal">null</span> &amp;&amp; allowEarlyReference) &#123;</span><br><span class="line">				ObjectFactory&lt;?&gt; singletonFactory = <span class="built_in">this</span>.singletonFactories.get(beanName);</span><br><span class="line">                   <span class="comment">// 如果存在指定beanName的singletonFactory对象</span></span><br><span class="line">				<span class="keyword">if</span> (singletonFactory != <span class="literal">null</span>) &#123;</span><br><span class="line">					singletonObject = singletonFactory.getObject();</span><br><span class="line">                       <span class="comment">// earlySingletonObjects存放singletonFactory产生的singleton  </span></span><br><span class="line">					<span class="built_in">this</span>.earlySingletonObjects.put(beanName, singletonObject);</span><br><span class="line">                       <span class="comment">//指定的beanName已被占用，需要在singletonFactories移除</span></span><br><span class="line">					<span class="built_in">this</span>.singletonFactories.remove(beanName);</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> (singletonObject != NULL_OBJECT ? singletonObject : <span class="literal">null</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;首先从<code>singletonObjects</code>中尝试获取，如果获取不到并且对象在创建中(singletonsCurrentlyInCreation中包含)，则尝试从<code>earlySingletonObjects</code>中获取，如果还是获取不到并且允许从<code>singletonFactories</code>通过getObject获取，则调用<code>singletonFactory.getObject()</code>获取。</p>
+<p>&emsp;&emsp;如果getSingleton(beanName)获取不到对应的bean，AbstractBeanFactory就开始创建：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// Create bean instance.</span></span><br><span class="line"><span class="keyword">if</span> (mbd.isSingleton()) &#123;</span><br><span class="line">	sharedInstance = getSingleton(beanName, <span class="keyword">new</span> <span class="title class_">ObjectFactory</span>&lt;Object&gt;() &#123;</span><br><span class="line">		<span class="meta">@Override</span></span><br><span class="line">		<span class="keyword">public</span> Object <span class="title function_">getObject</span><span class="params">()</span> <span class="keyword">throws</span> BeansException &#123;</span><br><span class="line">			<span class="keyword">try</span> &#123;</span><br><span class="line">				<span class="keyword">return</span> createBean(beanName, mbd, args);</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">catch</span> (BeansException ex) &#123;</span><br><span class="line">				destroySingleton(beanName);</span><br><span class="line">				<span class="keyword">throw</span> ex;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;);</span><br><span class="line">	bean = getObjectForBeanInstance(sharedInstance, name, beanName, mbd);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> Object <span class="title function_">getSingleton</span><span class="params">(String beanName, ObjectFactory&lt;?&gt; singletonFactory)</span> &#123;</span><br><span class="line">	Assert.notNull(beanName, <span class="string">&quot;&#x27;beanName&#x27; must not be null&quot;</span>);</span><br><span class="line">	<span class="keyword">synchronized</span> (<span class="built_in">this</span>.singletonObjects) &#123;</span><br><span class="line">		<span class="type">Object</span> <span class="variable">singletonObject</span> <span class="operator">=</span> <span class="built_in">this</span>.singletonObjects.get(beanName);</span><br><span class="line">		<span class="keyword">if</span> (singletonObject == <span class="literal">null</span>) &#123;</span><br><span class="line">			<span class="comment">// ……</span></span><br><span class="line">			beforeSingletonCreation(beanName);</span><br><span class="line">			<span class="type">boolean</span> <span class="variable">newSingleton</span> <span class="operator">=</span> <span class="literal">false</span>;</span><br><span class="line">			<span class="type">boolean</span> <span class="variable">recordSuppressedExceptions</span> <span class="operator">=</span> (<span class="built_in">this</span>.suppressedExceptions == <span class="literal">null</span>);</span><br><span class="line">			<span class="keyword">if</span> (recordSuppressedExceptions) &#123;</span><br><span class="line">				<span class="built_in">this</span>.suppressedExceptions = <span class="keyword">new</span> <span class="title class_">LinkedHashSet</span>&lt;Exception&gt;();</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">try</span> &#123;</span><br><span class="line">				singletonObject = singletonFactory.getObject();</span><br><span class="line">				newSingleton = <span class="literal">true</span>;</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">catch</span> (IllegalStateException ex) &#123;</span><br><span class="line">				<span class="comment">// Has the singleton object implicitly appeared in the meantime -&gt;</span></span><br><span class="line">				<span class="comment">// if yes, proceed with it since the exception indicates that state.</span></span><br><span class="line">				singletonObject = <span class="built_in">this</span>.singletonObjects.get(beanName);</span><br><span class="line">				<span class="keyword">if</span> (singletonObject == <span class="literal">null</span>) &#123;</span><br><span class="line">					<span class="keyword">throw</span> ex;</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">catch</span> (BeanCreationException ex) &#123;</span><br><span class="line">				<span class="keyword">if</span> (recordSuppressedExceptions) &#123;</span><br><span class="line">					<span class="keyword">for</span> (Exception suppressedException : <span class="built_in">this</span>.suppressedExceptions) &#123;</span><br><span class="line">						ex.addRelatedCause(suppressedException);</span><br><span class="line">					&#125;</span><br><span class="line">				&#125;</span><br><span class="line">				<span class="keyword">throw</span> ex;</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">finally</span> &#123;</span><br><span class="line">				<span class="keyword">if</span> (recordSuppressedExceptions) &#123;</span><br><span class="line">					<span class="built_in">this</span>.suppressedExceptions = <span class="literal">null</span>;</span><br><span class="line">				&#125;</span><br><span class="line">				afterSingletonCreation(beanName);</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">if</span> (newSingleton) &#123;</span><br><span class="line">				addSingleton(beanName, singletonObject);</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> (singletonObject != NULL_OBJECT ? singletonObject : <span class="literal">null</span>);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;这里的getSingleton方法大致流程是，从<code>singletonObjects</code>中获取名称为beanName的对象；如果为空，则<code>beforeSingletonCreation()</code>中先检查DefaultSingletonBeanRegistry 类中的<code>inCreationCheckExclusions</code>是否不包含该beanName，并在<code>singletonsCurrentlyInCreation</code>中添加该beanName，失败则抛出<code>BeanCurrentlyInCreationException</code>。<br>&emsp;&emsp;然后调用singletonFactory.getObject()即createBean()方法来创建该bean，创建成功后会从<code>singletonsCurrentlyInCreation</code>删除该beanName，并将beanName对应的对象添加到<code>singletonObjects</code>中：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">addSingleton</span><span class="params">(String beanName, Object singletonObject)</span> &#123;</span><br><span class="line">	<span class="keyword">synchronized</span> (<span class="built_in">this</span>.singletonObjects) &#123;</span><br><span class="line">		<span class="built_in">this</span>.singletonObjects.put(beanName, (singletonObject != <span class="literal">null</span> ? singletonObject : NULL_OBJECT));</span><br><span class="line">		<span class="built_in">this</span>.singletonFactories.remove(beanName);</span><br><span class="line">		<span class="built_in">this</span>.earlySingletonObjects.remove(beanName);</span><br><span class="line">		<span class="built_in">this</span>.registeredSingletons.add(beanName);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;<br>&emsp;&emsp;注意，在<code>AbstractAutowireCapableBeanFactory#doCreateBean()</code>方法中，createBeanInstance()执行完成之后，此时单例对象此时已经被创建出来了，但是populateBean、initializeBean还没执行，但Spring此时也会将这个对象提前曝光出来：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">protected</span> Object <span class="title function_">doCreateBean</span><span class="params">(<span class="keyword">final</span> String beanName, <span class="keyword">final</span> RootBeanDefinition mbd, <span class="keyword">final</span> Object[] args)</span></span><br><span class="line">		<span class="keyword">throws</span> BeanCreationException &#123;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Instantiate the bean.</span></span><br><span class="line">	<span class="type">BeanWrapper</span> <span class="variable">instanceWrapper</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">	<span class="comment">// ...</span></span><br><span class="line">	<span class="keyword">if</span> (instanceWrapper == <span class="literal">null</span>) &#123;</span><br><span class="line">		instanceWrapper = createBeanInstance(beanName, mbd, args);</span><br><span class="line">	&#125;</span><br><span class="line">       <span class="comment">// ...</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// Eagerly cache singletons to be able to resolve circular references</span></span><br><span class="line">	<span class="comment">// even when triggered by lifecycle interfaces like BeanFactoryAware.</span></span><br><span class="line">	<span class="type">boolean</span> <span class="variable">earlySingletonExposure</span> <span class="operator">=</span> (mbd.isSingleton() &amp;&amp; <span class="built_in">this</span>.allowCircularReferences &amp;&amp;</span><br><span class="line">			isSingletonCurrentlyInCreation(beanName));</span><br><span class="line">	<span class="keyword">if</span> (earlySingletonExposure) &#123;</span><br><span class="line">		<span class="keyword">if</span> (logger.isDebugEnabled()) &#123;</span><br><span class="line">			logger.debug(<span class="string">&quot;Eagerly caching bean &#x27;&quot;</span> + beanName +</span><br><span class="line">					<span class="string">&quot;&#x27; to allow for resolving potential circular references&quot;</span>);</span><br><span class="line">		&#125;</span><br><span class="line">		addSingletonFactory(beanName, <span class="keyword">new</span> <span class="title class_">ObjectFactory</span>&lt;Object&gt;() &#123;</span><br><span class="line">			<span class="meta">@Override</span></span><br><span class="line">			<span class="keyword">public</span> Object <span class="title function_">getObject</span><span class="params">()</span> <span class="keyword">throws</span> BeansException &#123;</span><br><span class="line">				<span class="keyword">return</span> getEarlyBeanReference(beanName, mbd, bean);</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Initialize the bean instance.</span></span><br><span class="line">	<span class="type">Object</span> <span class="variable">exposedObject</span> <span class="operator">=</span> bean;</span><br><span class="line">	<span class="keyword">try</span> &#123;</span><br><span class="line">		populateBean(beanName, mbd, instanceWrapper);</span><br><span class="line">		<span class="keyword">if</span> (exposedObject != <span class="literal">null</span>) &#123;</span><br><span class="line">			exposedObject = initializeBean(beanName, exposedObject, mbd);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// ...</span></span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">addSingletonFactory</span><span class="params">(String beanName, ObjectFactory&lt;?&gt; singletonFactory)</span> &#123;</span><br><span class="line">	Assert.notNull(singletonFactory, <span class="string">&quot;Singleton factory must not be null&quot;</span>);</span><br><span class="line">	<span class="keyword">synchronized</span> (<span class="built_in">this</span>.singletonObjects) &#123;</span><br><span class="line">		<span class="keyword">if</span> (!<span class="built_in">this</span>.singletonObjects.containsKey(beanName)) &#123;</span><br><span class="line">			<span class="built_in">this</span>.singletonFactories.put(beanName, singletonFactory);</span><br><span class="line">			<span class="built_in">this</span>.earlySingletonObjects.remove(beanName);</span><br><span class="line">			<span class="built_in">this</span>.registeredSingletons.add(beanName);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;<br>&emsp;&emsp;Spring这么设计有什么好处呢？来分析一下，假设Abean的某个field或者setter依赖了Bbean的实例对象，同时Bbean的某个field或者setter也依赖了Abean的实例对象，在这种循环依赖的情况下，会出现什么情况。<br>&emsp;&emsp;Abean首先完成了初始化的第一步（createBeanInstance），并且将自己提前曝光到<code>singletonFactories</code>中，在进行初始化的第二步时，发现自己依赖对象Bbean，此时就尝试去getBean(BbeanName)，发现Bbean还没有被创建，于是开始创建。Bbean在初始化第一步的时候发现自己依赖了对象Abean，于是尝试getBean(AbeanName)，会先调用getSingleton(beanName)方法，在该方法中会在<code>singletonFactories</code>中拿到Abean对象，Bbean拿到Abean对象后顺利完全初始化之后将自己放入到<code>singletonObjects</code>中。此时返回Abean的初始化过程，Abean此时能拿到Bbean的对象顺利完成自己的初始化，最终Abean也完成了初始化，放入到<code>singletonObjects</code>中。整个过程没有问题。<br>&emsp;&emsp;但是，如果是Abean的构造函数中依赖了Bbean的实例对象，同时Bbean的构造函数也依赖了Abean的实例对象，在这种循环依赖的情况下，Bbean在初始化时发现自己依赖了对象Abean，于是尝试getBean(AbeanName)，调用getSingleton(beanName)方法发现没有，于是开始创建，而在<code>singletonsCurrentlyInCreation</code>已经有了Abean，于是抛出**<code>BeanCurrentlyInCreationException</code>**异常。</p>
+<p>&emsp;&emsp;以上是对singleton的bean分析，如果是prototype呢？由于Spring容器不进行缓存prototype对象，因此无法提前暴露一个创建中的Bean。所以prototype的循环依赖是存在问题的。<br>　　<br>&emsp;&emsp;总结：简单来说就是对象通过构造函数初始化之后就暴露到容器中，这样就不会存在循环初始化对象的情况了。	</p>
+<hr>
+<p>&emsp;&emsp;构造循环依赖：这种情况，类A的构造方法中传入类B，同时类B的构造方法中传入类A,这种循环依赖会报错，Spring无法解决。<br>&emsp;&emsp;字段循环依赖：这种循环依赖，Spirng可以解决并且不会报错。<br>&emsp;&emsp;Setter注入：Setter注入和属性注入一致，可以解决。<br>&emsp;&emsp;原型循环依赖：因为原型的Bean只有在使用的时候才会去创建，而且每次都是创建一个新的，因此无法解决。</p>
+<hr>
+<hr>
+<p>为什么有三级缓存不是二级缓存？<br>&emsp;&emsp;二级缓存可以解决这个问题吗？其实二级缓存是可以解决这个问题的，但是前面说了三级缓存的目的是将返回早期引用对象这个动作给用于预留一个扩展接口，在三级缓存中获取Bean调用的getEarlyBeanReference会回调SmartInstinationBeanPostProcessor这个接口的方法，开发者可以在这个阶段对返回的Bean对象做修改，如果AB循环依赖，B就会调用getEarlyBeanReference获取A，从而B会从三级缓存得到一个扩展后的A，并移动到二级缓存。<br>&emsp;&emsp;换个角度假如只有2级缓存，那么用户扩展的动作就要放到二级缓存来做，这样每一次来获取的时候如果一级缓存没有都需要在二级缓存执行一次singletonFactory.getObject()触发一下获取Bean，这样这个方法很可能会被执行多次，每次都会创建一个新的对象，由此肯定会引起问题，引入了三级缓存singletonFactory.getObject()只会在第一次获取的时候，前两级缓存都不存在才会触发一次，并立刻将自己放到二级缓存，并清空三级缓存，后面每一次获取的都是这次创建的这个对象。<br>&emsp;&emsp;如果不需要扩展，放进去的早期引用就是不完整的Bean，不考虑给其他后置处理器扩展，这样使用2级缓存是可以的。A直接将自己放入二级缓存，循环依赖的时候B直接从二级缓存获取A的早期引用保证B初始化成功再将自己加到一级缓存，然后A初始化成功后添加到一级缓存，但是这样就不能扩展了，因为这个扩展点很重要，在AOP的AnnotationAwareAspectJAutoProxyCreator就通过这个扩展点来保证代理对象的返回和代理对象的循环依赖问题解决(保证循环依赖的时候，返回的对象也是代理对象)<br>&emsp;&emsp;综上来看三级缓存的目的是预留一共扩展接口，而这个接口和AOP有关。</p>
+<hr>
+<hr>
+<h2 id="Spring到底解决了哪种情况下的循环依赖"><a href="#Spring到底解决了哪种情况下的循环依赖" class="headerlink" title="Spring到底解决了哪种情况下的循环依赖"></a>Spring到底解决了哪种情况下的循环依赖</h2><p>AOP就是通过一个BeanPostProcessor来实现的，这个BeanPostProcessor就是AnnotationAwareAspectJAutoProxyCreator，它的父类是AbstractAutoProxyCreator，而在Spring中AOP利用的要么是JDK动态代理，要么CGLib的动态代理，所以如果给一个类中的某个方法设置了切面，那么这个类最终就需要生成一个代理对象。</p>
+<p>一般过程就是：A类—&gt;生成一个普通对象–&gt;属性注入–&gt;基于切面生成一个代理对象–&gt;把代理对象放入singletonObjects单例池中。</p>
+<p>而AOP可以说是Spring中除开IOC的另外一大功能，而循环依赖又是属于IOC范畴的，所以这两大功能想要并存，Spring需要特殊处理。</p>
+<p>如何处理的，就是利用了第三级缓存<strong>singletonFactories</strong>。</p>
+<p>首先，singletonFactories中存的是某个beanName对应的ObjectFactory，在bean的生命周期中，生成完原始对象之后，就会构造一个ObjectFactory存入singletonFactories中。这个ObjectFactory是一个函数式接口，所以支持Lambda表达式：**() -&gt; getEarlyBeanReference(beanName, mbd, bean)**</p>
+<p>上面的Lambda表达式就是一个ObjectFactory，执行该Lambda表达式就会去执行getEarlyBeanReference方法，而该方法如下：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">protected</span> Object <span class="title function_">getEarlyBeanReference</span><span class="params">(String beanName, RootBeanDefinition mbd, Object bean)</span> &#123;</span><br><span class="line">    <span class="type">Object</span> <span class="variable">exposedObject</span> <span class="operator">=</span> bean;</span><br><span class="line">    <span class="keyword">if</span> (!mbd.isSynthetic() &amp;&amp; hasInstantiationAwareBeanPostProcessors()) &#123;</span><br><span class="line">        <span class="keyword">for</span> (BeanPostProcessor bp : getBeanPostProcessors()) &#123;</span><br><span class="line">            <span class="keyword">if</span> (bp <span class="keyword">instanceof</span> SmartInstantiationAwareBeanPostProcessor) &#123;</span><br><span class="line">                <span class="type">SmartInstantiationAwareBeanPostProcessor</span> <span class="variable">ibp</span> <span class="operator">=</span> (SmartInstantiationAwareBeanPostProcessor) bp;</span><br><span class="line">                exposedObject = ibp.getEarlyBeanReference(exposedObject, beanName);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> exposedObject;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>该方法会去执行SmartInstantiationAwareBeanPostProcessor中的getEarlyBeanReference方法，而这个接口下的实现类中只有两个类实现了这个方法，一个是AbstractAutoProxyCreator，一个是InstantiationAwareBeanPostProcessorAdapter，它的实现如下：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// InstantiationAwareBeanPostProcessorAdapter</span></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="keyword">public</span> Object <span class="title function_">getEarlyBeanReference</span><span class="params">(Object bean, String beanName)</span> <span class="keyword">throws</span> BeansException &#123;</span><br><span class="line">    <span class="keyword">return</span> bean;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// AbstractAutoProxyCreator</span></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="keyword">public</span> Object <span class="title function_">getEarlyBeanReference</span><span class="params">(Object bean, String beanName)</span> &#123;</span><br><span class="line">    <span class="type">Object</span> <span class="variable">cacheKey</span> <span class="operator">=</span> getCacheKey(bean.getClass(), beanName);</span><br><span class="line">    <span class="built_in">this</span>.earlyProxyReferences.put(cacheKey, bean);</span><br><span class="line">    <span class="keyword">return</span> wrapIfNecessary(bean, beanName, cacheKey);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>所以很明显，在整个Spring中，默认就只有AbstractAutoProxyCreator真正意义上实现了getEarlyBeanReference方法，而该类就是用来进行AOP的。上文提到的AnnotationAwareAspectJAutoProxyCreator的父类就是AbstractAutoProxyCreator。</p>
+<p>那么getEarlyBeanReference方法到底在干什么？</p>
+<p>首先得到一个cachekey，cachekey就是beanName。</p>
+<p>然后把beanName和bean（这是原始对象）存入earlyProxyReferences中</p>
+<p>调用wrapIfNecessary进行AOP，得到一个代理对象。</p>
+<p>那么，什么时候会调用getEarlyBeanReference方法呢？回到循环依赖的场景中</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408262151107.png"></p>
+<p><strong>左边文字</strong>：这个ObjectFactory就是上文说的labmda表达式，中间有getEarlyBeanReference方法，注意存入singletonFactories时并不会执行lambda表达式，也就是不会执行getEarlyBeanReference方法</p>
+<p><strong>右边文字</strong>：从singletonFactories根据beanName得到一个ObjectFactory，然后执行ObjectFactory，也就是执行getEarlyBeanReference方法，此时会得到一个A原始对象经过AOP之后的代理对象，然后把该代理对象放入earlySingletonObjects中，注意此时并没有把代理对象放入singletonObjects中，那什么时候放入到singletonObjects中呢？</p>
+<p>我们这个时候得来理解一下earlySingletonObjects的作用，此时，我们只得到了A原始对象的代理对象，这个对象还不完整，因为A原始对象还没有进行属性填充，所以此时不能直接把A的代理对象放入singletonObjects中，所以只能把代理对象放入earlySingletonObjects，假设现在有其他对象依赖了A，那么则可以从earlySingletonObjects中得到A原始对象的代理对象了，并且是A的同一个代理对象。</p>
+<p>当B创建完了之后，A继续进行生命周期，而A在完成属性注入后，会按照它本身的逻辑去进行AOP，而此时我们知道A原始对象已经经历过了AOP，所以对于A本身而言，不会再去进行AOP了，那么怎么判断一个对象是否经历过了AOP呢？会利用上文提到的earlyProxyReferences，在AbstractAutoProxyCreator的postProcessAfterInitialization方法中，会去判断当前beanName是否在earlyProxyReferences，如果在则表示已经提前进行过AOP了，无需再次进行AOP。</p>
+<p>对于A而言，进行了AOP的判断后，以及BeanPostProcessor的执行之后，就需要把A对应的对象放入singletonObjects中了，但是我们知道，应该是要A的代理对象放入singletonObjects中，所以此时需要从earlySingletonObjects中得到代理对象，然后入singletonObjects中。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>至此，总结一下三级缓存：</p>
+<ol>
+<li><strong>singletonObjects</strong>：缓存某个beanName对应的经过了完整生命周期的bean</li>
+<li><strong>earlySingletonObjects</strong>：缓存提前拿原始对象进行了AOP之后得到的代理对象，原始对象还没有进行属性注入和后续的BeanPostProcessor等生命周期</li>
+<li><strong>singletonFactories</strong>：缓存的是一个ObjectFactory，主要用来去生成原始对象进行了AOP之后得到的代理对象，在每个Bean的生成过程中，都会提前暴露一个工厂，这个<strong>工厂可能用到，也可能用不到</strong>，如果没有出现循环依赖依赖本bean，那么这个工厂无用，本bean按照自己的生命周期执行，执行完后直接把本bean放入singletonObjects中即可，如果出现了循环依赖依赖了本bean，则另外那个bean执行ObjectFactory提交得到一个AOP之后的代理对象(如果有AOP的话，如果无需AOP，则直接得到一个原始对象)。</li>
+<li>其实还要一个缓存，就是<strong>earlyProxyReferences</strong>，它用来记录某个原始对象是否进行过AOP了。</li>
+</ol>
+]]></content>
+      <categories>
+        <category>Spring</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>Spring Boot处理@RequestMapping注解</title>
+    <url>/2024/04/01/Spring/spring%20boot/Spring%20Boot%E5%A4%84%E7%90%86@RequestMapping%E6%B3%A8%E8%A7%A3/</url>
+    <content><![CDATA[<p>要了解Spring MVC是怎么把<code>@RequestMapping</code>注解的方法以及类关联到相应的url上，首先需要看下<code>AbstractHandlerMethodMapping</code>：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">class</span> <span class="title class_">AbstractHandlerMethodMapping</span>&lt;T&gt; <span class="keyword">extends</span> <span class="title class_">AbstractHandlerMapping</span> <span class="keyword">implements</span> <span class="title class_">InitializingBean</span> &#123;</span><br></pre></td></tr></table></figure>
+<p>　　<code>AbstractHandlerMethodMapping</code>是一个<code>InitializingBean</code>，因此来看<code>afterPropertiesSet()</code>方法：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">afterPropertiesSet</span><span class="params">()</span> &#123;</span><br><span class="line">	initHandlerMethods();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">initHandlerMethods</span><span class="params">()</span> &#123;</span><br><span class="line">       <span class="comment">// …略</span></span><br><span class="line">       <span class="comment">// 读取Spring容器中的所有beanNames</span></span><br><span class="line">	String[] beanNames = (<span class="built_in">this</span>.detectHandlerMethodsInAncestorContexts ?</span><br><span class="line">			BeanFactoryUtils.beanNamesForTypeIncludingAncestors(getApplicationContext(), Object.class) :</span><br><span class="line">			getApplicationContext().getBeanNamesForType(Object.class));</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> (String beanName : beanNames) &#123;</span><br><span class="line">		<span class="keyword">if</span> (!beanName.startsWith(SCOPED_TARGET_NAME_PREFIX)) &#123;</span><br><span class="line">			Class&lt;?&gt; beanType = <span class="literal">null</span>;</span><br><span class="line">			<span class="keyword">try</span> &#123;</span><br><span class="line">				beanType = getApplicationContext().getType(beanName);</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">catch</span> (Throwable ex) &#123;</span><br><span class="line">				<span class="comment">// …略</span></span><br><span class="line">			&#125;</span><br><span class="line">               <span class="comment">// 判断这个bean是不是处理类</span></span><br><span class="line">               <span class="comment">// 根据这个类是否使用了@Controller或@RequestMapping</span></span><br><span class="line">			<span class="keyword">if</span> (beanType != <span class="literal">null</span> &amp;&amp; isHandler(beanType)) &#123;</span><br><span class="line">				detectHandlerMethods(beanName);</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	handlerMethodsInitialized(getHandlerMethods());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<span id="more"></span>
+
+<p>　　关注点就需要放在detectHandlerMethods这个方法上:</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">detectHandlerMethods</span><span class="params">(<span class="keyword">final</span> Object handler)</span> &#123;</span><br><span class="line">	Class&lt;?&gt; handlerType = (handler <span class="keyword">instanceof</span> String ?</span><br><span class="line">			getApplicationContext().getType((String) handler) : handler.getClass());</span><br><span class="line">	<span class="keyword">final</span> Class&lt;?&gt; userType = ClassUtils.getUserClass(handlerType);</span><br><span class="line"></span><br><span class="line">       <span class="comment">// 从处理类(@Controller)中获取处理方法(@RequestMapping)</span></span><br><span class="line">	Map&lt;Method, T&gt; methods = MethodIntrospector.selectMethods(userType,</span><br><span class="line">			<span class="keyword">new</span> <span class="title class_">MethodIntrospector</span>.MetadataLookup&lt;T&gt;() &#123;</span><br><span class="line">				<span class="meta">@Override</span></span><br><span class="line">				<span class="keyword">public</span> T <span class="title function_">inspect</span><span class="params">(Method method)</span> &#123;</span><br><span class="line">					<span class="keyword">try</span> &#123;</span><br><span class="line">                           <span class="comment">// 返回RequestMappingInfo，包含@RequestMapping的标签信息</span></span><br><span class="line">						<span class="keyword">return</span> getMappingForMethod(method, userType);</span><br><span class="line">					&#125;</span><br><span class="line">					<span class="keyword">catch</span> (Throwable ex) &#123;</span><br><span class="line">						<span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">IllegalStateException</span>(<span class="string">&quot;Invalid mapping on handler class [&quot;</span> +</span><br><span class="line">								userType.getName() + <span class="string">&quot;]: &quot;</span> + method, ex);</span><br><span class="line">					&#125;</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;);</span><br><span class="line">	<span class="comment">// …略</span></span><br><span class="line">       <span class="comment">// 注册方法</span></span><br><span class="line">	<span class="keyword">for</span> (Map.Entry&lt;Method, T&gt; entry : methods.entrySet()) &#123;</span><br><span class="line">		<span class="type">Method</span> <span class="variable">invocableMethod</span> <span class="operator">=</span> AopUtils.selectInvocableMethod(entry.getKey(), userType);</span><br><span class="line">		<span class="type">T</span> <span class="variable">mapping</span> <span class="operator">=</span> entry.getValue();</span><br><span class="line">		registerHandlerMethod(handler, invocableMethod, mapping);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>　　先调用<code>getMappingForMethod</code>获取<code>RequestMappingInfo</code>，然后调用<code>registerHandlerMethod</code>注册到<code>MappingRegistry</code>中，在<code>MappingRegistry</code>中关联了url与HandlerMethod、url与RequestMappingInfo等。</p>
+<p>　　到这里，知道了<code>AbstractHandlerMethodMapping</code>怎么处理了<code>@RequestMapping</code>，那么<code>AbstractHandlerMethodMapping</code>是什么时候加入到了Spring容器中的呢？答案是实例化<code>RequestMappingHandlerMapping</code>。<br>　　Spring Boot的自动注解中，由<code>ConfigurationClassPostProcessor</code>把在配置项中的<code>WebMvcAutoConfiguration</code>进行处理，会把<code>WebMvcAutoConfiguration$EnableWebMvcConfiguration</code>注册到beanFactory中， 在<code>EnableWebMvcConfiguration</code>中：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">@Bean</span><br><span class="line">@Primary</span><br><span class="line">@Override</span><br><span class="line">public RequestMappingHandlerMapping requestMappingHandlerMapping() &#123;</span><br><span class="line">	// Must be @Primary for MvcUriComponentsBuilder to work</span><br><span class="line">	return super.requestMappingHandlerMapping();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>　　定义一个<code>requestMappingHandlerMapping</code>的bean：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">public RequestMappingHandlerMapping requestMappingHandlerMapping() &#123;</span><br><span class="line">	RequestMappingHandlerMapping mapping = createRequestMappingHandlerMapping();</span><br><span class="line">	// …略</span><br><span class="line">	return mapping;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>　　在<code>RequestMappingHandlerMapping</code>定义如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">public class RequestMappingHandlerMapping extends RequestMappingInfoHandlerMapping</span><br><span class="line">		implements MatchableHandlerMapping, EmbeddedValueResolverAware &#123;</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">public abstract class RequestMappingInfoHandlerMapping extends AbstractHandlerMethodMapping&lt;RequestMappingInfo&gt; &#123;</span><br></pre></td></tr></table></figure>
+<p>　　在<code>RequestMappingHandlerMapping</code>继承了<code>AbstractHandlerMethodMapping</code>，就把<code>AbstractHandlerMethodMapping</code>注册到了Spring容器中。</p>
+]]></content>
+      <categories>
+        <category>Spring</category>
+        <category>Spring Boot</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>Springboot扩展点</title>
+    <url>/2024/08/25/Spring/spring%20boot/Springboot%E6%89%A9%E5%B1%95%E7%82%B9/</url>
+    <content><![CDATA[<p>[toc]</p>
+<h2 id="1-可扩展的接口启动调用顺序图"><a href="#1-可扩展的接口启动调用顺序图" class="headerlink" title="1.可扩展的接口启动调用顺序图"></a>1.可扩展的接口启动调用顺序图</h2><p>spring容器中Bean的生命周期内可扩展的点的调用顺序:</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408262229339.jpeg" alt="img"></p>
+<span id="more"></span>
+
+<h2 id="2-ApplicationContextInitializer"><a href="#2-ApplicationContextInitializer" class="headerlink" title="2.ApplicationContextInitializer"></a>2.ApplicationContextInitializer</h2><blockquote>
+<p>org.springframework.context.ApplicationContextInitializer</p>
+</blockquote>
+<p>这是整个spring容器在刷新之前初始化<code>ConfigurableApplicationContext</code>的回调接口，简单来说，就是在容器刷新之前调用此类的<code>initialize</code>方法。用户可以在整个spring容器还没被初始化之前做一些事情。</p>
+<p>比如在最开始激活一些配置，或者利用这时候class还没被类加载器加载的时机，进行动态字节码注入等操作。</p>
+<p>扩展方式为：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">TestApplicationContextInitializer</span> <span class="keyword">implements</span> <span class="title class_">ApplicationContextInitializer</span> &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">initialize</span><span class="params">(ConfigurableApplicationContext applicationContext)</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;[ApplicationContextInitializer]&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>因为这时候spring容器还没被初始化，所以想要自己的扩展的生效，有以下三种方式：</p>
+<ul>
+<li>在启动类中用<code>springApplication.addInitializers(new TestApplicationContextInitializer())</code>语句加入</li>
+<li>配置文件配置<code>context.initializer.classes=com.example.demo.TestApplicationContextInitializer</code></li>
+<li>Spring SPI扩展，在spring.factories中加入<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">org.springframework.context.ApplicationContextInitializer=\com.example.demo.TestApplicationContextInitializer</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h2 id="3-BeanDefinitionRegistryPostProcessor"><a href="#3-BeanDefinitionRegistryPostProcessor" class="headerlink" title="3.BeanDefinitionRegistryPostProcessor"></a>3.BeanDefinitionRegistryPostProcessor</h2><blockquote>
+<p>org.springframework.beans.factory.support.BeanDefinitionRegistryPostProcessor</p>
+</blockquote>
+<p>这个接口在读取项目中的<code>beanDefinition</code>之后执行，提供一个补充的扩展点。</p>
+<p>使用场景：可以在这里动态注册自己的<code>beanDefinition</code>，可以加载classpath之外的bean。</p>
+<p>扩展方式为:</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">TestBeanDefinitionRegistryPostProcessor</span> <span class="keyword">implements</span> <span class="title class_">BeanDefinitionRegistryPostProcessor</span> &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">postProcessBeanDefinitionRegistry</span><span class="params">(BeanDefinitionRegistry registry)</span> <span class="keyword">throws</span> BeansException &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;[BeanDefinitionRegistryPostProcessor] postProcessBeanDefinitionRegistry&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">postProcessBeanFactory</span><span class="params">(ConfigurableListableBeanFactory beanFactory)</span> <span class="keyword">throws</span> BeansException &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;[BeanDefinitionRegistryPostProcessor] postProcessBeanFactory&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="4-BeanFactoryPostProcessor"><a href="#4-BeanFactoryPostProcessor" class="headerlink" title="4.BeanFactoryPostProcessor"></a>4.BeanFactoryPostProcessor</h2><blockquote>
+<p>org.springframework.beans.factory.config.BeanFactoryPostProcessor</p>
+</blockquote>
+<p>这个接口是<code>beanFactory</code>的扩展接口，调用时机在spring在读取<code>beanDefinition</code>信息之后，实例化bean之前。</p>
+<p>在这个时机，用户可以通过实现这个扩展接口来自行处理一些东西，比如修改已经注册的<code>beanDefinition</code>的元信息。</p>
+<p>扩展方式为：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">TestBeanFactoryPostProcessor</span> <span class="keyword">implements</span> <span class="title class_">BeanFactoryPostProcessor</span> &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">postProcessBeanFactory</span><span class="params">(ConfigurableListableBeanFactory beanFactory)</span> <span class="keyword">throws</span> BeansException &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;[BeanFactoryPostProcessor]&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="5-InstantiationAwareBeanPostProcessor"><a href="#5-InstantiationAwareBeanPostProcessor" class="headerlink" title="5.InstantiationAwareBeanPostProcessor"></a>5.InstantiationAwareBeanPostProcessor</h2><blockquote>
+<p>org.springframework.beans.factory.config.InstantiationAwareBeanPostProcessor</p>
+</blockquote>
+<p>该接口继承了<code>BeanPostProcess</code>接口，区别如下：</p>
+<p><strong><code>BeanPostProcess</code>接口只在bean的初始化阶段进行扩展（注入spring上下文前后），而<code>InstantiationAwareBeanPostProcessor</code>接口在此基础上增加了3个方法，把可扩展的范围增加了实例化阶段和属性注入阶段。</strong></p>
+<p>该类主要的扩展点有以下5个方法，主要在bean生命周期的两大阶段：<strong>实例化阶段</strong>和<strong>初始化阶段</strong>，下面一起进行说明，按调用顺序为：</p>
+<ul>
+<li><code>postProcessBeforeInstantiation</code>：实例化bean之前，相当于new这个bean之前</li>
+<li><code>postProcessAfterInstantiation</code>：实例化bean之后，相当于new这个bean之后</li>
+<li><code>postProcessPropertyValues</code>：bean已经实例化完成，在属性注入时阶段触发，<code>@Autowired</code>,<code>@Resource</code>等注解原理基于此方法实现</li>
+<li><code>postProcessBeforeInitialization</code>：初始化bean之前，相当于把bean注入spring上下文之前</li>
+<li><code>postProcessAfterInitialization</code>：初始化bean之后，相当于把bean注入spring上下文之后</li>
+</ul>
+<p>使用场景：这个扩展点非常有用 ，无论是写中间件和业务中，都能利用这个特性。比如对实现了某一类接口的bean在各个生命期间进行收集，或者对某个类型的bean进行统一的设值等等。</p>
+<p>扩展方式为：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">TestInstantiationAwareBeanPostProcessor</span> <span class="keyword">implements</span> <span class="title class_">InstantiationAwareBeanPostProcessor</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> Object <span class="title function_">postProcessBeforeInitialization</span><span class="params">(Object bean, String beanName)</span> <span class="keyword">throws</span> BeansException &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;[TestInstantiationAwareBeanPostProcessor] before initialization &quot;</span> + beanName);</span><br><span class="line">        <span class="keyword">return</span> bean;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> Object <span class="title function_">postProcessAfterInitialization</span><span class="params">(Object bean, String beanName)</span> <span class="keyword">throws</span> BeansException &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;[TestInstantiationAwareBeanPostProcessor] after initialization &quot;</span> + beanName);</span><br><span class="line">        <span class="keyword">return</span> bean;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> Object <span class="title function_">postProcessBeforeInstantiation</span><span class="params">(Class&lt;?&gt; beanClass, String beanName)</span> <span class="keyword">throws</span> BeansException &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;[TestInstantiationAwareBeanPostProcessor] before instantiation &quot;</span> + beanName);</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">postProcessAfterInstantiation</span><span class="params">(Object bean, String beanName)</span> <span class="keyword">throws</span> BeansException &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;[TestInstantiationAwareBeanPostProcessor] after instantiation &quot;</span> + beanName);</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> PropertyValues <span class="title function_">postProcessPropertyValues</span><span class="params">(PropertyValues pvs, PropertyDescriptor[] pds, Object bean, String beanName)</span> <span class="keyword">throws</span> BeansException &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;[TestInstantiationAwareBeanPostProcessor] postProcessPropertyValues &quot;</span> + beanName);</span><br><span class="line">        <span class="keyword">return</span> pvs;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="6-SmartInstantiationAwareBeanPostProcessor"><a href="#6-SmartInstantiationAwareBeanPostProcessor" class="headerlink" title="6.SmartInstantiationAwareBeanPostProcessor"></a>6.SmartInstantiationAwareBeanPostProcessor</h2><blockquote>
+<p>org.springframework.beans.factory.config.SmartInstantiationAwareBeanPostProcessor</p>
+</blockquote>
+<p>该扩展接口有3个触发点方法：</p>
+<ul>
+<li><code>predictBeanType</code>：该触发点发生在<code>postProcessBeforeInstantiation</code>之前(在图上并没有标明，因为一般不太需要扩展这个点)，这个方法用于预测Bean的类型，返回第一个预测成功的Class类型，如果不能预测返回null；当你调用<code>BeanFactory.getType(name)</code>时当通过bean的名字无法得到bean类型信息时就调用该回调方法来决定类型信息。</li>
+<li><code>determineCandidateConstructors</code>：该触发点发生在<code>postProcessBeforeInstantiation</code>之后，用于确定该bean的构造函数之用，返回的是该bean的所有构造函数列表。用户可以扩展这个点，来自定义选择相应的构造器来实例化这个bean。</li>
+<li><code>getEarlyBeanReference</code>：该触发点发生在<code>postProcessAfterInstantiation</code>之后，当有循环依赖的场景，当bean实例化好之后，为了防止有循环依赖，会提前暴露回调方法，用于bean实例化的后置处理。这个方法就是在提前暴露的回调方法中触发。</li>
+</ul>
+<p>扩展方式为：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">TestSmartInstantiationAwareBeanPostProcessor</span> <span class="keyword">implements</span> <span class="title class_">SmartInstantiationAwareBeanPostProcessor</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> Class&lt;?&gt; predictBeanType(Class&lt;?&gt; beanClass, String beanName) <span class="keyword">throws</span> BeansException &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;[TestSmartInstantiationAwareBeanPostProcessor] predictBeanType &quot;</span> + beanName);</span><br><span class="line">        <span class="keyword">return</span> beanClass;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> Constructor&lt;?&gt;[] determineCandidateConstructors(Class&lt;?&gt; beanClass, String beanName) <span class="keyword">throws</span> BeansException &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;[TestSmartInstantiationAwareBeanPostProcessor] determineCandidateConstructors &quot;</span> + beanName);</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> Object <span class="title function_">getEarlyBeanReference</span><span class="params">(Object bean, String beanName)</span> <span class="keyword">throws</span> BeansException &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;[TestSmartInstantiationAwareBeanPostProcessor] getEarlyBeanReference &quot;</span> + beanName);</span><br><span class="line">        <span class="keyword">return</span> bean;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h2 id="7-BeanFactoryAware"><a href="#7-BeanFactoryAware" class="headerlink" title="7.BeanFactoryAware"></a>7.BeanFactoryAware</h2><blockquote>
+<p>org.springframework.beans.factory.BeanFactoryAware</p>
+</blockquote>
+<p>这个类只有一个触发点，发生在bean的实例化之后，注入属性之前，也就是Setter之前。这个类的扩展点方法为<code>setBeanFactory</code>，可以拿到<code>BeanFactory</code>这个属性。</p>
+<p>使用场景为，你可以在bean实例化之后，但还未初始化之前，拿到 <code>BeanFactory</code>，在这个时候，可以对每个bean作特殊化的定制。也或者可以把<code>BeanFactory</code>拿到进行缓存，日后使用。</p>
+<p>扩展方式为：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">TestBeanFactoryAware</span> <span class="keyword">implements</span> <span class="title class_">BeanFactoryAware</span> &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setBeanFactory</span><span class="params">(BeanFactory beanFactory)</span> <span class="keyword">throws</span> BeansException &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;[TestBeanFactoryAware] &quot;</span> + beanFactory.getBean(TestBeanFactoryAware.class).getClass().getSimpleName());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h2 id="8-ApplicationContextAwareProcessor"><a href="#8-ApplicationContextAwareProcessor" class="headerlink" title="8.ApplicationContextAwareProcessor"></a>8.ApplicationContextAwareProcessor</h2><blockquote>
+<p>org.springframework.context.support.ApplicationContextAwareProcessor</p>
+</blockquote>
+<p>该类本身并没有扩展点，但是该类内部却有6个扩展点可供实现 ，这些类触发的时机在bean实例化之后，初始化之前</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408262141591.jpeg" alt="img"></p>
+<p>可以看到，该类用于执行各种驱动接口，在bean实例化之后，属性填充之后，通过执行以上红框标出的扩展接口，来获取对应容器的变量。<strong>所以这里应该来说是有6个扩展点</strong>，这里就放一起来说了</p>
+<ul>
+<li><code>EnvironmentAware</code>：用于获取<code>EnviromentAware</code>的一个扩展类，这个变量非常有用， 可以获得系统内的所有参数。当然个人认为这个Aware没必要去扩展，因为spring内部都可以通过注入的方式来直接获得。</li>
+<li><code>EmbeddedValueResolverAware</code>：用于获取<code>StringValueResolver</code>的一个扩展类， <code>StringValueResolver</code>用于获取基于<code>String</code>类型的properties的变量，一般我们都用<code>@Value</code>的方式去获取，如果实现了这个Aware接口，把<code>StringValueResolver</code>缓存起来，通过这个类去获取<code>String</code>类型的变量，效果是一样的。</li>
+<li><code>ResourceLoaderAware</code>：用于获取<code>ResourceLoader</code>的一个扩展类，<code>ResourceLoader</code>可以用于获取classpath内所有的资源对象，可以扩展此类来拿到<code>ResourceLoader</code>对象。</li>
+<li><code>ApplicationEventPublisherAware</code>：用于获取<code>ApplicationEventPublisher</code>的一个扩展类，<code>ApplicationEventPublisher</code>可以用来发布事件，结合<code>ApplicationListener</code>来共同使用，下文在介绍<code>ApplicationListener</code>时会详细提到。这个对象也可以通过spring注入的方式来获得。</li>
+<li><code>MessageSourceAware</code>：用于获取<code>MessageSource</code>的一个扩展类，<code>MessageSource</code>主要用来做国际化。</li>
+<li><code>ApplicationContextAware</code>：用来获取<code>ApplicationContext</code>的一个扩展类，<code>ApplicationContext</code>应该是很多人非常熟悉的一个类了，就是spring上下文管理器，可以手动的获取任何在spring上下文注册的bean，我们经常扩展这个接口来缓存spring上下文，包装成静态方法。同时<code>ApplicationContext</code>也实现了<code>BeanFactory</code>，<code>MessageSource</code>，<code>ApplicationEventPublisher</code>等接口，也可以用来做相关接口的事情。</li>
+</ul>
+<h2 id="9-BeanNameAware"><a href="#9-BeanNameAware" class="headerlink" title="9.BeanNameAware"></a>9.BeanNameAware</h2><blockquote>
+<p>org.springframework.beans.factory.BeanNameAware</p>
+</blockquote>
+<p>可以看到，这个类也是Aware扩展的一种，触发点在bean的初始化之前，也就是<code>postProcessBeforeInitialization</code>之前，这个类的触发点方法只有一个：<code>setBeanName</code></p>
+<p>使用场景为：用户可以扩展这个点，在初始化bean之前拿到spring容器中注册的的beanName，来自行修改这个beanName的值。</p>
+<p>扩展方式为：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">NormalBeanA</span> <span class="keyword">implements</span> <span class="title class_">BeanNameAware</span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">NormalBeanA</span><span class="params">()</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;NormalBean constructor&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setBeanName</span><span class="params">(String name)</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;[BeanNameAware] &quot;</span> + name);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="10-PostConstruct"><a href="#10-PostConstruct" class="headerlink" title="10.@PostConstruct"></a>10.@PostConstruct</h2><blockquote>
+<p>javax.annotation.PostConstruct</p>
+</blockquote>
+<p>这个并不算一个扩展点，其实就是一个标注。其作用是在bean的初始化阶段，如果对一个方法标注了<code>@PostConstruct</code>，会先调用这个方法。这里重点是要关注下这个标准的触发点，这个触发点是在<code>postProcessBeforeInitialization</code>之后，<code>InitializingBean.afterPropertiesSet</code>之前。</p>
+<p>使用场景：用户可以对某一方法进行标注，来进行初始化某一个属性</p>
+<p>扩展方式为：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">NormalBeanA</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">NormalBeanA</span><span class="params">()</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;NormalBean constructor&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@PostConstruct</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">init</span><span class="params">()</span>&#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;[PostConstruct] NormalBeanA&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="11-InitializingBean"><a href="#11-InitializingBean" class="headerlink" title="11.InitializingBean"></a>11.InitializingBean</h2><blockquote>
+<p>org.springframework.beans.factory.InitializingBean</p>
+</blockquote>
+<p>这个类，是用来初始化bean的。<code>InitializingBean</code>接口为bean提供了初始化方法的方式，它只包括<code>afterPropertiesSet</code>方法，凡是继承该接口的类，在初始化bean的时候都会执行该方法。这个扩展点的触发时机在<code>postProcessAfterInitialization</code>之前。</p>
+<p>使用场景：用户实现此接口，来进行系统启动的时候一些业务指标的初始化工作。</p>
+<p>扩展方式为：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">NormalBeanA</span> <span class="keyword">implements</span> <span class="title class_">InitializingBean</span>&#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">afterPropertiesSet</span><span class="params">()</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;[InitializingBean] NormalBeanA&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="12-FactoryBean"><a href="#12-FactoryBean" class="headerlink" title="12.FactoryBean"></a>12.FactoryBean</h2><blockquote>
+<p>org.springframework.beans.factory.FactoryBean</p>
+</blockquote>
+<p>一般情况下，Spring通过反射机制利用bean的class属性指定支线类去实例化bean，在某些情况下，实例化Bean过程比较复杂，如果按照传统的方式，则需要在bean中提供大量的配置信息。配置方式的灵活性是受限的，这时采用编码的方式可能会得到一个简单的方案。Spring为此提供了一个<code>org.springframework.bean.factory.FactoryBean</code>的工厂类接口，用户可以通过实现该接口定制实例化Bean的逻辑。<code>FactoryBean</code>接口对于Spring框架来说占用重要的地位，Spring自身就提供了70多个<code>FactoryBean</code>的实现。它们隐藏了实例化一些复杂bean的细节，给上层应用带来了便利。从Spring3.0开始，<code>FactoryBean</code>开始支持泛型，即接口声明改为<code>FactoryBean&lt;T&gt;</code>的形式</p>
+<p>使用场景：用户可以扩展这个类，来为要实例化的bean作一个代理，比如为该对象的所有的方法作一个拦截，在调用前后输出一行log，模仿<code>ProxyFactoryBean</code>的功能。</p>
+<p>扩展方式为：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">TestFactoryBean</span> <span class="keyword">implements</span> <span class="title class_">FactoryBean</span>&lt;TestFactoryBean.TestFactoryInnerBean&gt; &#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> TestFactoryBean.TestFactoryInnerBean <span class="title function_">getObject</span><span class="params">()</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;[FactoryBean] getObject&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">TestFactoryBean</span>.TestFactoryInnerBean();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> Class&lt;?&gt; getObjectType() &#123;</span><br><span class="line">        <span class="keyword">return</span> TestFactoryBean.TestFactoryInnerBean.class;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">isSingleton</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">class</span> <span class="title class_">TestFactoryInnerBean</span>&#123;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="13-SmartInitializingSingleton"><a href="#13-SmartInitializingSingleton" class="headerlink" title="13.SmartInitializingSingleton"></a>13.SmartInitializingSingleton</h2><blockquote>
+<p>org.springframework.beans.factory.SmartInitializingSingleton</p>
+</blockquote>
+<p>这个接口中只有一个方法<code>afterSingletonsInstantiated</code>，其作用是是 在spring容器管理的所有单例对象（非懒加载对象）初始化完成之后调用的回调接口。其触发时机为<code>postProcessAfterInitialization</code>之后。</p>
+<p>使用场景：用户可以扩展此接口在对所有单例对象初始化完毕后，做一些后置的业务处理。</p>
+<p>扩展方式为：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">TestSmartInitializingSingleton</span> <span class="keyword">implements</span> <span class="title class_">SmartInitializingSingleton</span> &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">afterSingletonsInstantiated</span><span class="params">()</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;[TestSmartInitializingSingleton]&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h2 id="14-CommandLineRunner"><a href="#14-CommandLineRunner" class="headerlink" title="14.CommandLineRunner"></a>14.CommandLineRunner</h2><blockquote>
+<p>org.springframework.boot.CommandLineRunner</p>
+</blockquote>
+<p>这个接口也只有一个方法：<code>run(String... args)</code>，触发时机为整个项目启动完毕后，自动执行。如果有多个<code>CommandLineRunner</code>，可以利用<code>@Order</code>来进行排序。</p>
+<p>使用场景：用户扩展此接口，进行启动项目之后一些业务的预处理。</p>
+<p>扩展方式为：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">TestCommandLineRunner</span> <span class="keyword">implements</span> <span class="title class_">CommandLineRunner</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">(String... args)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;[TestCommandLineRunner]&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="15-DisposableBean"><a href="#15-DisposableBean" class="headerlink" title="15.DisposableBean"></a>15.DisposableBean</h2><blockquote>
+<p>org.springframework.beans.factory.DisposableBean</p>
+</blockquote>
+<p>这个扩展点也只有一个方法：<code>destroy()</code>，其触发时机为当此对象销毁时，会自动执行这个方法。比如说运行<code>applicationContext.registerShutdownHook</code>时，就会触发这个方法。</p>
+<p>扩展方式为：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">NormalBeanA</span> <span class="keyword">implements</span> <span class="title class_">DisposableBean</span> &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">destroy</span><span class="params">()</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;[DisposableBean] NormalBeanA&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h2 id="16-ApplicationListener"><a href="#16-ApplicationListener" class="headerlink" title="16.ApplicationListener"></a>16.ApplicationListener</h2><blockquote>
+<p>org.springframework.context.ApplicationListener</p>
+</blockquote>
+<p>准确的说，这个应该不算spring&amp;springboot当中的一个扩展点，<code>ApplicationListener</code>可以监听某个事件的<code>event</code>，触发时机可以穿插在业务方法执行过程中，用户可以自定义某个业务事件。但是spring内部也有一些内置事件，这种事件，可以穿插在启动调用中。我们也可以利用这个特性，来自己做一些内置事件的监听器来达到和前面一些触发点大致相同的事情。</p>
+<p>接下来罗列下spring主要的内置事件：</p>
+<ul>
+<li>ContextRefreshedEvent<br>ApplicationContext 被初始化或刷新时，该事件被发布。这也可以在<code>ConfigurableApplicationContext</code>接口中使用 <code>refresh()</code>方法来发生。此处的初始化是指：所有的Bean被成功装载，后处理Bean被检测并激活，所有Singleton Bean 被预实例化，<code>ApplicationContext</code>容器已就绪可用。</li>
+<li>ContextStartedEvent<br>当使用 <code>ConfigurableApplicationContext</code> （ApplicationContext子接口）接口中的 start() 方法启动 <code>ApplicationContext</code>时，该事件被发布。你可以调查你的数据库，或者你可以在接受到这个事件后重启任何停止的应用程序。</li>
+<li>ContextStoppedEvent<br>当使用 <code>ConfigurableApplicationContext</code>接口中的 <code>stop()</code>停止<code>ApplicationContext</code>时，发布这个事件。你可以在接受到这个事件后做必要的清理的工作</li>
+<li>ContextClosedEvent<br>当使用 <code>ConfigurableApplicationContext</code>接口中的 <code>close()</code>方法关闭 <code>ApplicationContext</code> 时，该事件被发布。一个已关闭的上下文到达生命周期末端；它不能被刷新或重启</li>
+<li>RequestHandledEvent<br>这是一个 web-specific 事件，告诉所有 bean HTTP 请求已经被服务。只能应用于使用DispatcherServlet的Web应用。在使用Spring作为前端的MVC控制器时，当Spring处理用户请求结束后，系统会自动触发该事件</li>
+</ul>
+]]></content>
+      <categories>
+        <category>Spring</category>
+        <category>Spring Boot</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>SpringBoot Filter配置</title>
+    <url>/2024/04/01/Spring/%E5%9F%BA%E7%A1%80/SpringBoot%20Filter%E9%85%8D%E7%BD%AE/</url>
+    <content><![CDATA[<p>​	Servlet API 中提供了一个Filter接口，通过Filter可以实现在访问某个目标资源之前，对访问的请求和响应进行拦截。<br>　　SpringBoot项目中可以通过两种方式来实现Filter的配置。首先看下自定义的Filter：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">public class UserFilter implements Filter &#123;</span><br><span class="line"></span><br><span class="line">   @Override</span><br><span class="line">   public void init(FilterConfig filterConfig) throws ServletException &#123;</span><br><span class="line">        System.out.println(&quot;-----UserFilter init-------&quot;);</span><br><span class="line">      System.out.println(filterConfig);</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   @Override</span><br><span class="line">   public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)</span><br><span class="line">         throws IOException, ServletException &#123;</span><br><span class="line">        System.out.println(&quot;-----UserFilter doFilter-------&quot;);</span><br><span class="line">         chain.doFilter(request, response);</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   @Override</span><br><span class="line">   public void destroy() &#123;</span><br><span class="line">        System.out.println(&quot;----- UserFilter destroy-------&quot;);</span><br><span class="line">   &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">public class OtherFilter implements Filter &#123;</span><br><span class="line">    @Override</span><br><span class="line">    public void init(FilterConfig filterConfig) throws ServletException &#123;</span><br><span class="line">        System.out.println(&quot;-----OtherFilter init-------&quot;);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException &#123;</span><br><span class="line">        System.out.println(&quot;-----OtherFilter doFilter-------&quot;);</span><br><span class="line"></span><br><span class="line">        // Filter 只是链式处理，请求依然转发到目的地址</span><br><span class="line">        // 如果不想请求向下走可以不继续调用doFilter</span><br><span class="line">        chain.doFilter(request,response);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public void destroy() &#123;</span><br><span class="line">        System.out.println(&quot;----- OtherFilter destroy-------&quot;);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<span id="more"></span>
+
+<p>第一种方式，使用FilterRegistrationBean:</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">@Configuration</span><br><span class="line">public class FilterConfiguration &#123;</span><br><span class="line">    @Bean</span><br><span class="line">    public FilterRegistrationBean userFilternBean() &#123;</span><br><span class="line">        UserFilter userFilter = new UserFilter();</span><br><span class="line"></span><br><span class="line">        FilterRegistrationBean registrationBean = new FilterRegistrationBean();</span><br><span class="line">        registrationBean.setName(&quot;userFilter&quot;); // 过滤器名称</span><br><span class="line">        registrationBean.setFilter(userFilter); // 注入过滤器</span><br><span class="line">        registrationBean.setOrder(0);           //过滤器顺序</span><br><span class="line">        registrationBean.setUrlPatterns(Arrays.asList(&quot;/*&quot;)); //拦截规则</span><br><span class="line">        return registrationBean;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Bean</span><br><span class="line">    public FilterRegistrationBean helloFilterRegistrationBean() &#123;</span><br><span class="line">        OtherFilter otherFilter = new OtherFilter();</span><br><span class="line"></span><br><span class="line">        FilterRegistrationBean registrationBean = new FilterRegistrationBean();</span><br><span class="line">        registrationBean.setName(&quot;otherFilter&quot;);</span><br><span class="line">        registrationBean.setFilter(otherFilter);</span><br><span class="line">        registrationBean.setOrder(1);</span><br><span class="line">        // 没有配置setUrlPatterns，则是全部拦截</span><br><span class="line">        return registrationBean;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>第二种方式，使用注解：<br>　　在自定义filter类上添加如下注释：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">@WebFilter(filterName = &quot;otherFilter&quot;)</span><br></pre></td></tr></table></figure>
+<p>　　并且，还需要在启动类上添加注释 <code>@ServletComponentScan</code>，以确保能扫描的Filter类，当然也可以指定该注解的basePackages属性。这里需要注意的是，使用这种方式时，不能像第一种方式那样指定filter顺序，使用Order注解也无效。</p>
+]]></content>
+      <categories>
+        <category>Spring</category>
+        <category>基础</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>Spring声明式事务注意事项</title>
+    <url>/2024/03/20/Spring/%E4%BA%8B%E5%8A%A1/%E4%BD%BF%E7%94%A8%E4%BA%8B%E5%8A%A1%EF%BC%88@Transactional%EF%BC%89%E5%8F%AF%E8%83%BD%E5%87%BA%E7%8E%B0%E7%9A%84%E9%97%AE%E9%A2%98/</url>
+    <content><![CDATA[<p>[toc]</p>
+<h1 id="事务失效"><a href="#事务失效" class="headerlink" title="事务失效"></a>事务失效</h1><p>事务失效我们一般要从两个方面排查问题</p>
+<h2 id="数据库层面"><a href="#数据库层面" class="headerlink" title="数据库层面"></a>数据库层面</h2><p>数据库层面，数据库使用的存储引擎是否支持事务？默认情况下MySQL数据库使用的是Innodb存储引擎（5.5版本之后），它是支持事务的，但是如果你的表特地修改了存储引擎，例如，你通过下面的语句修改了表使用的存储引擎为MyISAM，而MyISAM又是不支持事务的</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">alter table table_name engine=myisam;</span><br><span class="line">复制代码</span><br></pre></td></tr></table></figure>
+
+<p>这样就会出现“事务失效”的问题了</p>
+<p><strong>解决方案</strong>：修改存储引擎为Innodb。</p>
+<span id="more"></span>
+
+<h2 id="业务代码层面"><a href="#业务代码层面" class="headerlink" title="业务代码层面"></a>业务代码层面</h2><p>业务层面的代码是否有问题，这就有很多种可能了</p>
+<ol>
+<li>我们要使用Spring的声明式事务，那么需要执行事务的Bean是否已经交由了Spring管理？在代码中的体现就是类上是否有@Service、Component等一系列注解</li>
+</ol>
+<p><strong>解决方案：</strong>将Bean交由Spring进行管理（添加@Service注解）</p>
+<ol start="2">
+<li>@Transactional注解是否被放在了合适的位置。默认情况下你无法使用@Transactional对一个非public的方法进行事务管理</li>
+</ol>
+<p><strong>解决方案：</strong>修改需要事务管理的方法为public。</p>
+<ol start="3">
+<li>出现了自调用。什么是自调用呢？我们看个例子</li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">@Service</span><br><span class="line">public class DmzService &#123;</span><br><span class="line">    </span><br><span class="line">    public void saveAB(A a, B b) &#123;</span><br><span class="line">        saveA(a);</span><br><span class="line">        saveB(b);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Transactional</span><br><span class="line">    public void saveA(A a) &#123;</span><br><span class="line">        dao.saveA(a);</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    @Transactional</span><br><span class="line">    public void saveB(B b)&#123;</span><br><span class="line">        dao.saveB(a);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>上面三个方法都在同一个类DmzService中，其中saveAB方法中调用了本类中的saveA跟saveB方法，这就是自调用。在上面的例子中saveA跟saveB上的事务会失效</p>
+<p>那么自调用为什么会导致事务失效呢？我们知道Spring中事务的实现是依赖于AOP的，当容器在创建dmzService这个Bean时，发现这个类中存在了被@Transactional标注的方法（修饰符为public）那么就需要为这个类创建一个代理对象并放入到容器中，创建的代理对象等价于下面这个类</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">DmzServiceProxy</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> DmzService dmzService;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">DmzServiceProxy</span><span class="params">(DmzService dmzService)</span> &#123;</span><br><span class="line">        <span class="built_in">this</span>.dmzService = dmzService;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">saveAB</span><span class="params">(A a, B b)</span> &#123;</span><br><span class="line">        dmzService.saveAB(a, b);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">saveA</span><span class="params">(A a)</span> &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">// 开启事务</span></span><br><span class="line">            startTransaction();</span><br><span class="line">            dmzService.saveA(a);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            <span class="comment">// 出现异常回滚事务</span></span><br><span class="line">            rollbackTransaction();</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// 提交事务</span></span><br><span class="line">        commitTransaction();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">saveB</span><span class="params">(B b)</span> &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">// 开启事务</span></span><br><span class="line">            startTransaction();</span><br><span class="line">            dmzService.saveB(b);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            <span class="comment">// 出现异常回滚事务</span></span><br><span class="line">            rollbackTransaction();</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// 提交事务</span></span><br><span class="line">        commitTransaction();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>上面是一段伪代码，通过startTransaction、rollbackTransaction、commitTransaction这三个方法模拟代理类实现的逻辑。因为目标类DmzService中的saveA跟saveB方法上存在@Transactional注解，所以会对这两个方法进行拦截并嵌入事务管理的逻辑，同时saveAB方法上没有@Transactional，相当于代理类直接调用了目标类中的方法。</p>
+<p>我们会发现当通过代理类调用saveAB时整个方法的调用链如下：</p>
+<img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408262210177.png" alt="聊一聊使用事务（@Transactional）可能出现的问题" style="zoom: 50%;" />
+
+
+
+<p>实际上我们在调用saveA跟saveB时调用的是目标类中的方法，这种情况下，事务当然会失效。</p>
+<p><strong>解决方案</strong>：</p>
+<ol>
+<li>自己注入自己，然后显示的调用，例如：</li>
+</ol>
+<p><img src="https://i-blog.csdnimg.cn/blog_migrate/480822e1b06d4ecf9498c7904ba08602.png" alt="聊一聊使用事务（@Transactional）可能出现的问题"></p>
+<p>这种方案看起来不是很优雅</p>
+<ol start="2">
+<li>利用AopContext，如下：</li>
+</ol>
+<p><img src="https://i-blog.csdnimg.cn/blog_migrate/314d2540d38240bb97822ba658469a44.png" alt="聊一聊使用事务（@Transactional）可能出现的问题"></p>
+<p>使用上面这种解决方案需要注意的是，需要在配置类上新增一个配置</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">// exposeProxy=true代表将代理类放入到线程上下文中，默认是false</span><br><span class="line">@EnableAspectJAutoProxy(exposeProxy = true)</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408262213469.png" alt="聊一聊使用事务（@Transactional）可能出现的问题"></p>
+<hr>
+<h1 id="事务回滚相关问题"><a href="#事务回滚相关问题" class="headerlink" title="事务回滚相关问题"></a>事务回滚相关问题</h1><p>回滚相关的问题可以被总结为两句话</p>
+<ol>
+<li>想回滚的时候事务却提交了</li>
+<li>想提交的时候被标记成只能回滚了（rollback only）</li>
+</ol>
+<p>先看第一种情况：<strong>想回滚的时候事务却提交了</strong>。这种情况往往是程序员对Spring中事务的rollbackFor属性不够了解导致的。</p>
+<blockquote>
+<p>Spring默认抛出了未检查unchecked异常（继承自 RuntimeException 的异常）或者 Error才回滚事务；其他异常不会触发回滚事务，已经执行的SQL会提交掉。</p>
+<p>如果在事务中抛出其他类型的异常，但却期望 Spring 能够回滚事务，就需要指定 rollbackFor属性。</p>
+</blockquote>
+<p>对应代码其实我们上篇文章也分析过了，如下：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408262214872.png" alt="聊一聊使用事务（@Transactional）可能出现的问题"></p>
+<blockquote>
+<p>以上代码位于：TransactionAspectSupport#completeTransactionAfterThrowing方法中</p>
+</blockquote>
+<p>默认情况下，只有出现RuntimeException或者Error才会回滚</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">public boolean rollbackOn(Throwable ex) &#123;</span><br><span class="line">    return (ex instanceof RuntimeException || ex instanceof Error);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>所以，如果你现在出现了非RuntimeException或者Error时也回滚，请指定回滚时的异常，例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">@Transactional(rollbackFor = Exception.class)</span><br></pre></td></tr></table></figure>
+
+
+
+<p>第二种情况：<strong>想提交的时候被标记成只能回滚了（rollback only）</strong>。</p>
+<p>对应的异常信息如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Transaction rolled back because it has been marked as rollback-only</span><br></pre></td></tr></table></figure>
+
+<p>先来看个例子吧</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">@Service</span><br><span class="line">public class DmzService &#123;</span><br><span class="line"></span><br><span class="line">    @Autowired</span><br><span class="line">    IndexService indexService;</span><br><span class="line"></span><br><span class="line">    @Transactional</span><br><span class="line">    public void testRollbackOnly() &#123;</span><br><span class="line">        try &#123;</span><br><span class="line">            indexService.a();</span><br><span class="line">        &#125; catch (ClassNotFoundException e) &#123;</span><br><span class="line">            System.out.println(&quot;catch&quot;);</span><br><span class="line">        &#125;</span><br><span class="line">        // do other thing</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@Service</span><br><span class="line">public class IndexService &#123;</span><br><span class="line">    @Transactional(rollbackFor = Exception.class)</span><br><span class="line">    public void a() throws ClassNotFoundException&#123;</span><br><span class="line">        // ......</span><br><span class="line">        throw new ClassNotFoundException();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在上面这个例子中，DmzService的testRollbackOnly方法跟IndexService的a方法都开启了事务，并且事务的传播级别为required，所以当我们在testRollbackOnly中调用IndexService的a方法时这两个方法应当是共用的一个事务。按照这种思路，虽然IndexService的a方法抛出了异常，但是我们在testRollbackOnly将异常捕获了，那么这个事务应该是可以正常提交的，为什么会抛出异常呢？</p>
+<p>源码分在处理回滚时有这么一段代码</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408262217291.png" alt="聊一聊使用事务（@Transactional）可能出现的问题"></p>
+<p>在提交时又做了下面这个判断（<em>这个方法我删掉了一些不重要的代码</em>）</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408262217547.png" alt="聊一聊使用事务（@Transactional）可能出现的问题"></p>
+<p>可以看到当提交时发现事务已经被标记为rollbackOnly后会进入回滚处理中，并且unexpected传入的为true。在处理回滚时又有下面这段代码</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408262217705.png" alt="聊一聊使用事务（@Transactional）可能出现的问题"></p>
+<p>最后在这里抛出了这个异常。</p>
+<blockquote>
+<p>以上代码均位于AbstractPlatformTransactionManager中</p>
+</blockquote>
+<p>总结起来，<strong>主要的原因就是因为内部事务回滚时将整个大事务做了一个rollbackOnly的标记</strong>，所以即使我们在外部事务中catch了抛出的异常，整个事务仍然无法正常提交，并且如果你希望正常提交，Spring还会抛出一个异常。</p>
+<p><strong>解决方案</strong>:</p>
+<p>这个解决方案要依赖业务而定，你要明确你想要的结果是什么</p>
+<ol>
+<li>内部事务发生异常，外部事务catch异常后，内部事务自行回滚，不影响外部事务</li>
+</ol>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408262218380.png" alt="聊一聊使用事务（@Transactional）可能出现的问题"></p>
+<p>虽然这两者都能得到上面的结果，但是它们之间还是有不同的。</p>
+<p>当传播级别为requires_new时，两个事务完全没有联系，各自都有自己的事务管理机制（开启事务、关闭事务、回滚事务）。</p>
+<p>但是传播级别为nested时，实际上只存在一个事务，只是在调用a方法时设置了一个保存点，当a方法回滚时，实际上是回滚到保存点上，并且当外部事务提交时，内部事务才会提交，外部事务如果回滚，内部事务会跟着回滚。</p>
+<ol start="2">
+<li>内部事务发生异常时，外部事务catch异常后，内外两个事务都回滚，但是方法不抛出异常</li>
+</ol>
+<p><img src="https://i-blog.csdnimg.cn/blog_migrate/aefa619eb1e68f15900ee5306e1b2b76.png" alt="聊一聊使用事务（@Transactional）可能出现的问题"></p>
+<p>通过显示的设置事务的状态为RollbackOnly。这样当提交事务时会进入下面这段代码</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408262220731.png" alt="聊一聊使用事务（@Transactional）可能出现的问题"></p>
+<p>最大的区别在于处理回滚时第二个参数传入的是false,这意味着回滚是预期之中的，所以在处理完回滚后并不会抛出异常。</p>
+<hr>
+<hr>
+<p><strong>1、@Transactional 应用在非 public 修饰的方法上</strong></p>
+<p>如果Transactional注解应用在非public 修饰的方法上，Transactional将会失效。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408262222028.png" alt="一口气说出6种，@Transactional注解的失效场景"></p>
+<p>之所以会失效是因为在Spring AOP 代理时，如上图所示 TransactionInterceptor （事务拦截器）在目标方法执行前后进行拦截，DynamicAdvisedInterceptor（CglibAopProxy 的内部类）的 intercept 方法或 JdkDynamicAopProxy 的 invoke 方法会间接调用 AbstractFallbackTransactionAttributeSource的 computeTransactionAttribute 方法，获取Transactional 注解的事务配置信息。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">protected TransactionAttribute computeTransactionAttribute(Method method,</span><br><span class="line">    Class&lt;?&gt; targetClass) &#123;</span><br><span class="line">        // Don&#x27;t allow no-public methods as required.</span><br><span class="line">        if (allowPublicMethodsOnly() &amp;&amp; !Modifier.isPublic(method.getModifiers())) &#123;</span><br><span class="line">        return null;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>此方法会检查目标方法的修饰符是否为 public，不是 public则不会获取@Transactional 的属性配置信息。</p>
+<p><strong>注意：protected、private 修饰的方法上使用 @Transactional 注解，虽然事务无效，但不会有任何报错，这是我们很容犯错的一点。</strong></p>
+<p><strong>2、@Transactional 注解属性 propagation 设置错误</strong></p>
+<p>这种失效是由于配置错误，若是错误的配置以下三种 propagation，事务将不会发生回滚。</p>
+<p>TransactionDefinition.PROPAGATION_SUPPORTS：如果当前存在事务，则加入该事务；如果当前没有事务，则以非事务的方式继续运行。 </p>
+<p>TransactionDefinition.PROPAGATION_NOT_SUPPORTED：以非事务方式运行，如果当前存在事务，则把当前事务挂起。</p>
+<p>TransactionDefinition.PROPAGATION_NEVER：以非事务方式运行，如果当前存在事务，则抛出异常。</p>
+<p><strong>3、@Transactional 注解属性 rollbackFor 设置错误</strong></p>
+<p>rollbackFor 可以指定能够触发事务回滚的异常类型。Spring默认抛出了未检查unchecked异常（继承自 RuntimeException 的异常）或者 Error才回滚事务；其他异常不会触发回滚事务。如果在事务中抛出其他类型的异常，但却期望 Spring 能够回滚事务，就需要指定 <strong>rollbackFor</strong>属性。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408262223533.png" alt="一口气说出6种，@Transactional注解的失效场景"></p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">// 希望自定义的异常可以进行回滚</span><br><span class="line">@Transactional(propagation= Propagation.REQUIRED,rollbackFor= MyException.class</span><br></pre></td></tr></table></figure>
+
+<p>若在目标方法中抛出的异常是 rollbackFor 指定的异常的子类，事务同样会回滚。Spring源码如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">private int getDepth(Class&lt;?&gt; exceptionClass, int depth) &#123;</span><br><span class="line">        if (exceptionClass.getName().contains(this.exceptionName)) &#123;</span><br><span class="line">            // Found it!</span><br><span class="line">            return depth;</span><br><span class="line">&#125;</span><br><span class="line">        // If we&#x27;ve gone as far as we can go and haven&#x27;t found it...</span><br><span class="line">        if (exceptionClass == Throwable.class) &#123;</span><br><span class="line">            return -1;</span><br><span class="line">&#125;</span><br><span class="line">return getDepth(exceptionClass.getSuperclass(), depth + 1);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>4、同一个类中方法调用，导致@Transactional失效</strong></p>
+<p>开发中避免不了会对同一个类里面的方法调用，比如有一个类Test，它的一个方法A，A再调用本类的方法B（不论方法B是用public还是private修饰），但方法A没有声明注解事务，而B方法有。则外部调用方法A之后，方法B的事务是不会起作用的。这也是经常犯错误的一个地方。</p>
+<p>那为啥会出现这种情况？其实这还是由于使用Spring AOP代理造成的，因为只有当事务方法被当前类以外的代码调用时，才会由Spring生成的代理对象来管理。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">//@Transactional</span><br><span class="line">    @GetMapping(&quot;/test&quot;)</span><br><span class="line">    private Integer A() throws Exception &#123;</span><br><span class="line">        CityInfoDict cityInfoDict = new CityInfoDict();</span><br><span class="line">        cityInfoDict.setCityName(&quot;2&quot;);</span><br><span class="line">        /**</span><br><span class="line">         * B 插入字段为 3的数据</span><br><span class="line">         */</span><br><span class="line">        this.insertB();</span><br><span class="line">        /**</span><br><span class="line">         * A 插入字段为 2的数据</span><br><span class="line">         */</span><br><span class="line">        int insert = cityInfoDictMapper.insert(cityInfoDict);</span><br><span class="line"></span><br><span class="line">        return insert;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Transactional()</span><br><span class="line">    public Integer insertB() throws Exception &#123;</span><br><span class="line">        CityInfoDict cityInfoDict = new CityInfoDict();</span><br><span class="line">        cityInfoDict.setCityName(&quot;3&quot;);</span><br><span class="line">        cityInfoDict.setParentCityId(3);</span><br><span class="line"></span><br><span class="line">        return cityInfoDictMapper.insert(cityInfoDict);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>5、异常被你的 catch“吃了”导致@Transactional失效</strong></p>
+<p>这种情况是最常见的一种@Transactional注解失效场景，</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">@Transactional</span><br><span class="line">private Integer A() throws Exception &#123;</span><br><span class="line">    int insert = 0;</span><br><span class="line">    try &#123;</span><br><span class="line">        CityInfoDict cityInfoDict = new CityInfoDict();</span><br><span class="line">        cityInfoDict.setCityName(&quot;2&quot;);</span><br><span class="line">        cityInfoDict.setParentCityId(2);</span><br><span class="line">        /**</span><br><span class="line">         * A 插入字段为 2的数据</span><br><span class="line">         */</span><br><span class="line">        insert = cityInfoDictMapper.insert(cityInfoDict);</span><br><span class="line">        /**</span><br><span class="line">         * B 插入字段为 3的数据</span><br><span class="line">         */</span><br><span class="line">        b.insertB();</span><br><span class="line">    &#125; catch (Exception e) &#123;</span><br><span class="line">        e.printStackTrace();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果B方法内部抛了异常，而A方法此时try catch了B方法的异常，那这个事务还能正常回滚吗？</p>
+<p>答案：不能！</p>
+<p>会抛出异常：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">org.springframework.transaction.UnexpectedRollbackException: Transaction rolled back because it has been marked as rollback-only</span><br></pre></td></tr></table></figure>
+
+<p>因为当ServiceB中抛出了一个异常以后，ServiceB标识当前事务需要rollback。但是ServiceA中由于你手动的捕获这个异常并进行处理，ServiceA认为当前事务应该正常commit。此时就出现了前后不一致，也就是因为这样，抛出了前面的UnexpectedRollbackException异常。</p>
+<p>spring的事务是在调用业务方法之前开始的，业务方法执行完毕之后才执行commit or rollback，事务是否执行取决于是否抛出runtime异常。如果抛出runtime exception 并在你的业务方法中没有catch到的话，事务会回滚。</p>
+<p>在业务方法中一般不需要catch异常，如果非要catch一定要抛出throw new RuntimeException()，或者注解中指定抛异常类型@Transactional(rollbackFor&#x3D;Exception.class)，否则会导致事务失效，数据commit造成数据不一致，所以有些时候try catch反倒会画蛇添足。</p>
+<p><strong>6、数据库引擎不支持事务</strong></p>
+<p>这种情况出现的概率并不高，事务能否生效数据库引擎是否支持事务是关键。常用的MySQL数据库默认使用支持事务的innodb引擎。一旦数据库引擎切换成不支持事务的myisam，那事务就从根本上失效了。</p>
+<p>转载自：</p>
+<p><a href="https://juejin.im/post/5e72e97c6fb9a07cb346083f">https://juejin.im/post/5e72e97c6fb9a07cb346083f</a></p>
+]]></content>
+      <categories>
+        <category>Spring</category>
+        <category>事务</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>Spring Boot配置文件</title>
+    <url>/2024/04/01/Spring/%E5%9F%BA%E7%A1%80/Spring%20Boot%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6/</url>
+    <content><![CDATA[<p>转载自:<br><a href="https://blog.csdn.net/qq_21387171/article/details/53876721">https://blog.csdn.net/qq_21387171/article/details/53876721</a><br><a href="https://blog.csdn.net/catoop/article/details/50548009">https://blog.csdn.net/catoop/article/details/50548009</a><br><a href="http://blog.didispace.com/springbootproperties/">http://blog.didispace.com/springbootproperties/</a></p>
+<h3 id="自定义属性与加载"><a href="#自定义属性与加载" class="headerlink" title="自定义属性与加载"></a>自定义属性与加载</h3><p>　　在application.properties可以自定义一些属性，然后通过<code>@Value(&quot;$&#123;属性名&#125;&quot;)</code>注解来加载对应的配置属性。</p>
+<h3 id="参数间的引用"><a href="#参数间的引用" class="headerlink" title="参数间的引用"></a>参数间的引用</h3><p>　　在application.properties中的各个参数之间也可以直接引用来使用，就像下面的设置：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">com.didispace.blog.name=程序猿DD</span><br><span class="line">com.didispace.blog.title=Spring Boot教程</span><br><span class="line">com.didispace.blog.desc=$&#123;com.didispace.blog.name&#125;</span><br></pre></td></tr></table></figure>
+
+<span id="more"></span>
+
+<h3 id="使用随机数"><a href="#使用随机数" class="headerlink" title="使用随机数"></a>使用随机数</h3><p>　　在一些情况下，有些参数我们需要希望它不是一个固定的值，比如密钥、服务端口等。Spring Boot的属性配置文件中可以通过${random}来产生int值、long值或者string字符串，来支持属性的随机值。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"># 随机字符串</span><br><span class="line">com.didispace.blog.value=$&#123;random.value&#125;</span><br><span class="line"># 随机int</span><br><span class="line">com.didispace.blog.number=$&#123;random.int&#125;</span><br><span class="line"># 随机long</span><br><span class="line">com.didispace.blog.bignumber=$&#123;random.long&#125;</span><br><span class="line"># 10以内的随机数</span><br><span class="line">com.didispace.blog.test1=$&#123;random.int(10)&#125;</span><br><span class="line"># 10-20的随机数</span><br><span class="line">com.didispace.blog.test2=$&#123;random.int[10,20]&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="通过命令行设置属性值"><a href="#通过命令行设置属性值" class="headerlink" title="通过命令行设置属性值"></a>通过命令行设置属性值</h3><p>　　在命令行运行时，可以使用 <code>java -jar xxx.jar --server.port=8888</code>，等价于在application.properties中添加属性server.port&#x3D;8888。<br>　　通过命令行来修改属性值固然提供了不错的便利性，但是通过命令行就能更改应用运行的参数，那岂不是很不安全？是的，所以Spring Boot也提供了屏蔽命令行访问属性的设置，只需要这句设置就能屏蔽：<code>SpringApplication.setAddCommandLineProperties(false)</code>。</p>
+<h3 id="多环境配置"><a href="#多环境配置" class="headerlink" title="多环境配置"></a>多环境配置</h3><p>　　在开发Spring Boot应用时，通常同一套程序会被应用和安装到几个不同的环境，比如：开发、测试、生产等。其中每个环境的数据库地址、服务器端口等等配置都会不同，如果在为不同环境打包时都要频繁修改配置文件的话，那必将是个非常繁琐且容易发生错误的事。<br>　　对于多环境的配置，各种项目构建工具或是框架的基本思路是一致的，通过配置多份不同环境的配置文件，再通过打包命令指定需要打包的内容之后进行区分打包，Spring Boot也不例外，或者说更加简单。<br>　　在Spring Boot中多环境配置文件名需要满足 <code>application-&#123;profile&#125;.properties</code> 的格式，其中<code>&#123;profile&#125;</code>对应你的环境标识，比如：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">application-dev.properties：开发环境</span><br><span class="line">application-test.properties：测试环境</span><br><span class="line">application-prod.properties：生产环境</span><br></pre></td></tr></table></figure>
+<p>　　至于哪个具体的配置文件会被加载，需要在application.properties文件中通过<code>spring.profiles.active</code>属性来设置，其值对应<code>&#123;profile&#125;</code>值。如<code>spring.profiles.active=test</code>就会加载application-test.properties配置文件内容<br>　　所以一般情况下，application.properties中配置通用内容，并设置<code>spring.profiles.active=dev</code>，以开发环境为默认配置，<code>application-&#123;profile&#125;.properties</code>中配置各个环境不同的内容，通过命令行方式去激活不同环境的配置。</p>
+<p>　　 <strong>可以使用 <code>--spring.config.location=xxx.properties</code>来指定外部配置文件</strong></p>
+<hr>
+<p>　　凡是被Spring管理的类，实现接口 EnvironmentAware 重写方法 setEnvironment 可以在工程启动时，获取到系统环境变量和application配置文件中的变量。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">@Configuration</span><br><span class="line">public class MyWebAppConfigurer implements EnvironmentAware &#123;</span><br><span class="line">    private RelaxedPropertyResolver propertyResolver;</span><br><span class="line"></span><br><span class="line">    @Value(&quot;$&#123;spring.datasource.url&#125;&quot;)</span><br><span class="line">    private String myUrl;</span><br><span class="line"></span><br><span class="line">    /**</span><br><span class="line">     * 这个方法只是测试实现EnvironmentAware接口，读取环境变量的方法。</span><br><span class="line">     */</span><br><span class="line">    @Override</span><br><span class="line">    public void setEnvironment(Environment env) &#123;</span><br><span class="line">        logger.info(env.getProperty(&quot;JAVA_HOME&quot;));</span><br><span class="line">        logger.info(myUrl);</span><br><span class="line">        String str = env.getProperty(&quot;spring.datasource.url&quot;);</span><br><span class="line">        logger.info(str);</span><br><span class="line">        propertyResolver = new RelaxedPropertyResolver(env, &quot;spring.datasource.&quot;);</span><br><span class="line">        String url = propertyResolver.getProperty(&quot;url&quot;);</span><br><span class="line">        logger.info(url);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>　　注意重写的方法 setEnvironment 是在系统启动的时候被执行。 Environment继承自PropertyResolver。<br>　　也可以用这样的方式：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">@Inject</span><br><span class="line">private Environment env;</span><br><span class="line"></span><br><span class="line">env.getProperty(&quot;xxx.xxx&quot;);</span><br></pre></td></tr></table></figure>
+
+<hr>
+<p>除了spring.profiles.active属性配置外，还可以用如下方式：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">// 在启动类上使用@PropertySource注解</span><br><span class="line">@PropertySource(&quot;classpath:application-test.properties&quot;) </span><br></pre></td></tr></table></figure>
+<p>或则使用@Profile注解指定了具体环境：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">public interface SendMessage &#123;  </span><br><span class="line">    public void send();  </span><br><span class="line">  </span><br><span class="line">&#125;  </span><br><span class="line"> </span><br><span class="line">// Dev 环境实现类  </span><br><span class="line">@Component  </span><br><span class="line">@Profile(&quot;dev&quot;)  </span><br><span class="line">public class DevSendMessage implements SendMessage &#123;  </span><br><span class="line">    @Override  </span><br><span class="line">    public void send() &#123;  </span><br><span class="line">        System.out.println(&quot;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;Dev Send()&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&quot;);  </span><br><span class="line">    &#125;  </span><br><span class="line">&#125;  </span><br><span class="line">  </span><br><span class="line">// Stg环境实现类  </span><br><span class="line">@Component  </span><br><span class="line">@Profile(&quot;stg&quot;)  </span><br><span class="line">public class StgSendMessage implements SendMessage &#123;  </span><br><span class="line">  </span><br><span class="line">    @Override  </span><br><span class="line">    public void send() &#123;  </span><br><span class="line">        System.out.println(&quot;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;Stg Send()&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&quot;);  </span><br><span class="line">    &#125;  </span><br><span class="line">  </span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+<hr>
+<p>我们有这样的一个springboot项目。项目分为开发、测试、生产三个不同阶段(环境)，每个阶段都会有db、ftp、redis等的不同配置信息。我们可以使用spring.profiles.include来实现三种不同环境的一键切换。</p>
+<p>项目总(入口)配置文件：<br>bootstrap.yml  ，内容如下</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">spring.profiles.active:  dev  #dev、test、prod 三种配置可以在这里进行一键切换，默认激活 dev(开发)环境配置</span><br></pre></td></tr></table></figure>
+<p>项目开发环境配置文件：<br>application-dev.yml (开发环境入口配置)、application-devDb.yml 、application-devFtp.yml、application-devRedis.yml</p>
+<p>application-dev.yml 中含有如下内容</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">spring.profiles.include: devDb,devFtp,devRedis</span><br></pre></td></tr></table></figure>
+<p>项目测试环境配置文件：application-test.yml (测试环境入口配置)、application-testDb.yml 、application-testFtp.yml、application-testRedis.yml</p>
+<p>application-test.yml 中含有如下内容</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">spring.profiles.include: testDb,testFtp,testRedis</span><br></pre></td></tr></table></figure>
+<p>项目生产环境配置文件：application-prod.yml (生产环境入口配置)、application-prodDb.yml 、application-prodFtp.yml、application-prodRedis.yml</p>
+<p>application-prod.yml 中含有如下内容</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">spring.profiles.include: prodDb,prodFtp,prodRedis</span><br></pre></td></tr></table></figure>
+<p>spring.profiles.include 的作用是可以叠加激活新的profile ，这样可以在总的项目配置(bootstrap.yml)中实现一键切换dev、test、prod三者不同环境, 即</p>
+<p>切换为dev时，同时激活了dev、devDb、devFtp、devRedis 的profile<br>切换为test时，同时激活了test、testDb、testFtp、testRedis 的profile<br>切换为prod时，同时激活了prod、prodDb、prodFtp、prodRedis 的profile</p>
+<p>另外： 在yml配置文件中配置<code>List&lt;String&gt; </code>的值，可以采用  -子项 的方式，如 ：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">spring.profiles.include:</span><br><span class="line">- 子项1</span><br><span class="line">- 子项2</span><br><span class="line">- 子项3</span><br></pre></td></tr></table></figure>
+<p>也可以采用 逗号分隔元素列表的方式，如：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">spring.profiles.include: 子项1,子项2,子项3    </span><br></pre></td></tr></table></figure>]]></content>
+      <categories>
+        <category>Spring</category>
+        <category>基础</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>实用：优雅设计接口版本号</title>
+    <url>/2024/07/06/Spring/%E5%AE%9E%E7%94%A8%EF%BC%9A%E4%BC%98%E9%9B%85%E8%AE%BE%E8%AE%A1%E6%8E%A5%E5%8F%A3%E7%89%88%E6%9C%AC%E5%8F%B7/</url>
+    <content><![CDATA[<p>转载自：<a href="https://blog.mariojd.cn/how-to-design-spring-boot-api-version-number-elegantly.html">https://blog.mariojd.cn/how-to-design-spring-boot-api-version-number-elegantly.html</a></p>
+<p>&emsp;&emsp;<br>&emsp;&emsp;一般来说，系统上线以后，需求仍会发生变动，功能也会迭代更新。可能是接口参数发生变更，也有可能是业务逻辑需要调整，如果直接在原来的接口上进行修改，必然会影响原有服务的正常运行。<br>&emsp;&emsp;常见的解决方案，是在接口路径中加入版本号用于区分，此外还可以在参数甚至 header 里带上版本号。这里以在请求路径中带上版本号为例，如：<code>http://IP:PORT/api/v1/test</code> ，v1 即代表的是版本号。当然了，可以像这样，直接写死在<code> @RequestMapping(&quot;api/v1/test&quot;)</code>属性中，不过下面提供了更为优雅的解决方案。</p>
+<h2 id="1-自定义版本号标记注解"><a href="#1-自定义版本号标记注解" class="headerlink" title="1.自定义版本号标记注解"></a>1.自定义版本号标记注解</h2><p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408262235808.png" alt="实用：优雅设计接口版本号"></p>
+<span id="more"></span>
+
+<h2 id="2-重写相应的-RequestCondition"><a href="#2-重写相应的-RequestCondition" class="headerlink" title="2.重写相应的 RequestCondition"></a>2.重写相应的 RequestCondition</h2><p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408262235735.png" alt="实用：优雅设计接口版本号"><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408262235903.png" alt="实用：优雅设计接口版本号"></p>
+<h2 id="3-重写部分-RequestMappingHandlerMapping-的方法"><a href="#3-重写部分-RequestMappingHandlerMapping-的方法" class="headerlink" title="3.重写部分 RequestMappingHandlerMapping 的方法"></a>3.重写部分 RequestMappingHandlerMapping 的方法</h2><p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408262235488.png" alt="实用：优雅设计接口版本号"></p>
+<h2 id="4-配置注册自定义的-CustomRequestMappingHandlerMapping"><a href="#4-配置注册自定义的-CustomRequestMappingHandlerMapping" class="headerlink" title="4.配置注册自定义的 CustomRequestMappingHandlerMapping"></a>4.配置注册自定义的 CustomRequestMappingHandlerMapping</h2><p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408262236350.png" alt="实用：优雅设计接口版本号"></p>
+<h2 id="5-编写接口，标记上相应的-ApiVersion"><a href="#5-编写接口，标记上相应的-ApiVersion" class="headerlink" title="5.编写接口，标记上相应的 @ApiVersion"></a>5.编写接口，标记上相应的 @ApiVersion</h2><p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408262236862.png" alt="实用：优雅设计接口版本号"></p>
+<h2 id="6-启动-Application，测试及查看结果"><a href="#6-启动-Application，测试及查看结果" class="headerlink" title="6.启动 Application，测试及查看结果"></a>6.启动 Application，测试及查看结果</h2><p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408262236056.png" alt="实用：优雅设计接口版本号"></p>
+]]></content>
       <categories>
         <category>Spring</category>
       </categories>
