@@ -187,6 +187,88 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/07/06/Java/Java%E6%8F%90%E9%AB%98/%E5%85%B3%E4%BA%8EJava%20NIO%E7%9A%84Selector/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/07/06/Java/Java%E6%8F%90%E9%AB%98/%E5%85%B3%E4%BA%8EJava%20NIO%E7%9A%84Selector/" class="post-title-link" itemprop="url">关于Java NIO的Selector</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-07-06 00:00:00" itemprop="dateCreated datePublished" datetime="2024-07-06T00:00:00+08:00">2024-07-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E6%8F%90%E9%AB%98/" itemprop="url" rel="index"><span itemprop="name">Java提高</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>[toc]</p>
+<h1 id="Selector-简介"><a href="#Selector-简介" class="headerlink" title="Selector 简介"></a>Selector 简介</h1><p>Selector（选择器）是 Channel 的多路复用器，它可以同时监控多个 Channel 的 IO 状况，允许单个线程来操作多个 Channel。如下：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240712204746.png" alt="img"></p>
+<p>Selector 的作用是什么？</p>
+<p>Selector 提供选择执行已经就绪的任务的能力。从底层来看，Selector 提供了询问 Channel 是否已经准备好执行每个 I&#x2F;O 操作的能力。Selector 允许单线程处理多个 Channel。仅用单个线程来处理多个 Channels 的好处是，只需要更少的线程来处理 Channel 。事实上，可以只用一个线程处理所有的通道，这样会大量的减少线程之间上下文切换的开销。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/07/06/Java/Java%E6%8F%90%E9%AB%98/%E5%85%B3%E4%BA%8EJava%20NIO%E7%9A%84Selector/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
     <link itemprop="mainEntityOfPage" href="http://example.com/2024/07/06/Spring/%E8%AE%B0%E4%B8%80%E6%AC%A1HandlerMethodArgumentResolver%E5%A4%B1%E6%95%88%E7%9A%84%E9%97%AE%E9%A2%98/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -317,6 +399,161 @@
           <!--noindex-->
             <div class="post-button">
               <a class="btn" href="/2024/07/06/Spring/%E5%AE%9E%E7%94%A8%EF%BC%9A%E4%BC%98%E9%9B%85%E8%AE%BE%E8%AE%A1%E6%8E%A5%E5%8F%A3%E7%89%88%E6%9C%AC%E5%8F%B7/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/07/06/Spring/%E6%B5%85%E6%9E%90AOP%E6%BA%90%E7%A0%81/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/07/06/Spring/%E6%B5%85%E6%9E%90AOP%E6%BA%90%E7%A0%81/" class="post-title-link" itemprop="url">浅析AOP源码</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-07-06 00:00:00" itemprop="dateCreated datePublished" datetime="2024-07-06T00:00:00+08:00">2024-07-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>&emsp;&emsp;AOP（Aspect-Oriented Programming）面向切面的编程，在平时的开发过程中，AOP其实用到的地方一般有:</p>
+<blockquote>
+<p>①用来做日记的处理<br>②方法的调用统计<br>③业务层面的读写分离（例如自定义的Annotation+AOP可以实现切换数据源）<br>④自定义权限拦截器</p>
+</blockquote>
+<p>&emsp;&emsp;在Spring框架中，AOP则发挥了不少功效，例如spring的事务。<br>&emsp;&emsp;AOP具体的介绍移步：<a target="_blank" rel="noopener" href="https://blog.csdn.net/zero__007/article/details/46765191">https://blog.csdn.net/zero__007/article/details/46765191</a></p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/07/06/Spring/%E6%B5%85%E6%9E%90AOP%E6%BA%90%E7%A0%81/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/07/06/Spring/%E6%B5%85%E6%9E%90AOP%E6%BA%90%E7%A0%81%EF%BC%88%E4%BA%8C%EF%BC%89/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/07/06/Spring/%E6%B5%85%E6%9E%90AOP%E6%BA%90%E7%A0%81%EF%BC%88%E4%BA%8C%EF%BC%89/" class="post-title-link" itemprop="url">浅析AOP源码（二）</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-07-06 00:00:00" itemprop="dateCreated datePublished" datetime="2024-07-06T00:00:00+08:00">2024-07-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>转载自：<a target="_blank" rel="noopener" href="https://blog.csdn.net/luanlouis/article/details/51155821">https://blog.csdn.net/luanlouis/article/details/51155821</a></p>
+<p>&emsp;&emsp;</p>
+<h3 id="1、Spring内部创建代理对象的过程"><a href="#1、Spring内部创建代理对象的过程" class="headerlink" title="1、Spring内部创建代理对象的过程"></a>1、Spring内部创建代理对象的过程</h3><p>&emsp;&emsp;在Spring的底层，如果配置了AOP，Spring会为每一个Bean创建一个对应的ProxyFactoryBean的FactoryBean来创建某个对象的代理对象。<br>&emsp;&emsp;假定有一个接口TicketService及其实现类RailwayStation，打算创建一个代理类，在执行TicketService的方法时的各个阶段，插入对应的业务代码。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">TicketService</span> &#123;</span><br><span class="line">    <span class="comment">//售票</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">sellTicket</span><span class="params">()</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//问询</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">inquire</span><span class="params">()</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//退票</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">withdraw</span><span class="params">()</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/07/06/Spring/%E6%B5%85%E6%9E%90AOP%E6%BA%90%E7%A0%81%EF%BC%88%E4%BA%8C%EF%BC%89/#more" rel="contents">
                 Read more &raquo;
               </a>
             </div>
@@ -776,246 +1013,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/06/10/%E7%9B%AE%E5%BD%95%E5%BE%85%E5%AE%9A/leaf%E5%88%86%E5%B8%83%E5%BC%8Fid%E7%94%9F%E6%88%90-%E5%8F%B7%E6%AE%B5%E6%A8%A1%E5%BC%8F%E5%8E%9F%E7%90%86/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/06/10/%E7%9B%AE%E5%BD%95%E5%BE%85%E5%AE%9A/leaf%E5%88%86%E5%B8%83%E5%BC%8Fid%E7%94%9F%E6%88%90-%E5%8F%B7%E6%AE%B5%E6%A8%A1%E5%BC%8F%E5%8E%9F%E7%90%86/" class="post-title-link" itemprop="url">leaf分布式id生成-号段模式原理</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-06-10 00:00:00" itemprop="dateCreated datePublished" datetime="2024-06-10T00:00:00+08:00">2024-06-10</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E7%9B%AE%E5%BD%95%E5%BE%85%E5%AE%9A/" itemprop="url" rel="index"><span itemprop="name">目录待定</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>[toc]</p>
-<h2 id="基于mysql最简单分布式ID实现"><a href="#基于mysql最简单分布式ID实现" class="headerlink" title="基于mysql最简单分布式ID实现"></a>基于mysql最简单分布式ID实现</h2><p>mysql自带自增主键功能，我们可以建一个表，主键id设置成自增，然后需要获取id，就往该表中插入一条数据，获取一下新增id即可。<br>这种方式优点就是简单。缺点也很明显</p>
-<ul>
-<li>随着时间推移，表中数据越来越多，毕竟获得一个id就要插入一条数据。</li>
-<li>所有获取id的都去请求这个数据库，很显然，高并发场景下单机会很乏力。</li>
-</ul>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/06/10/%E7%9B%AE%E5%BD%95%E5%BE%85%E5%AE%9A/leaf%E5%88%86%E5%B8%83%E5%BC%8Fid%E7%94%9F%E6%88%90-%E5%8F%B7%E6%AE%B5%E6%A8%A1%E5%BC%8F%E5%8E%9F%E7%90%86/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/06/09/Spring/spring%20boot/%E8%87%AA%E5%8A%A8%E9%85%8D%E7%BD%AE%E6%B3%A8%E8%A7%A3@EnableAutoConfiguration%E8%A7%A3%E5%AF%86/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/06/09/Spring/spring%20boot/%E8%87%AA%E5%8A%A8%E9%85%8D%E7%BD%AE%E6%B3%A8%E8%A7%A3@EnableAutoConfiguration%E8%A7%A3%E5%AF%86/" class="post-title-link" itemprop="url">自动配置注解@EnableAutoConfiguration解密</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-06-09 00:00:00" itemprop="dateCreated datePublished" datetime="2024-06-09T00:00:00+08:00">2024-06-09</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Spring/Spring-Boot/" itemprop="url" rel="index"><span itemprop="name">Spring Boot</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>&emsp;&emsp;Spring boot为了自动配置，增加了注解<code>@EnableAutoConfiguration</code>。一般只需要配置<code>@SpringBootApplication</code>即可，为什么呢？</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Target(ElementType.TYPE)</span></span><br><span class="line"><span class="meta">@Retention(RetentionPolicy.RUNTIME)</span></span><br><span class="line"><span class="meta">@Documented</span></span><br><span class="line"><span class="meta">@Inherited</span></span><br><span class="line"><span class="meta">@SpringBootConfiguration</span></span><br><span class="line"><span class="meta">@EnableAutoConfiguration</span></span><br><span class="line"><span class="meta">@ComponentScan(excludeFilters = &#123;</span></span><br><span class="line"><span class="meta">		@Filter(type = FilterType.CUSTOM, classes = TypeExcludeFilter.class),</span></span><br><span class="line"><span class="meta">		@Filter(type = FilterType.CUSTOM, classes = AutoConfigurationExcludeFilter.class) &#125;)</span></span><br><span class="line"><span class="keyword">public</span> <span class="meta">@interface</span> SpringBootApplication &#123;</span><br></pre></td></tr></table></figure>
-<p>&emsp;&emsp;很明显的，这个注解就是三个常用的注解<code>@SpringBootConfiguration</code>，<code>@EnableAutoConfiguration</code>以及<code>@ComponentScan</code>组合在一起。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/06/09/Spring/spring%20boot/%E8%87%AA%E5%8A%A8%E9%85%8D%E7%BD%AE%E6%B3%A8%E8%A7%A3@EnableAutoConfiguration%E8%A7%A3%E5%AF%86/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/06/08/Java/Java%E8%BF%9B%E9%98%B6/%E9%80%9A%E8%BF%87%E6%96%B9%E6%B3%95%E5%BC%95%E7%94%A8%E8%8E%B7%E5%8F%96%E5%B1%9E%E6%80%A7%E5%90%8D%E7%9A%84%E5%BA%95%E5%B1%82%E9%80%BB%E8%BE%91%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/06/08/Java/Java%E8%BF%9B%E9%98%B6/%E9%80%9A%E8%BF%87%E6%96%B9%E6%B3%95%E5%BC%95%E7%94%A8%E8%8E%B7%E5%8F%96%E5%B1%9E%E6%80%A7%E5%90%8D%E7%9A%84%E5%BA%95%E5%B1%82%E9%80%BB%E8%BE%91%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F/" class="post-title-link" itemprop="url">通过方法引用获取属性名的底层逻辑是什么？</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-06-08 00:00:00" itemprop="dateCreated datePublished" datetime="2024-06-08T00:00:00+08:00">2024-06-08</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/" itemprop="url" rel="index"><span itemprop="name">Java进阶</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>在用MyBatis-Plus时，构造 where 条件的时候，可以直接通过方法引用的方式去指定属性名：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">LambdaQueryWrapper&lt;Book&gt; qw = <span class="keyword">new</span> <span class="title class_">LambdaQueryWrapper</span>&lt;&gt;();</span><br><span class="line">qw.eq(Book::getId, <span class="number">2</span>);</span><br><span class="line">List&lt;Book&gt; list = bookMapper.selectList(qw);</span><br><span class="line">System.out.println(<span class="string">&quot;list = &quot;</span> + list);</span><br></pre></td></tr></table></figure>
-
-<p><code>Book::getId</code>这就是方法引用，为什么 MP 通过 <code>Book::getId</code> 就可以识别出来这里的属性名。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/06/08/Java/Java%E8%BF%9B%E9%98%B6/%E9%80%9A%E8%BF%87%E6%96%B9%E6%B3%95%E5%BC%95%E7%94%A8%E8%8E%B7%E5%8F%96%E5%B1%9E%E6%80%A7%E5%90%8D%E7%9A%84%E5%BA%95%E5%B1%82%E9%80%BB%E8%BE%91%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -1085,7 +1082,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">191</span>
+          <span class="site-state-item-count">199</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>

@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="一、业务背景闲鱼同城模块中有很多不同的业务，例如二手车、租房、本地租等等。﻿ 最近我和师兄在完成闲鱼同城的二手车商业化需求，发现租房的商业化需求也同步进行着，在对齐双方的功能时，发现有很多重合部分。 这里简单说明下我们的商业化方案（二手车、租房基本一致）。  买家：限制聊天的卖家数量，给予一定的额度初始值，超过阈值需要付费购买额度继续聊天。 卖家：限制发布商品的数量，超过一定额度，需要认证、开通会">
+<meta property="og:type" content="article">
+<meta property="og:title" content="通用框架实践｜Pipeline设计+幂等重试">
+<meta property="og:url" content="http://example.com/2024/09/07/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/%E9%80%9A%E7%94%A8%E6%A1%86%E6%9E%B6%E5%AE%9E%E8%B7%B5%EF%BD%9CPipeline%E8%AE%BE%E8%AE%A1+%E5%B9%82%E7%AD%89%E9%87%8D%E8%AF%95/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="一、业务背景闲鱼同城模块中有很多不同的业务，例如二手车、租房、本地租等等。﻿ 最近我和师兄在完成闲鱼同城的二手车商业化需求，发现租房的商业化需求也同步进行着，在对齐双方的功能时，发现有很多重合部分。 这里简单说明下我们的商业化方案（二手车、租房基本一致）。  买家：限制聊天的卖家数量，给予一定的额度初始值，超过阈值需要付费购买额度继续聊天。 卖家：限制发布商品的数量，超过一定额度，需要认证、开通会">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202409122317451.jpeg">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202409122321647.jpeg">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202409122321414.jpeg">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202409122337778.jpeg">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202409122338153.jpeg">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202409122338072.jpeg">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202409122346023.jpeg">
+<meta property="article:published_time" content="2024-09-06T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-09-12T15:50:38.086Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202409122317451.jpeg">
+
+<link rel="canonical" href="http://example.com/2024/09/07/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/%E9%80%9A%E7%94%A8%E6%A1%86%E6%9E%B6%E5%AE%9E%E8%B7%B5%EF%BD%9CPipeline%E8%AE%BE%E8%AE%A1+%E5%B9%82%E7%AD%89%E9%87%8D%E8%AF%95/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>通用框架实践｜Pipeline设计+幂等重试 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/09/07/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/%E9%80%9A%E7%94%A8%E6%A1%86%E6%9E%B6%E5%AE%9E%E8%B7%B5%EF%BD%9CPipeline%E8%AE%BE%E8%AE%A1+%E5%B9%82%E7%AD%89%E9%87%8D%E8%AF%95/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          通用框架实践｜Pipeline设计+幂等重试
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-09-07 00:00:00" itemprop="dateCreated datePublished" datetime="2024-09-07T00:00:00+08:00">2024-09-07</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" itemprop="url" rel="index"><span itemprop="name">设计模式</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="一、业务背景"><a href="#一、业务背景" class="headerlink" title="一、业务背景"></a>一、业务背景</h1><p>闲鱼同城模块中有很多不同的业务，例如二手车、租房、本地租等等。﻿</p>
+<p>最近我和师兄在完成闲鱼同城的二手车商业化需求，发现租房的商业化需求也同步进行着，在对齐双方的功能时，发现有很多重合部分。</p>
+<p>这里简单说明下我们的商业化方案（二手车、租房基本一致）。</p>
+<ul>
+<li>买家：限制聊天的卖家数量，给予一定的额度初始值，超过阈值需要付费购买额度继续聊天。</li>
+<li>卖家：限制发布商品的数量，超过一定额度，需要认证、开通会员解锁上限，针对会员提供一些额外的权益。</li>
+</ul>
+<p>﻿﻿ <span id="more"></span></p>
+<p>这里给出简单的流程，对于二手车和租房，两侧有一些共有的业务流程、也有业务侧特有的流程，如下图。</p>
+<p>﻿<img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202409122317451.jpeg" alt="图片" style="zoom: 67%;" />﻿</p>
+<p>二手车这边除了普通权益包购买流程之外，额外有一个0元限时权益包的购买流程，即是无需用户支付付款的流程，而租房那边暂时没有这个流程。在上图蓝色块中，是双方充值权益的流程，有共有的【IM聊天额度】，也有特有的【会员权益】、【车况查询券】。</p>
+<h1 id="二、最初实现"><a href="#二、最初实现" class="headerlink" title="二、最初实现"></a>二、最初实现</h1><h2 id="2-1-思路"><a href="#2-1-思路" class="headerlink" title="2.1 思路"></a><strong>2.1 思路</strong></h2><p>通过前面的业务背景介绍，很容易想到用模版方法的设计模式来抽象上述流程，给出一个抽象的模版类，拆分上面的执行流程，提供一个工厂类来组合这些方法供业务类去调用。</p>
+<p>不同业务在实现时，只需要继承这个抽象类，重写里面的方法即可。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.alibaba.idle.service;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> com.alibaba.idle.local.service.IdleUserRightsService;</span><br><span class="line"><span class="keyword">import</span> lombok.RequiredArgsConstructor;</span><br><span class="line"></span><br><span class="line"><span class="meta">@RequiredArgsConstructor</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">class</span> <span class="title class_">AbstractUserRightsTemplate</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> IdleUserRightsService userRightsService;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 1.前置流程</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">void</span> <span class="title function_">beforeProcedure</span><span class="params">()</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 2.公共流程</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">commonProcedure</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="comment">// 写权益卡</span></span><br><span class="line">        userRightsService.writeRightsCard();</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 写流水记录</span></span><br><span class="line">        userRightsService.writeRightsHistory();</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 充值IM权益</span></span><br><span class="line">        userRightsService.rechargeIMRights();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 3.业务特有流程</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">void</span> <span class="title function_">specialProcedure</span><span class="params">()</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 4.后置流程</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">afterProcedure</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="comment">// 发送MQ消息通知下游</span></span><br><span class="line">        userRightsService.sendMetaQMessage();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>2.2 问题</strong></p>
+<p>模版方法里面的流程固定死了，不易变动和扩展。如果有一个新的业务方来了，不需要充值IM权益时，上述模版就不适用了，且如果其中部分方法执行失败时，无法做到幂等。因此我们需要一个可通用扩展的代码框架，并且保障局部失败重试时的幂等控制。</p>
+<h1 id="三、pipeline-幂等的设计与实现"><a href="#三、pipeline-幂等的设计与实现" class="headerlink" title="三、pipeline+幂等的设计与实现"></a>三、pipeline+幂等的设计与实现</h1><h2 id="3-1-Pipeline简介"><a href="#3-1-Pipeline简介" class="headerlink" title="3.1 Pipeline简介"></a><strong>3.1 Pipeline简介</strong></h2><p>如果改用责任链模式的变体Pipeline来设计，将其中每一个方法视作Pipeline中的一个阶段（Stage），每个Stage都可以选择性的进行幂等控制，那么这样就实现了我们的框架需求。</p>
+<p>如下图所示，Pipeline是一个执行链，其中的操作节点可以定义为Stage，还需要额外定一个context用于上下文传递使用。</p>
+<p>﻿<img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202409122321647.jpeg" alt="图片">﻿</p>
+<p>那么，如果有不同的业务时，就可以定义不同的Pipeline执行流程，对于其中共性的Stage方法，可以进行复用，也可以进行业务方特有的扩展。</p>
+<p>如下图所示，A、B、C业务都有一个共性的Stage A需要执行，A和C有一个Stage B需要执行，依次类推。这样就可以实现灵活复用的一个框架。</p>
+<p>﻿<img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202409122321414.jpeg" alt="图片">﻿</p>
+<h2 id="3-2-UML类图说明与代码实现"><a href="#3-2-UML类图说明与代码实现" class="headerlink" title="3.2 UML类图说明与代码实现"></a><strong>3.2 UML类图说明与代码实现</strong></h2><h3 id="3-2-1-基本类、接口定义"><a href="#3-2-1-基本类、接口定义" class="headerlink" title="3.2.1 基本类、接口定义"></a>3.2.1 基本类、接口定义</h3><p>1.定义上下文BasePipelineContext用于Pipeline中传递参数；</p>
+<p>BasePipelineContext</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Data</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">BasePipelineContext</span> <span class="keyword">implements</span> <span class="title class_">Serializable</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 扩展信息</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">protected</span> Map&lt;String, String&gt; extInfo;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 处理结果</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">protected</span> StageProcessedResultEnum result;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>2.定义Pipeline中的基本方法类为Stage接口，其中泛型T继承自BasePipelineContext类；</p>
+<p>Stage</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">Stage</span>&lt;T <span class="keyword">extends</span> <span class="title class_">BasePipelineContext</span>&gt; &#123;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 执行当前阶段的逻辑</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    T <span class="title function_">execute</span><span class="params">(T context)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>3.定义Idempotent接口用于实现幂等操作；</p>
+<p>Idempotent</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">Idempotent</span>&lt;T <span class="keyword">extends</span> <span class="title class_">BasePipelineContext</span>&gt; &#123;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 获取幂等key，返回null代表不需要幂等</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> context 上下文</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> 幂等key</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    String <span class="title function_">getIdempotentKey</span><span class="params">(T context)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>4.定义一个抽象的幂等模版类AbstractStageIdempotent，实现Stage、Idempotent接口，用于在Stage方法执行的前后加上幂等的校验，其中幂等的实现依赖于TairStringInterface接口；</p>
+<p>AbstractStageIdempotent</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Slf4j</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">class</span> <span class="title class_">AbstractStageIdempotent</span>&lt;T <span class="keyword">extends</span> <span class="title class_">BasePipelineContext</span>&gt; <span class="keyword">implements</span> <span class="title class_">Stage</span>&lt;T&gt;, Idempotent&lt;T&gt; &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">APP_NAME</span> <span class="operator">=</span> <span class="string">&quot;***&quot;</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 【RDB】用于幂等缓存的实现</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    <span class="keyword">private</span> TairStringInterface tairStringInterface;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 提供一个用于子类处理业务逻辑的入口</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> context 上下文</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> 执行结果</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">abstract</span> T <span class="title function_">executeBusinessLogic</span><span class="params">(T context)</span>;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> T <span class="title function_">execute</span><span class="params">(T context)</span> </span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">// 拿到当前执行的Stage名称</span></span><br><span class="line">        <span class="type">String</span> <span class="variable">simpleName</span> <span class="operator">=</span> <span class="built_in">this</span>.getClass().getSimpleName();</span><br><span class="line">        <span class="type">String</span> <span class="variable">idempotentKey</span> <span class="operator">=</span> getIdempotentKey(context);</span><br><span class="line">        <span class="type">String</span> <span class="variable">key</span> <span class="operator">=</span> TairKeysConstantsTools.generateKey(CommonCharEnum.MINUS.getValue(), APP_NAME, simpleName, idempotentKey);</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">// 如果已经处理过，则无需执行业务逻辑，直接跳过当前流程</span></span><br><span class="line">            <span class="keyword">if</span> (idempotentKey != <span class="literal">null</span> &amp;&amp; getMark(key, context)) &#123;</span><br><span class="line">                log.info(simpleName + <span class="string">&quot; is already processed, the idempotent key:&#123;&#125;&quot;</span>, key);</span><br><span class="line">                <span class="keyword">return</span> context;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">// 执行业务逻辑</span></span><br><span class="line">            context = executeBusinessLogic(context);</span><br><span class="line">            <span class="comment">// 标记为处理过（仅当业务执行成功时）</span></span><br><span class="line">            <span class="keyword">if</span> (idempotentKey != <span class="literal">null</span> &amp;&amp; context.getResult() != <span class="literal">null</span> &amp;&amp; context.getResult().isSuccess()) &#123;</span><br><span class="line">                <span class="keyword">if</span>(!marked(key, context)) &#123;</span><br><span class="line">                    <span class="comment">// 执行失败，则抛出异常</span></span><br><span class="line">                    log.error(simpleName + <span class="string">&quot; marked error, the idempotent key:&#123;&#125;&quot;</span>, key);</span><br><span class="line">                    context.setResult(StageProcessedResultEnum.IDEMPOTENT_FAIL);</span><br><span class="line">                &#125;</span><br><span class="line">                log.info(simpleName + <span class="string">&quot; execute success, marked idempotent key:&#123;&#125;&quot;</span>, key);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            log.error(simpleName + <span class="string">&quot; execute error, the idempotent key:&#123;&#125;, context:&#123;&#125;&quot;</span>, key, e, context);</span><br><span class="line">            context.setResult(StageProcessedResultEnum.IDEMPOTENT_FAIL);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> context;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 检查是否存在标记值</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> key 幂等key</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> 是否存在</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> <span class="type">boolean</span> <span class="title function_">getMark</span><span class="params">(String key, T context)</span> &#123;</span><br><span class="line">        ExgetResult&lt;String&gt; result = tairStringInterface.exget(key);</span><br><span class="line">        <span class="keyword">if</span> (result != <span class="literal">null</span> &amp;&amp; StringUtil.isNotEmpty(result.getValue())) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="string">&quot;1&quot;</span>.equals(result);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 标记</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> key 幂等key</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> 标记结果</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> <span class="type">boolean</span> <span class="title function_">marked</span><span class="params">(String key, T context)</span> &#123;</span><br><span class="line">        <span class="comment">// 带上nx、ex参数</span></span><br><span class="line">        <span class="type">ExsetParams</span> <span class="variable">params</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ExsetParams</span>().nx().ex(SwitchConfigBiz.pipeLineIdempotentExpireTime);</span><br><span class="line">        <span class="type">String</span> <span class="variable">reply</span> <span class="operator">=</span> tairStringInterface.exset(key, <span class="string">&quot;1&quot;</span>, params);</span><br><span class="line">        <span class="keyword">return</span> <span class="string">&quot;OK&quot;</span>.equals(reply);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>5.定义业务自己的上下文类Context，业务的Stage方法类只需要继承自AbstractStageIdempotent，泛型参数T继承自BasePipelineContext的任何类即可，这里以我们自定义的一个IdleUserRightsContext（继承自BasePipelineContext）为例；</p>
+<p>IdleUserRightsContext</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Data</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">IdleUserRightsContext</span> <span class="keyword">extends</span> <span class="title class_">BasePipelineContext</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 权益卡</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> IdleUserRightsCardDTO card;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 构建返回结果</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">public</span> IdleUserRightsContext <span class="title function_">ofResult</span><span class="params">(StageProcessedResultEnum result)</span> &#123;</span><br><span class="line">        <span class="built_in">super</span>.setResult(result);</span><br><span class="line">        <span class="keyword">return</span> <span class="built_in">this</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>6.定义一个抽象的Pipeline执行工厂，用于暴露给业务方使用，工厂中完成pipeline的执行、前后的日志打印等操作；</p>
+<p>AbstractPipelineFactory</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Slf4j</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">class</span> <span class="title class_">AbstractPipelineFactory</span>&lt;T <span class="keyword">extends</span> <span class="title class_">BasePipelineContext</span>&gt; &#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Resource(name = &quot;pipelineMaps&quot;)</span></span><br><span class="line">    <span class="keyword">private</span> Map&lt;String, List&lt;Stage&lt;T&gt;&gt;&gt; pipelineMaps;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 执行PipeLine策略</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> 执行结果</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">public</span> T <span class="title function_">execute</span><span class="params">(T context, String bizPipelineType)</span> &#123;</span><br><span class="line">        List&lt;Stage&lt;T&gt;&gt; executeChains = pipelineMaps.get(bizPipelineType);</span><br><span class="line">        <span class="keyword">if</span>(CollectionUtils.isEmpty(executeChains)) &#123;</span><br><span class="line">            log.error(<span class="string">&quot;PipelineFactory execute error executeChains is null, bizPipelineType:&#123;&#125;&quot;</span>, bizPipelineType);</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        log.info(<span class="string">&quot;PipelineFactory execute, bizPipelineType:&#123;&#125;, executeChains:&#123;&#125;&quot;</span>, bizPipelineType, executeChains);</span><br><span class="line">        <span class="comment">// aroundAspectFunc()增强下</span></span><br><span class="line">        List&lt;Stage&lt;T&gt;&gt; enhancedFunctionList = executeChains</span><br><span class="line">            .stream()</span><br><span class="line">            .map(<span class="built_in">this</span>::aroundAspectFunc)</span><br><span class="line">            .collect(Collectors.toList());</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 获取执行结果</span></span><br><span class="line">        <span class="keyword">return</span> getPipeLineResult(context, enhancedFunctionList).orElse(context);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * Pipe执行器</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> context      入参，类型I</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> functionList pipeLine方法列表，每个函数的输入类型为I，输出类型为O</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> 执行结果，类型O</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> Optional&lt;T&gt; <span class="title function_">getPipeLineResult</span><span class="params">(T context, List&lt;Stage&lt;T&gt;&gt; functionList)</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (CollectionUtils.isEmpty(functionList)) &#123;</span><br><span class="line">            <span class="keyword">return</span> Optional.empty();</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 执行每一个stage</span></span><br><span class="line">        <span class="keyword">for</span> (Stage&lt;T&gt; f : functionList) &#123;</span><br><span class="line">            <span class="keyword">if</span>(Objects.isNull(context)) &#123;</span><br><span class="line">                <span class="keyword">return</span> Optional.empty();</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 一些特殊ResultEnum处理，例如SKIP_ALL，直接跳过所有的流程，立即结束</span></span><br><span class="line">            <span class="keyword">if</span>(context.getResult() != <span class="literal">null</span> &amp;&amp; context.getResult().equals(StageProcessedResultEnum.SKIP_ALL)) &#123;</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            context = f.execute(context);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> Optional.ofNullable(context);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * Pipe环绕切面，apply -&gt; function</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> func 当前方法</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> 增强后的新方法</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> Stage&lt;T&gt; <span class="title function_">aroundAspectFunc</span><span class="params">(Stage&lt;T&gt; func)</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> req -&gt; &#123;</span><br><span class="line">            <span class="type">StageConfig</span> <span class="variable">annotation</span> <span class="operator">=</span> func.getClass().getAnnotation(StageConfig.class);</span><br><span class="line">            <span class="type">String</span> <span class="variable">methodName</span> <span class="operator">=</span> annotation.name();</span><br><span class="line">            <span class="comment">// 用于业务自定义的前置检查逻辑</span></span><br><span class="line">            <span class="keyword">if</span>(!preContextCheck(methodName, req)) &#123;</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">// 正式执行</span></span><br><span class="line">            <span class="type">T</span> <span class="variable">result</span> <span class="operator">=</span> func.execute(req);</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 用于业务自定义的后置通知</span></span><br><span class="line">            afterResult(methodName, result);</span><br><span class="line">            <span class="keyword">return</span> result;</span><br><span class="line">        &#125;;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 前置通知</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> methodName 方法名</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> context 上下文</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> 是否通过</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">protected</span> <span class="type">boolean</span> <span class="title function_">preContextCheck</span><span class="params">(String methodName, T context)</span> &#123;</span><br><span class="line">        <span class="keyword">if</span>(context == <span class="literal">null</span>) &#123;</span><br><span class="line">            log.error(<span class="string">&quot;PipelineFactory.execute [&#123;&#125;] error, context is null&quot;</span>, methodName);</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span>(context.getResult() != <span class="literal">null</span> &amp;&amp; !context.getResult().isSuccess()) &#123;</span><br><span class="line">            log.error(<span class="string">&quot;UserRightsPipelineFactory.execute [&#123;&#125;] error, pre method is failed with resultEnum:&#123;&#125;&quot;</span>, methodName, context.getResult());</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        log.info(<span class="string">&quot;PipelineFactory.execute [&#123;&#125;] start, context:&#123;&#125;&quot;</span>, methodName, context);</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 后置通知</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> methodName 方法名</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> context 上下文</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">afterResult</span><span class="params">(String methodName,T context)</span> &#123;</span><br><span class="line">        log.info(<span class="string">&quot;PipelineFactory.execute [&#123;&#125;] end, context:&#123;&#125;&quot;</span>, methodName, context);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>7.最后实现业务自己的Stage方法类。</p>
+<p>CreateCard</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Slf4j</span></span><br><span class="line"><span class="meta">@StageConfig(name = &quot;CreateCard&quot;)</span></span><br><span class="line"><span class="meta">@RequiredArgsConstructor</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">CreateCard</span> <span class="keyword">extends</span> <span class="title class_">AbstractStageIdempotent</span>&lt;IdleUserRightsContext&gt; &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> IdleUserRightsService userRightsService;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 提供一个用于子类处理业务逻辑的入口</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> context 上下文</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> 执行结果</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">protected</span> IdleUserRightsContext <span class="title function_">executeBusinessLogic</span><span class="params">(IdleUserRightsContext context)</span> &#123;</span><br><span class="line">        <span class="type">IdleUserRightsCardDTO</span> <span class="variable">cardDTO</span> <span class="operator">=</span> context.getCard();</span><br><span class="line">        <span class="comment">// 写权益卡记录</span></span><br><span class="line">        <span class="type">Long</span> <span class="variable">cardId</span> <span class="operator">=</span> userRightsService.createCard(cardDTO);</span><br><span class="line">        <span class="comment">// 写权益卡id字段，用于下游使用</span></span><br><span class="line">        cardDTO.setId(cardId);</span><br><span class="line">        <span class="keyword">return</span> context.ofResult(cardId == <span class="literal">null</span> ? StageProcessedResultEnum.WRITE_USER_RIGHTS_RECORD_DB_FAIL : StageProcessedResultEnum.SUCCESS);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 获取幂等key，返回null代表不需要幂等</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> context 上下文</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> 幂等key</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">getIdempotentKey</span><span class="params">(IdleUserRightsContext context)</span> &#123;</span><br><span class="line">        <span class="type">IdleUserRightsCardDTO</span> <span class="variable">card</span> <span class="operator">=</span> context.getCard();</span><br><span class="line">        <span class="comment">// 幂等key：idle-local-CreateCard-&#123;bizCode&#125;-&#123;userId&#125;-&#123;ppPayId&#125;</span></span><br><span class="line">        <span class="keyword">return</span> card.getIdempotentKey() != <span class="literal">null</span> ? card.getIdempotentKey() : TairKeysConstantsTools.generateKey(CommonCharEnum.MINUS.getValue(), String.valueOf(card.getUserId()), card.getBizCode(), card.getTemplateCode());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>CreateCardHistory</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Slf4j</span></span><br><span class="line"><span class="meta">@StageConfig(name = &quot;CreateCardHistory&quot;)</span></span><br><span class="line"><span class="meta">@RequiredArgsConstructor</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">CreateCardHistory</span> <span class="keyword">extends</span> <span class="title class_">AbstractStageIdempotent</span>&lt;IdleUserRightsContext&gt; &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> IdleUserRightsService userRightsService;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> IdleIMLimitQuotaDataService quotaDataService;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 提供一个用于子类处理业务逻辑的入口</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> context 上下文</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> 执行结果</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">protected</span> IdleUserRightsContext <span class="title function_">executeBusinessLogic</span><span class="params">(IdleUserRightsContext context)</span> &#123;</span><br><span class="line">        <span class="type">IdleUserRightsCardDTO</span> <span class="variable">card</span> <span class="operator">=</span> context.getCard();</span><br><span class="line">        <span class="type">IdleUserRightsCardHistoryDTO</span> <span class="variable">historyDTO</span> <span class="operator">=</span> userRightsService.buildHistory(card);</span><br><span class="line">        historyDTO.setPaidCntLeft(paidCntLeft + historyDTO.getCount());</span><br><span class="line">        <span class="type">Long</span> <span class="variable">historyId</span> <span class="operator">=</span> userRightsService.createHistory(historyDTO);</span><br><span class="line">        <span class="keyword">return</span> context.ofResult(historyId == <span class="literal">null</span> ? StageProcessedResultEnum.WRITE_USER_RIGHTS_FLOW_DB_FAIL : StageProcessedResultEnum.SUCCESS);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 获取幂等key，返回null代表不需要幂等</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> context 上下文</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> 幂等key</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">getIdempotentKey</span><span class="params">(IdleUserRightsContext context)</span> &#123;</span><br><span class="line">        <span class="type">IdleUserRightsCardDTO</span> <span class="variable">card</span> <span class="operator">=</span> context.getCard();</span><br><span class="line">        <span class="comment">// 幂等key：idle-local-CreateCardHistory-&#123;bizCode&#125;-&#123;userId&#125;-&#123;cardId&#125;</span></span><br><span class="line">        <span class="keyword">return</span> card.getIdempotentKey() != <span class="literal">null</span> ? card.getIdempotentKey() : TairKeysConstantsTools.generateKey(CommonCharEnum.MINUS.getValue(), String.valueOf(card.getUserId()), String.valueOf(card.getId()));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>这里用了自定义注解来标记下每个Stage方法类，用于扫描加入进Spring的Bean容器里面，其他Stage类似上面2个即可。</p>
+<p>StageConfig</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Target(ElementType.TYPE)</span></span><br><span class="line"><span class="meta">@Retention(RetentionPolicy.RUNTIME)</span></span><br><span class="line"><span class="meta">@Documented</span></span><br><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">public</span> <span class="meta">@interface</span> StageConfig &#123;</span><br><span class="line">    String <span class="title function_">name</span><span class="params">()</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>﻿<img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202409122337778.jpeg" alt="图片">﻿</p>
+<p>﻿<img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202409122338153.jpeg" alt="图片">﻿</p>
+<h3 id="3-2-2-配置类"><a href="#3-2-2-配置类" class="headerlink" title="3.2.2 配置类"></a>3.2.2 配置类</h3><p>在上述图，还需要一个配置类来实现动态编排pipeline。</p>
+<p>上面使用了自定义注解来标记每个Stage方法类，因此在运行时可以由Spring上下文扫描所有的注解类，加载为Bean对象，并放入Map中，然后进行配置的处理。这里以Switch上配置的Map为例子，配置类的作用主要是完成下图中Value值的处理，由配置的方法String[ ]转为<code>List&lt;Stage&gt;</code>类型的执行链。</p>
+<p>﻿<img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202409122338072.jpeg" alt="图片">﻿</p>
+<p>代码实现</p>
+<p>PipelineConfiguration</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Configuration</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">PipelineConfiguration</span>&lt;T <span class="keyword">extends</span> <span class="title class_">BasePipelineContext</span>&gt; &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * key：StageConfig注解中的name</span></span><br><span class="line"><span class="comment">     * value：实现了Stage接口的实例Bean</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> Map&lt;String, Stage&lt;T&gt;&gt; stageMap = <span class="keyword">new</span> <span class="title class_">ConcurrentHashMap</span>&lt;&gt;();</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    <span class="keyword">private</span> ApplicationContext context;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 在构造方法后执行，确保所有依赖注入完，初始化pipeline的Map</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@PostConstruct</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">initStageMap</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="comment">// 拿到带有@StageConfig注解的所有bean</span></span><br><span class="line">        Map&lt;String, Object&gt; beansWithAnnotation = context.getBeansWithAnnotation(StageConfig.class);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 遍历带有StageConfig注解的所有实例bean</span></span><br><span class="line">        <span class="keyword">for</span> (Object bean : beansWithAnnotation.values()) &#123;</span><br><span class="line">            <span class="keyword">if</span> (bean <span class="keyword">instanceof</span> Stage) &#123;</span><br><span class="line">                <span class="comment">// 拿到注解</span></span><br><span class="line">                <span class="type">StageConfig</span> <span class="variable">annotation</span> <span class="operator">=</span> bean.getClass().getAnnotation(StageConfig.class);</span><br><span class="line">                <span class="comment">// 放入Map</span></span><br><span class="line">                stageMap.put(annotation.name(), (Stage&lt;T&gt;) bean);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 初始化pipeline的Map</span></span><br><span class="line"><span class="comment">     * key：不同业务的pipeline类型标识，见枚举：com.alibaba.idle.local.common.constants.UserRightsBizCodeEnum</span></span><br><span class="line"><span class="comment">     * value：当前业务配置的执行链</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@Bean(name = &quot;pipelineMaps&quot;)</span></span><br><span class="line">    <span class="keyword">public</span> Map&lt;String, List&lt;Stage&lt;T&gt;&gt;&gt; <span class="title function_">initPipelineMaps</span><span class="params">(ApplicationContext applicationContext)</span> &#123;</span><br><span class="line">        Map&lt;String, List&lt;Stage&lt;T&gt;&gt;&gt; pipelines = <span class="keyword">new</span> <span class="title class_">ConcurrentHashMap</span>&lt;&gt;();</span><br><span class="line">        <span class="comment">// 不同业务的pipeline执行链配置</span></span><br><span class="line">        Map&lt;String, List&lt;String&gt;&gt; pipeLineBizExecuteChain = SwitchConfigBiz.pipeLineBizExecuteChain;</span><br><span class="line">        <span class="comment">// 填充进去</span></span><br><span class="line">        <span class="keyword">for</span> (String bizIdentify : pipeLineBizExecuteChain.keySet()) &#123;</span><br><span class="line">            <span class="comment">// 执行链BeanName列表</span></span><br><span class="line">            List&lt;String&gt; executeChainBeanNameList = pipeLineBizExecuteChain.get(bizIdentify);</span><br><span class="line">            <span class="comment">// 映射到对应的bean上</span></span><br><span class="line">            List&lt;Stage&lt;T&gt;&gt; executeChains = executeChainBeanNameList.stream()</span><br><span class="line">                .map(stageMap::get)</span><br><span class="line">                .collect(Collectors.toList());</span><br><span class="line">            pipelines.put(bizIdentify, executeChains);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> pipelines;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>3.3 使用</strong></p>
+<p>实际使用时，需要把业务流程中每一个操作或方法都写成一个Stage实现类，然后定义下执行链。</p>
+<p>pipeLineBizExecuteChainConfig</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@AppSwitch(des = &quot;pipeline中不同业务的执行链路配置&quot;, level = Level.p2)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> Map&lt;String, List&lt;String&gt;&gt; pipeLineBizExecuteChainConfig = <span class="keyword">new</span> <span class="title class_">HashMap</span>&lt;String, List&lt;String&gt;&gt;() &#123;&#123;</span><br><span class="line">        put(<span class="string">&quot;IMLConsumeQuotaPipeline&quot;</span>, Lists.newArrayList(</span><br><span class="line">                <span class="comment">// 创建权益卡</span></span><br><span class="line">                <span class="string">&quot;CreateCard&quot;</span></span><br><span class="line">                <span class="comment">// 创建流水记录</span></span><br><span class="line">                <span class="string">&quot;CreateCardHistory&quot;</span>,</span><br><span class="line">                <span class="comment">// ......</span></span><br><span class="line">                <span class="string">&quot;其他操作&quot;</span></span><br><span class="line">      ));</span><br><span class="line">      ...其他不同的pipeline配置</span><br><span class="line">&#125;&#125;;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>其次需要继承下AbstractPipelineFactory<T>工厂，这里可以不用写其他代码了，只需替换掉其中的泛型约束即可。</p>
+<p>IdleIMLPipelineFactory</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">IdleIMLPipelineFactory</span> <span class="keyword">extends</span> <span class="title class_">AbstractPipelineFactory</span>&lt;IdleIMLContext&gt; &#123;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>在业务使用的地方，以属性注入的方式使用即可。</p>
+<p>IdleIMLimitWriteService</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RequiredArgsConstructor</span></span><br><span class="line"><span class="meta">@Slf4j</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">IdleIMLimitWriteServiceImpl</span> <span class="keyword">implements</span> <span class="title class_">IdleIMLimitWriteService</span> &#123;</span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">final</span> IdleIMLPipelineFactory idleIMLPipelineFactory;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> IdleResult&lt;Boolean&gt; <span class="title function_">consumeQuota</span><span class="params">(String bizCode, Long userId, Long oppositeUserId, String messageId, Long itemId, Long sessionId)</span> &#123;</span><br><span class="line"></span><br><span class="line">        <span class="type">IdleIMLContext</span> <span class="variable">context</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">IdleIMLContext</span>();</span><br><span class="line">        context.setNow(lock.getLocalDateTime());</span><br><span class="line">        context.setBizCode(UserRightsBizCodeEnum.map(bizCode));</span><br><span class="line">        context.setUserId(userId);</span><br><span class="line">        context.setOppositeUserId(oppositeUserId);</span><br><span class="line">        context.setMessageId(messageId);</span><br><span class="line">        context.setItemId(itemId);</span><br><span class="line">        context.setSessionId(sessionId);</span><br><span class="line"></span><br><span class="line">        log.info(<span class="string">&quot;IdleIMLimitWriteServiceImpl.consumeQuota start, context:&#123;&#125;&quot;</span>, context);</span><br><span class="line">        context = idleIMLPipelineFactory.execute(context, <span class="string">&quot;IMLConsumeQuotaPipeline&quot;</span>);</span><br><span class="line">        log.info(<span class="string">&quot;IdleIMLimitWriteServiceImpl.consumeQuota end, context:&#123;&#125;, result:&#123;&#125;&quot;</span>, context, context.getResult());</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> IdleResult.success(context.getResult().isSuccess());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="3-4-总结"><a href="#3-4-总结" class="headerlink" title="3.4 总结"></a><strong>3.4 总结</strong></h2><p>最后给出总的执行流程顺序图：</p>
+<p>1.通过一个IdleIMLPipelineFactory执行工厂来提供对业务的访问入口；</p>
+<p>2.通过配置的PipelineMaps来选择对应的执行链；</p>
+<p>3.通过对每个Stage进行前置、后置增强来打一些日志、当前执行结果判断等操作；</p>
+<p>4.通过在业务执行方法前加上幂等校验的方法来实现部分Stage失败时的重试；</p>
+<p>5.暴露一个executeBusinessLogic方法用于业务操作的实现；</p>
+<p>﻿<img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202409122346023.jpeg" alt="图片">﻿</p>
+<p>使用到的设计模式：</p>
+<p>1.pipeline（责任链模式的变体）；</p>
+<p>2.模版方法模式（体现在抽象幂等类的定义上，定义了一套模版）；</p>
+<p>3.装饰器模式（侧重于前后增强的日志打印等操作）；</p>
+<p>4.代理模式（侧重于幂等的实现，代理了Stage对象，进行了前后幂等处理）；</p>
+<p>5.策略模式（充值策略时，定义了一个策略接口，给出了多个策略实现类，充值时，根据业务方传入的类型，自动匹配对应的策略进行充值）；</p>
+<p>6.工厂方法模式（体现在pipeline执行工厂上）；</p>
+<hr>
+<p>类似的编排框架：</p>
+<p>liteflow</p>
+<p>smartengine</p>
+<hr>
+<p>转载自：<br><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/bBZFDx6WwRfTnfQS08Mesg">https://mp.weixin.qq.com/s/bBZFDx6WwRfTnfQS08Mesg</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/08/25/Spring/spring%20boot/Mybatis%E5%9C%A8SpringBoot%E4%B8%AD%E6%98%AF%E5%A6%82%E4%BD%95%E8%A2%AB%E5%8A%A0%E8%BD%BD%E6%89%A7%E8%A1%8C/" rel="prev" title="Mybatis在SpringBoot中是如何被加载执行">
+      <i class="fa fa-chevron-left"></i> Mybatis在SpringBoot中是如何被加载执行
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E4%B8%9A%E5%8A%A1%E8%83%8C%E6%99%AF"><span class="nav-number">1.</span> <span class="nav-text">一、业务背景</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E6%9C%80%E5%88%9D%E5%AE%9E%E7%8E%B0"><span class="nav-number">2.</span> <span class="nav-text">二、最初实现</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#2-1-%E6%80%9D%E8%B7%AF"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 思路</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81pipeline-%E5%B9%82%E7%AD%89%E7%9A%84%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0"><span class="nav-number">3.</span> <span class="nav-text">三、pipeline+幂等的设计与实现</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#3-1-Pipeline%E7%AE%80%E4%BB%8B"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 Pipeline简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-2-UML%E7%B1%BB%E5%9B%BE%E8%AF%B4%E6%98%8E%E4%B8%8E%E4%BB%A3%E7%A0%81%E5%AE%9E%E7%8E%B0"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 UML类图说明与代码实现</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-1-%E5%9F%BA%E6%9C%AC%E7%B1%BB%E3%80%81%E6%8E%A5%E5%8F%A3%E5%AE%9A%E4%B9%89"><span class="nav-number">3.2.1.</span> <span class="nav-text">3.2.1 基本类、接口定义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-2-%E9%85%8D%E7%BD%AE%E7%B1%BB"><span class="nav-number">3.2.2.</span> <span class="nav-text">3.2.2 配置类</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-4-%E6%80%BB%E7%BB%93"><span class="nav-number">3.3.</span> <span class="nav-text">3.4 总结</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">199</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">30</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
