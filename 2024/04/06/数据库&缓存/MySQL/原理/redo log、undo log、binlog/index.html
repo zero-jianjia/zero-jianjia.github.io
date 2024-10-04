@@ -30,7 +30,7 @@
 <meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407170950942.png">
 <meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407170950807.png">
 <meta property="article:published_time" content="2024-04-05T16:00:00.000Z">
-<meta property="article:modified_time" content="2024-07-27T02:20:41.754Z">
+<meta property="article:modified_time" content="2024-10-02T05:13:44.248Z">
 <meta property="article:author" content="jianjia">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407170950942.png">
@@ -308,6 +308,24 @@
 <p>一般在企业中数据库会有备份系统，可以定期执行备份，备份的周期可以自己设置。</p>
 <p>恢复数据的过程:找到最近一次的全量备份数据。 从备份的时间点开始，将备份的binlog取出来，重放到要恢复的那个时刻。</p>
 <hr>
+<p>binlog日志有三种模式：</p>
+<ol>
+<li><p>ROW: 日志中会记录每一行数据被修改的情况，在slave端对相同的数据可以根据binlog中详细的记录进行同步。</p>
+<ul>
+<li>优点：能清楚的记录每一行数据的修改的细节，所以在进行主从同步时或者数据恢复时，不会出现任何的从库与主库数据不一致的问题。</li>
+<li>缺点：在进行批量操作时，会产生大量的日志，会让我们的日志量暴涨。</li>
+</ul>
+</li>
+<li><p>STATMENT: 记录每一条修改数据的SQL语句，但是在进行批量修改时，记录的不再是单条的SQL,而是批量修改的SQL语句事件，salve在复制的时候SQL进程会将SQL语句事件解析成和主库中相同SQL来执行，这种操作叫做SQL语句的复制。</p>
+<ul>
+<li>优点：日志量小，减少磁盘的1O,提升存储和恢复的速度</li>
+<li>缺点：在某些情况下，会导致主从的不一致，比如：now()函数。</li>
+</ul>
+</li>
+<li><p>MIXED：混合模式，一般情况下就采用STATMENT模式保存binlog，对于STATMENT模式无法复制的操作，使用ROW模式来保存binlog。</p>
+</li>
+</ol>
+<hr>
 <p>转载自：<br><a target="_blank" rel="noopener" href="https://www.toutiao.com/a6845545335599661579/?log_from=b4450f87a3ecd_1635169016770">https://www.toutiao.com/a6845545335599661579/?log_from=b4450f87a3ecd_1635169016770</a></p>
 
     </div>
@@ -403,14 +421,14 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">199</span>
+          <span class="site-state-item-count">200</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">30</span>
+        <span class="site-state-item-count">31</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
   </nav>

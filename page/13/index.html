@@ -187,6 +187,112 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Spring/spring%20boot/Spring%20%E6%89%A7%E8%A1%8C%E9%A1%BA%E5%BA%8F%EF%BC%9AEvent%20%E4%BA%8B%E4%BB%B6/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/01/Spring/spring%20boot/Spring%20%E6%89%A7%E8%A1%8C%E9%A1%BA%E5%BA%8F%EF%BC%9AEvent%20%E4%BA%8B%E4%BB%B6/" class="post-title-link" itemprop="url">Spring执行顺序：Event 事件</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/Spring-Boot/" itemprop="url" rel="index"><span itemprop="name">Spring Boot</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>实现 ApplicationListener 接口，输出所有事件。</p>
+<p><strong>当以 <code>@Component</code> 方式配置时</strong></p>
+<p>事件触发顺序如下：</p>
+<blockquote>
+<ol start="0">
+<li>ApplicationListener#ContextRefreshedEvent</li>
+<li>ApplicationListener#ServletWebServerInitializedEvent</li>
+<li>ApplicationListener#ApplicationStartedEvent</li>
+<li>ApplicationListener#ApplicationReadyEvent</li>
+<li>ApplicationListener#ContextClosedEvent</li>
+</ol>
+</blockquote>
+<p><strong>当通过 <code>/META-INF/spring.factories</code> 配置时</strong></p>
+<p>配置内容如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.springframework.context.ApplicationListener=com.github.abel533.event.ApplicationListenerImpl</span><br></pre></td></tr></table></figure>
+
+<p>此时输出的事件顺序如下：</p>
+<blockquote>
+<ol start="0">
+<li><p>ApplicationListener#ApplicationStartingEvent</p>
+</li>
+<li><p>ApplicationListener#ApplicationEnvironmentPreparedEvent</p>
+</li>
+<li><p>ApplicationListener#ApplicationContextInitializedEvent</p>
+</li>
+<li><p>ApplicationListener#ApplicationPreparedEvent</p>
+</li>
+</ol>
+</blockquote>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/04/01/Spring/spring%20boot/Spring%20%E6%89%A7%E8%A1%8C%E9%A1%BA%E5%BA%8F%EF%BC%9AEvent%20%E4%BA%8B%E4%BB%B6/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
     <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Spring/spring%20boot/Spring%20Boot%E5%A4%84%E7%90%86@RequestMapping%E6%B3%A8%E8%A7%A3/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -903,95 +1009,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/20/Spring/%E4%BA%8B%E5%8A%A1/%E4%B8%89%E9%97%AESpring%E4%BA%8B%E5%8A%A1%EF%BC%9A%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%EF%BC%9F%E5%AD%98%E5%9C%A8%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/03/20/Spring/%E4%BA%8B%E5%8A%A1/%E4%B8%89%E9%97%AESpring%E4%BA%8B%E5%8A%A1%EF%BC%9A%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%EF%BC%9F%E5%AD%98%E5%9C%A8%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F/" class="post-title-link" itemprop="url">三问Spring事务：解决什么问题？如何解决？存在什么问题？</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-03-20 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-20T00:00:00+08:00">2024-03-20</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Spring/%E4%BA%8B%E5%8A%A1/" itemprop="url" rel="index"><span itemprop="name">事务</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>[toc]</p>
-<h1 id="1-解决什么问题"><a href="#1-解决什么问题" class="headerlink" title="1. 解决什么问题"></a>1. 解决什么问题</h1><p>让我们先从事务说起，“什么是事务？我们为什么需要事务？”。事务是一组无法被分割的操作，要么所有操作全部成功，要么全部失败。我们在开发中需要通过事务将一些操作组成一个单元，来保证程序逻辑上的正确性，例如全部插入成功，或者回滚，一条都不插入。作为程序员的我们，对于事务管理，所需要做的便是进行<strong>事务的界定</strong>，即通过类似begin transaction和end transaction的操作来界定事务的开始和结束。</p>
-<p>下面是一个基本的JDBC事务管理代码：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 开启数据库连接</span></span><br><span class="line"><span class="type">Connection</span> <span class="variable">con</span> <span class="operator">=</span> openConnection();</span><br><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">    <span class="comment">// 关闭自动提交</span></span><br><span class="line">    con.setAutoCommit(<span class="literal">false</span>);</span><br><span class="line">    <span class="comment">// 业务处理</span></span><br><span class="line">    <span class="comment">// ...  </span></span><br><span class="line">    <span class="comment">// 提交事务</span></span><br><span class="line">    con.commit();</span><br><span class="line">&#125; <span class="keyword">catch</span> (SQLException | MyException e) &#123;</span><br><span class="line">    <span class="comment">// 捕获异常，回滚事务</span></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        con.rollback();</span><br><span class="line">    &#125; <span class="keyword">catch</span> (SQLException ex) &#123;</span><br><span class="line">        ex.printStackTrace();</span><br><span class="line">    &#125;</span><br><span class="line">&#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">    <span class="comment">// 关闭连接</span></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        con.setAutoCommit(<span class="literal">true</span>);</span><br><span class="line">        con.close();</span><br><span class="line">    &#125; <span class="keyword">catch</span> (SQLException e) &#123;</span><br><span class="line">        e.printStackTrace();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>直接使用JDBC进行事务管理的代码直观上来看，存在两个问题：</p>
-<ol>
-<li>业务处理代码与事务管理代码混杂；</li>
-<li>大量的异常处理代码（在catch中还要try-catch）。而如果我们需要更换其他数据访问技术，例如Hibernate、MyBatis、JPA等，虽然事务管理的操作都类似，但API却不同，则需使用相应的API来改写。这也会引来第三个问题：</li>
-<li>繁杂的事务管理API。</li>
-</ol>
-<p>上文列出了三个待解决的问题，下面我们看Spring事务是如何解决。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/03/20/Spring/%E4%BA%8B%E5%8A%A1/%E4%B8%89%E9%97%AESpring%E4%BA%8B%E5%8A%A1%EF%BC%9A%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%EF%BC%9F%E5%AD%98%E5%9C%A8%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -1061,14 +1078,14 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">199</span>
+          <span class="site-state-item-count">200</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">30</span>
+        <span class="site-state-item-count">31</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
   </nav>

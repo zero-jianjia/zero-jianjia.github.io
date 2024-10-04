@@ -187,6 +187,91 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/Java%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86%E6%9C%BA%E5%88%B6%E8%AF%A6%E8%A7%A3%EF%BC%88JDK%20%E5%92%8CCGLIB%EF%BC%8CJavassist%EF%BC%8CASM%EF%BC%89/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/Java%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86%E6%9C%BA%E5%88%B6%E8%AF%A6%E8%A7%A3%EF%BC%88JDK%20%E5%92%8CCGLIB%EF%BC%8CJavassist%EF%BC%8CASM%EF%BC%89/" class="post-title-link" itemprop="url">Java动态代理机制详解（JDK和CGLIB、Javassist、ASM）</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-03-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-05T00:00:00+08:00">2024-03-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E6%8F%90%E9%AB%98/" itemprop="url" rel="index"><span itemprop="name">Java提高</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>[toc]</p>
+<h3 id="动态代理"><a href="#动态代理" class="headerlink" title="动态代理"></a>动态代理</h3><p>&emsp;&emsp;Java动态代理类位于Java.lang.reflect包下，一般主要涉及到以下两个类：<br>&emsp;&emsp;<code>InvocationHandler</code>：该接口中仅定义了一个invoke方法。<br>&emsp;&emsp;每一个动态代理类都必须要实现InvocationHandler这个接口，并且每个代理类的实例都关联到了一个handler，当通过代理对象调用一个方法的时候，这个方法的调用就会被转发为由InvocationHandler这个接口的 invoke 方法来进行调用。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">public Object invoke(Object proxy, Method method, Object[] args) throws Throwable;</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;第一个参数obj一般是指要代理的类，method是被代理的方法，args为该方法的参数数组。这个抽象方法在代理类中动态实现。</p>
+<p>&emsp;&emsp;<code>Proxy</code>：该类的作用就是用来动态创建一个代理对象的类，其中主要包含以下方法：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">//获得一个代理类，其中loader是类装载器，interfaces是真实类所拥有的全部接口的数组.</span><br><span class="line">public static Class&lt;?&gt; getProxyClass(ClassLoader loader, Class&lt;?&gt;... interfaces) </span><br><span class="line">    throws IllegalArgumentException&#123;…&#125;</span><br><span class="line"></span><br><span class="line">//返回代理类的一个实例，返回后的代理类可以当作被代理类使用.</span><br><span class="line">public static Object newProxyInstance(ClassLoader loader, Class&lt;?&gt;[] interfaces, </span><br><span class="line">    InvocationHandler h) throws IllegalArgumentException&#123;…&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;loader: 一个ClassLoader对象，定义了由哪个ClassLoader对象来对生成的代理对象进行加载。<br>&emsp;&emsp;interfaces: 一个Interface对象的数组，表示的是要给需要代理的对象提供一组什么接口，如果提供了一组接口给它，那么这个代理对象就宣称实现了该接口(多态)，这样就能调用这组接口中的方法了。<br>&emsp;&emsp;h: 一个InvocationHandler对象，表示的是当这个动态代理对象在调用方法的时候，会关联到哪一个InvocationHandler对象上。</p>
+<p>&emsp;&emsp;<code>Proxy.newProxyInstance (ClassLoader loader, Class&lt;?&gt;[] interfaces, InvocationHandler h)</code>做了以下几件事.<br>&emsp;&emsp;(1)根据参数 loader 和 interfaces 调用 getProxyClass(loader, interfaces) 创建代理类<code>$Proxy0</code>. <code>$Proxy0</code>类实现了interfaces的接口,并继承了Proxy类.<br>&emsp;&emsp;(2)实例化 <code>$Proxy0</code> 并在构造方法中把loader传过去, 接着 <code>$Proxy0</code> 调用父类Proxy的构造器,为h赋值。接着把得到的 <code>$Proxy0</code> 实例强制转换成代理类. 当执行代理类的方法时,就调用了 <code>$Proxy0</code> 类中的方法.在执行代理类方法中,调用父类Proxy中的h的invoke()方法.即InvocationHandler.invoke()。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/Java%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86%E6%9C%BA%E5%88%B6%E8%AF%A6%E8%A7%A3%EF%BC%88JDK%20%E5%92%8CCGLIB%EF%BC%8CJavassist%EF%BC%8CASM%EF%BC%89/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
     <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/Joiner%E3%80%81Strings%E3%80%81Splitter%E4%BD%BF%E7%94%A8/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -973,84 +1058,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/Java%E8%8E%B7%E5%8F%96%E6%B3%9B%E5%9E%8BT%E7%9A%84%E7%B1%BB%E5%9E%8B%20T.class/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/Java%E8%8E%B7%E5%8F%96%E6%B3%9B%E5%9E%8BT%E7%9A%84%E7%B1%BB%E5%9E%8B%20T.class/" class="post-title-link" itemprop="url">Java获取泛型T的类型 T.class</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-03-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-05T00:00:00+08:00">2024-03-05</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/Java%E6%8F%90%E9%AB%98/" itemprop="url" rel="index"><span itemprop="name">Java提高</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>直接上代码：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">CrudRepository</span>&lt;T&gt; &#123;</span><br><span class="line"></span><br><span class="line">    Iterable&lt;T&gt; <span class="title function_">findAll</span><span class="params">()</span>;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">BaseImpl</span> &lt;T&gt; <span class="keyword">implements</span> <span class="title class_">CrudRepository</span>&lt;T&gt; &#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> Iterable&lt;T&gt; <span class="title function_">findAll</span><span class="params">()</span> &#123;</span><br><span class="line">        Class&lt;T&gt; c = getTClass();</span><br><span class="line">        System.out.println(c);</span><br><span class="line">        common(c);</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 通用的方法使用泛型的class去干一些事情。</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> c 泛型类</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">common</span><span class="params">(Class&lt;T&gt; c)</span> &#123;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 获取 T.class</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">public</span> Class&lt;T&gt; <span class="title function_">getTClass</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> (Class&lt;T&gt;) ((ParameterizedType) getClass().getGenericSuperclass()).getActualTypeArguments()[<span class="number">0</span>];</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">PhoneRepository</span> <span class="keyword">extends</span> <span class="title class_">BaseImpl</span>&lt;Phone&gt; &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">class</span> <span class="title class_">Phone</span> &#123;</span><br><span class="line">        <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">long</span> <span class="variable">serialVersionUID</span> <span class="operator">=</span> <span class="number">1L</span>;</span><br><span class="line">        <span class="keyword">private</span> String name;</span><br><span class="line">        <span class="keyword">private</span> Long price;</span><br><span class="line">        <span class="keyword">private</span> Long updateDate;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">public</span> String <span class="title function_">getName</span><span class="params">()</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> name;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setName</span><span class="params">(String name)</span> &#123;</span><br><span class="line">            <span class="built_in">this</span>.name = name;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">public</span> Long <span class="title function_">getPrice</span><span class="params">()</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> price;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setPrice</span><span class="params">(Long price)</span> &#123;</span><br><span class="line">            <span class="built_in">this</span>.price = price;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">public</span> Long <span class="title function_">getUpdateDate</span><span class="params">()</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> updateDate;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setUpdateDate</span><span class="params">(Long updateDate)</span> &#123;</span><br><span class="line">            <span class="built_in">this</span>.updateDate = updateDate;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Test</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        <span class="type">PhoneRepository</span> <span class="variable">phoneRepository</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">PhoneRepository</span>();</span><br><span class="line">        Iterable&lt;Phone&gt; phones = phoneRepository.findAll();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">结果：</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">cn</span>.zero.reflect.PhoneRepository$Phone</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<hr>
-<hr>
-<p>工具类：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">GenericsUtils</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 通过反射,获得定义Class时声明的父类的范型参数的类型.</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * 如public BookManager extends Manager&lt;Book&gt;</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> Class <span class="title function_">getSuperClassGenericType</span><span class="params">(Class clazz)</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> getSuperClassGenericType(clazz, <span class="number">0</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 通过反射,获得定义Class时声明的父类的范型参数的类型.</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * 如public BookManager extends Manager&lt;Book&gt;, 返回Book</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> Class <span class="title function_">getSuperClassGenericType</span><span class="params">(Class clazz, <span class="type">int</span> index)</span> <span class="keyword">throws</span> IndexOutOfBoundsException &#123;</span><br><span class="line">        <span class="type">Type</span> <span class="variable">genType</span> <span class="operator">=</span> clazz.getGenericSuperclass();</span><br><span class="line">        <span class="keyword">if</span> (!(genType <span class="keyword">instanceof</span> ParameterizedType)) &#123;</span><br><span class="line">            <span class="keyword">return</span> Object.class;</span><br><span class="line">        &#125;</span><br><span class="line">        Type[] params = ((ParameterizedType) genType).getActualTypeArguments();</span><br><span class="line">        <span class="keyword">if</span> (index &gt;= params.length || index &lt; <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> Object.class;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (!(params[index] <span class="keyword">instanceof</span> Class)) &#123;</span><br><span class="line">            <span class="keyword">return</span> Object.class;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> (Class) params[index];</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -1120,14 +1127,14 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">199</span>
+          <span class="site-state-item-count">200</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">30</span>
+        <span class="site-state-item-count">31</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
   </nav>

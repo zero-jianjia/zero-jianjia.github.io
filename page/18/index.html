@@ -187,6 +187,88 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/10/Java/Java%E8%BF%9B%E9%98%B6/ThreadLocal/ThreadLocal%E6%B3%A8%E6%84%8F%E4%BA%8B%E9%A1%B9/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/03/10/Java/Java%E8%BF%9B%E9%98%B6/ThreadLocal/ThreadLocal%E6%B3%A8%E6%84%8F%E4%BA%8B%E9%A1%B9/" class="post-title-link" itemprop="url">ThreadLocal注意事项</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-03-10 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-10T00:00:00+08:00">2024-03-10</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/" itemprop="url" rel="index"><span itemprop="name">Java进阶</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/ThreadLocal/" itemprop="url" rel="index"><span itemprop="name">ThreadLocal</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>​	在使用了线程池(如Executor)的情况下，那么即使父线程已经结束，子线程依然存在并被池化。这样，线程池中的线程在下一次请求被执行的时候，ThreadLocal对象的get()方法返回的将不是当前线程中设定的变量，因为池中的“子线程”根本不是当前线程创建的，当前线程设定的 ThreadLocal变量也就无法传递给线程池中的线程。因此，必须将外部线程中的ThreadLocal变量显式地传递给线程池中的线程。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/03/10/Java/Java%E8%BF%9B%E9%98%B6/ThreadLocal/ThreadLocal%E6%B3%A8%E6%84%8F%E4%BA%8B%E9%A1%B9/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
     <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/10/Java/Java%E8%BF%9B%E9%98%B6/ThreadLocal/ThreadLocal%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -945,91 +1027,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/Java%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86%E6%9C%BA%E5%88%B6%E8%AF%A6%E8%A7%A3%EF%BC%88JDK%20%E5%92%8CCGLIB%EF%BC%8CJavassist%EF%BC%8CASM%EF%BC%89/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/Java%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86%E6%9C%BA%E5%88%B6%E8%AF%A6%E8%A7%A3%EF%BC%88JDK%20%E5%92%8CCGLIB%EF%BC%8CJavassist%EF%BC%8CASM%EF%BC%89/" class="post-title-link" itemprop="url">Java动态代理机制详解（JDK和CGLIB、Javassist、ASM）</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-03-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-05T00:00:00+08:00">2024-03-05</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/Java%E6%8F%90%E9%AB%98/" itemprop="url" rel="index"><span itemprop="name">Java提高</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>[toc]</p>
-<h3 id="动态代理"><a href="#动态代理" class="headerlink" title="动态代理"></a>动态代理</h3><p>&emsp;&emsp;Java动态代理类位于Java.lang.reflect包下，一般主要涉及到以下两个类：<br>&emsp;&emsp;<code>InvocationHandler</code>：该接口中仅定义了一个invoke方法。<br>&emsp;&emsp;每一个动态代理类都必须要实现InvocationHandler这个接口，并且每个代理类的实例都关联到了一个handler，当通过代理对象调用一个方法的时候，这个方法的调用就会被转发为由InvocationHandler这个接口的 invoke 方法来进行调用。</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">public Object invoke(Object proxy, Method method, Object[] args) throws Throwable;</span><br></pre></td></tr></table></figure>
-<p>&emsp;&emsp;第一个参数obj一般是指要代理的类，method是被代理的方法，args为该方法的参数数组。这个抽象方法在代理类中动态实现。</p>
-<p>&emsp;&emsp;<code>Proxy</code>：该类的作用就是用来动态创建一个代理对象的类，其中主要包含以下方法：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">//获得一个代理类，其中loader是类装载器，interfaces是真实类所拥有的全部接口的数组.</span><br><span class="line">public static Class&lt;?&gt; getProxyClass(ClassLoader loader, Class&lt;?&gt;... interfaces) </span><br><span class="line">    throws IllegalArgumentException&#123;…&#125;</span><br><span class="line"></span><br><span class="line">//返回代理类的一个实例，返回后的代理类可以当作被代理类使用.</span><br><span class="line">public static Object newProxyInstance(ClassLoader loader, Class&lt;?&gt;[] interfaces, </span><br><span class="line">    InvocationHandler h) throws IllegalArgumentException&#123;…&#125;</span><br></pre></td></tr></table></figure>
-<p>&emsp;&emsp;loader: 一个ClassLoader对象，定义了由哪个ClassLoader对象来对生成的代理对象进行加载。<br>&emsp;&emsp;interfaces: 一个Interface对象的数组，表示的是要给需要代理的对象提供一组什么接口，如果提供了一组接口给它，那么这个代理对象就宣称实现了该接口(多态)，这样就能调用这组接口中的方法了。<br>&emsp;&emsp;h: 一个InvocationHandler对象，表示的是当这个动态代理对象在调用方法的时候，会关联到哪一个InvocationHandler对象上。</p>
-<p>&emsp;&emsp;<code>Proxy.newProxyInstance (ClassLoader loader, Class&lt;?&gt;[] interfaces, InvocationHandler h)</code>做了以下几件事.<br>&emsp;&emsp;(1)根据参数 loader 和 interfaces 调用 getProxyClass(loader, interfaces) 创建代理类<code>$Proxy0</code>. <code>$Proxy0</code>类实现了interfaces的接口,并继承了Proxy类.<br>&emsp;&emsp;(2)实例化 <code>$Proxy0</code> 并在构造方法中把loader传过去, 接着 <code>$Proxy0</code> 调用父类Proxy的构造器,为h赋值。接着把得到的 <code>$Proxy0</code> 实例强制转换成代理类. 当执行代理类的方法时,就调用了 <code>$Proxy0</code> 类中的方法.在执行代理类方法中,调用父类Proxy中的h的invoke()方法.即InvocationHandler.invoke()。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/03/05/Java/Java%E6%8F%90%E9%AB%98/Java%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86%E6%9C%BA%E5%88%B6%E8%AF%A6%E8%A7%A3%EF%BC%88JDK%20%E5%92%8CCGLIB%EF%BC%8CJavassist%EF%BC%8CASM%EF%BC%89/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -1099,14 +1096,14 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">199</span>
+          <span class="site-state-item-count">200</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">30</span>
+        <span class="site-state-item-count">31</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
   </nav>

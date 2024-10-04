@@ -187,6 +187,88 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Java/JVM/Thread.State/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/01/Java/JVM/Thread.State/" class="post-title-link" itemprop="url">Thread.State</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/JVM/" itemprop="url" rel="index"><span itemprop="name">JVM</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>一般查看Java程序堆栈信息时，会使用jstack工具来获得java stack和native stack的信息，如果现在运行的java程序呈现hung的状态，jstack是非常有用的。<br>如果是在64位机器上，需要指定选项 -J-d64，Windows的jstack使用方式只支持jstack [-l] pid。<br>命令格式：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">jstack [ option ] pid</span><br><span class="line">jstack [ option ] executable core</span><br></pre></td></tr></table></figure>
+
+<p>常用参数说明：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">-F   当’jstack [-l] pid’没有相应的时候强制打印栈信息</span><br><span class="line">-l   长列表. 打印关于锁的附加信息,例如属于java.util.concurrent的ownable synchronizers列表.</span><br><span class="line">-m   打印java和<span class="keyword">native</span> c/c++框架的所有栈信息.</span><br><span class="line">-h | -help   打印帮助信息</span><br></pre></td></tr></table></figure>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/04/01/Java/JVM/Thread.State/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
     <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Spring/%E5%9F%BA%E7%A1%80/@Configuration%E5%92%8C@Component%E5%8C%BA%E5%88%AB/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -925,112 +1007,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Spring/spring%20boot/Spring%20%E6%89%A7%E8%A1%8C%E9%A1%BA%E5%BA%8F%EF%BC%9AEvent%20%E4%BA%8B%E4%BB%B6/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/04/01/Spring/spring%20boot/Spring%20%E6%89%A7%E8%A1%8C%E9%A1%BA%E5%BA%8F%EF%BC%9AEvent%20%E4%BA%8B%E4%BB%B6/" class="post-title-link" itemprop="url">Spring执行顺序：Event 事件</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Spring/Spring-Boot/" itemprop="url" rel="index"><span itemprop="name">Spring Boot</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>实现 ApplicationListener 接口，输出所有事件。</p>
-<p><strong>当以 <code>@Component</code> 方式配置时</strong></p>
-<p>事件触发顺序如下：</p>
-<blockquote>
-<ol start="0">
-<li>ApplicationListener#ContextRefreshedEvent</li>
-<li>ApplicationListener#ServletWebServerInitializedEvent</li>
-<li>ApplicationListener#ApplicationStartedEvent</li>
-<li>ApplicationListener#ApplicationReadyEvent</li>
-<li>ApplicationListener#ContextClosedEvent</li>
-</ol>
-</blockquote>
-<p><strong>当通过 <code>/META-INF/spring.factories</code> 配置时</strong></p>
-<p>配置内容如下：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.springframework.context.ApplicationListener=com.github.abel533.event.ApplicationListenerImpl</span><br></pre></td></tr></table></figure>
-
-<p>此时输出的事件顺序如下：</p>
-<blockquote>
-<ol start="0">
-<li><p>ApplicationListener#ApplicationStartingEvent</p>
-</li>
-<li><p>ApplicationListener#ApplicationEnvironmentPreparedEvent</p>
-</li>
-<li><p>ApplicationListener#ApplicationContextInitializedEvent</p>
-</li>
-<li><p>ApplicationListener#ApplicationPreparedEvent</p>
-</li>
-</ol>
-</blockquote>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/04/01/Spring/spring%20boot/Spring%20%E6%89%A7%E8%A1%8C%E9%A1%BA%E5%BA%8F%EF%BC%9AEvent%20%E4%BA%8B%E4%BB%B6/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -1100,14 +1076,14 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">199</span>
+          <span class="site-state-item-count">200</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">30</span>
+        <span class="site-state-item-count">31</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
   </nav>

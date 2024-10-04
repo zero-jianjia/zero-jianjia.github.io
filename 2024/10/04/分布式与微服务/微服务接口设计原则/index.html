@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="[toc] 1.高可用1.1 降级兜底大部分服务是如下的结构，既要给使用方使用，又依赖于他人提供的第三方服务，中间又穿插了各种业务逻辑，这里每一块都可能是故障的来源。如果第三方服务挂掉怎么办？我们业务也跟着挂掉？显然这不是我们希望看到的结果，如果能制定好降级兜底的方案，那将大大提高服务的可靠性。 比如我们做个性化推荐服务时，需要从用户中心获取用户的个性化数据，以便代入到模型里进行打分排序，但如果用">
+<meta property="og:type" content="article">
+<meta property="og:title" content="微服务架构">
+<meta property="og:url" content="http://example.com/2024/10/04/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%8E%A5%E5%8F%A3%E8%AE%BE%E8%AE%A1%E5%8E%9F%E5%88%99/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="[toc] 1.高可用1.1 降级兜底大部分服务是如下的结构，既要给使用方使用，又依赖于他人提供的第三方服务，中间又穿插了各种业务逻辑，这里每一块都可能是故障的来源。如果第三方服务挂掉怎么办？我们业务也跟着挂掉？显然这不是我们希望看到的结果，如果能制定好降级兜底的方案，那将大大提高服务的可靠性。 比如我们做个性化推荐服务时，需要从用户中心获取用户的个性化数据，以便代入到模型里进行打分排序，但如果用">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202410041618792.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202410041627019.webp">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202410041627985.webp">
+<meta property="article:published_time" content="2024-10-03T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-10-04T09:08:23.879Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202410041618792.webp">
+
+<link rel="canonical" href="http://example.com/2024/10/04/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%8E%A5%E5%8F%A3%E8%AE%BE%E8%AE%A1%E5%8E%9F%E5%88%99/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>微服务架构 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/10/04/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%8E%A5%E5%8F%A3%E8%AE%BE%E8%AE%A1%E5%8E%9F%E5%88%99/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          微服务架构
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-10-04 00:00:00" itemprop="dateCreated datePublished" datetime="2024-10-04T00:00:00+08:00">2024-10-04</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%8E%A5%E5%8F%A3%E8%AE%BE%E8%AE%A1%E5%8E%9F%E5%88%99/" itemprop="url" rel="index"><span itemprop="name">微服务接口设计原则</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>[toc]</p>
+<h1 id="1-高可用"><a href="#1-高可用" class="headerlink" title="1.高可用"></a>1.高可用</h1><h2 id="1-1-降级兜底"><a href="#1-1-降级兜底" class="headerlink" title="1.1 降级兜底"></a>1.1 降级兜底</h2><p>大部分服务是如下的结构，既要给使用方使用，又依赖于他人提供的第三方服务，中间又穿插了各种业务逻辑，这里每一块都可能是故障的来源。<br><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202410041618792.webp" alt="img"><br>如果第三方服务挂掉怎么办？我们业务也跟着挂掉？显然这不是我们希望看到的结果，如果能制定好降级兜底的方案，那将大大提高服务的可靠性。</p>
+<p>比如我们做个性化推荐服务时，需要从用户中心获取用户的个性化数据，以便代入到模型里进行打分排序，但如果用户中心服务挂掉，我们获取不到数据了，那么就不推荐了？显然不行，我们可以在本地 cache 里放置一份热门商品以便兜底。</p>
+<h2 id="1-2-过载保护（保护自己）"><a href="#1-2-过载保护（保护自己）" class="headerlink" title="1.2 过载保护（保护自己）"></a>1.2 过载保护（保护自己）</h2><p>如果是高并发场景使用的接口，那么需要做过载保护，防止服务过载引发雪崩。</p>
+<p>过载保护的做法：</p>
+<ul>
+<li>请求等待时间超时</li>
+</ul>
+<p>比如把接收到的请求放在指定的队列中排队处理，如果请求等待时间超时了（假设是 100ms），这个时候直接拒绝超时请求；再比如队列满了之后，就清除队列中一定数量的排队请求，保护服务不过载，保障服务高可用。</p>
+<ul>
+<li>服务过载及早拒绝</li>
+</ul>
+<p>根据服务当前指标（如 CPU、内存使用率、平均耗时等）判断服务是否处于过载，过载则及早拒绝请求并带上特殊错误码，告知上游下游已经过载，应做限流处理。</p>
+<h2 id="1-3-流量控制（保护下游）"><a href="#1-3-流量控制（保护下游）" class="headerlink" title="1.3 流量控制（保护下游）"></a>1.3 流量控制（保护下游）</h2><p>流量控制，或者叫限流，一般用户保护下游不被大流量压垮。</p>
+<p>常见的场景有：</p>
+<p>（1）下游有严格的请求限制；比如银行转账接口，微信支付接口等都有严格的接口限频；</p>
+<p>（2）调用的下游不是为高并发场景设计；比如提供异步计算结果拉取的服务，并不需要考虑各种复杂的高并发业务场景，提供高并发流量场景的支持。每个业务场景应该在拉取数据时缓存下来，而不是每次业务请求都过来拉取，将业务流量压垮下游。</p>
+<p>（3）失败重试。调用下游失败了，一定要重试吗？如果不管三七二十一直接重试，这样是不对的，比如有些业务返回的异常表示业务逻辑出错，那么你怎么重试结果都是异常；又如有些异常是接口处理超时异常，这个时候就需要结合业务来判断了，有些时候重试往往会给后方服务造成更大压力，造成雪上加霜的效果。所有失败重试要有收敛策略，必要时才重试，做好限流处理。</p>
+<h2 id="1-4-快速失败"><a href="#1-4-快速失败" class="headerlink" title="1.4 快速失败"></a>1.4 快速失败</h2><p>遵循快速失败原则，一定要设置超时时间。</p>
+<p>某服务调用的一个第三方接口正常响应时间是 50ms，某天该第三方接口出现问题，大约有15%的请求响应时间超过2s，没过多久服务 load 飙高到 10倍以上，响应时间也非常缓慢，即第三方服务将我们服务拖垮了。</p>
+<p>为什么会被拖垮？没设置超时！我们采用的是同步调用方式，使用了一个线程池，该线程池里最大线程数设置了50，如果所有线程都在忙，多余的请求就放置在队列里中。如果第三方接口响应时间都是 50ms 左右，那么线程都能很快处理完自己手中的活，并接着处理下一个请求，但是不幸的是如果有一定比例的第三方接口响应时间为 2s，那么最后这 50 个线程都将被拖住，队列将会堆积大量的请求，从而导致整体服务能力极大下降。</p>
+<p>正确的做法是和第三方商量确定个较短的超时时间比如 200ms，这样即使他们服务出现问题也不会对我们服务产生很大影响。</p>
+<h2 id="1-5-隔离原则"><a href="#1-5-隔离原则" class="headerlink" title="1.5 隔离原则"></a>1.5 隔离原则</h2><p>控制风险不扩散，不放大。</p>
+<p>不同模块之间要相互隔离，避免单个模块有问题影响其他模块，传播扩散了影响范围。比如部署隔离：每个模块的服务部署在不同物理机上；再如 DB 隔离：每个模块单独使用自身的存储实例。</p>
+<h2 id="1-6-幂等设计（可重入）"><a href="#1-6-幂等设计（可重入）" class="headerlink" title="1.6 幂等设计（可重入）"></a>1.6 幂等设计（可重入）</h2><p>所有涉及对数据的修改、状态的变更就都有必要防止重复性操作的发生。实现接口的幂等性可防止重复操作所带来的影响。</p>
+<p>重复请求很容易发生，比如用户误触，超时重试等。举个最简单的例子，那就是支付，用户购买商品后支付，支付扣款成功，但是返回结果时网络异常（超时成功），此时钱已经扣了，用户再次点击按钮，此时会进行第二次扣款，返回结果成功，用户查询余额返发现多扣钱了，流水记录也变成了两条，就没有保证接口的幂等性。</p>
+<h2 id="1-7-故障自愈"><a href="#1-7-故障自愈" class="headerlink" title="1.7 故障自愈"></a>1.7 故障自愈</h2><p>没有 100% 可靠的系统，故障不可避免，但要有自愈能力。</p>
+<p>比如消息处理或异步逻辑等非关键操作失败引发的数据不一致，需要有最终一致的修复操作，如兜底的定时任务，失败重试队列，或由用户在下次请求时触发修复逻辑。</p>
+<h1 id="2-高性能"><a href="#2-高性能" class="headerlink" title="2.高性能"></a>2.高性能</h1><h2 id="2-1-无锁"><a href="#2-1-无锁" class="headerlink" title="2.1 无锁"></a>2.1 无锁</h2><h3 id="2-1-2-串行无锁"><a href="#2-1-2-串行无锁" class="headerlink" title="2.1.2 串行无锁"></a>2.1.2 串行无锁</h3><p>串行无锁最简单的实现方式可能就是单线程模型了，如 Redis&#x2F;Nginx 都采用了这种方式。在网络编程模型中，常规的方式是主线程负责处理 I&#x2F;O 事件，并将读到的数据压入队列，工作线程则从队列中取出数据进行处理，这种单 Reactor 多线程模型需要对队列进行加锁，这种模型叫单 Reactor 多线程模型。如下图所示：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202410041627019.webp" alt="img"></p>
+<p>上图的模式可以改成串行无锁的形式，当 MainReactor accept 一个新连接之后从众多的 SubReactor 选取一个进行注册，通过创建一个 Queue 与 I&#x2F;O 线程进行绑定，此后该连接的读写都在同一个队列和线程中执行，无需进行队列的加锁。这种模型叫主从 Reactor 多线程模型。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202410041627985.webp" alt="img"></p>
+<h3 id="2-1-3-无锁数据结构"><a href="#2-1-3-无锁数据结构" class="headerlink" title="2.1.3 无锁数据结构"></a>2.1.3 无锁数据结构</h3><h3 id="2-1-4-减少锁竞争"><a href="#2-1-4-减少锁竞争" class="headerlink" title="2.1.4 减少锁竞争"></a>2.1.4 减少锁竞争</h3><h2 id="2-2-缓存"><a href="#2-2-缓存" class="headerlink" title="2.2 缓存"></a>2.2 缓存</h2><h2 id="2-3-异步"><a href="#2-3-异步" class="headerlink" title="2.3 异步"></a>2.3 异步</h2><h3 id="2-3-1-调用异步"><a href="#2-3-1-调用异步" class="headerlink" title="2.3.1 调用异步"></a>2.3.1 调用异步</h3><p>调用异步发生在使用异步编程模型来提高代码效率的时候，实现方式主要有：</p>
+<ul>
+<li>Callback</li>
+</ul>
+<p>异步回调通过注册一个回调函数，然后发起异步任务，当任务执行完毕时会回调用户注册的回调函数，从而减少调用端等待时间。这种方式会造成代码分散难以维护，定位问题也相对困难；</p>
+<ul>
+<li>Future</li>
+</ul>
+<p>当用户提交一个任务时会立刻先返回一个Future，然后任务异步执行，后续可以通过Future获取执行结果；</p>
+<ul>
+<li>CPS（Continuation-passing style）</li>
+</ul>
+<p>可以对多个异步编程进行编排，组成更复杂的异步处理，并以同步的代码调用形式实现异步效果。CPS 将后续的处理逻辑当作参数传递给 Then 并可以最终捕获异常，解决了异步回调代码散乱和异常跟踪难的问题。Java 中的 CompletableFuture 和 C++ PPL基本支持这一特性。</p>
+<h3 id="2-3-2-流程异步"><a href="#2-3-2-流程异步" class="headerlink" title="2.3.2 流程异步"></a>2.3.2 流程异步</h3><p>同步改异步，可以降低主链路的处理耗时。</p>
+<h2 id="2-4-池化"><a href="#2-4-池化" class="headerlink" title="2.4 池化"></a>2.4 池化</h2><h3 id="2-4-1-为什么要池化"><a href="#2-4-1-为什么要池化" class="headerlink" title="2.4.1 为什么要池化"></a>2.4.1 为什么要池化</h3><p>池化的目的是完成资源复用，避免资源重复创建、删除来提高性能。</p>
+<p>常见的池子有内存池、连接池、线程池、对象池…</p>
+<p>内存、连接、线程、对象等都是资源，创建和销毁这些资源都有一个特征， 那就是会涉及到很多系统调用或者网络 IO。 每次都在请求中去创建这些资源，会增加处理耗时，但是如果我们用一个 容器（池） 把它们保存起来，下次需要的时候，直接拿出来使用，避免重复创建和销毁浪费的时间。</p>
+<h3 id="2-4-1-内存池"><a href="#2-4-1-内存池" class="headerlink" title="2.4.1 内存池"></a>2.4.1 内存池</h3><p>频繁的调用系统调用分配释放内存不但影响性能还容易造成内存碎片，内存池技术旨在解决这些问题。malloc 的实现主要有三大实现。 - ptmalloc：glibc的实现。 - tcmalloc：Google的实现。 - jemalloc：Facebook的实现。</p>
+<p>虽然标准库的实现在操作系统内存管理的基础上再加了一层内存管理，但应用程序通常也会实现自己特定的内存池，如为了引用计数或者专门用于小对象分配。所以看起来内存管理一般分为三个层次。</p>
+<h3 id="2-4-2-线程池"><a href="#2-4-2-线程池" class="headerlink" title="2.4.2 线程池"></a>2.4.2 线程池</h3><h3 id="2-4-3-连接池"><a href="#2-4-3-连接池" class="headerlink" title="2.4.3 连接池"></a>2.4.3 连接池</h3><p>常用的连接池有数据库连接池、redis连接池、TCP连接池等等，其主要目的是通过复用来减少创建和释放连接的开销。连接池实现通常需要考虑以下几个问题：</p>
+<ul>
+<li>初始化：启动即初始化和惰性初始化。启动初始化可以减少一些加锁操作和需要时可直接使用，缺点是可能造成服务启动缓慢或者启动后没有任务处理，造成资源浪费。惰性初始化是真正有需要的时候再去创建，这种方式可能有助于减少资源占用，但是如果面对突发的任务请求，然后瞬间去创建一堆连接，可能会造成系统响应慢或者响应失败，通常我们会采用启动即初始化的方式。</li>
+<li>连接数目：权衡所需的连接数，连接数太少则可能造成任务处理缓慢，太多不但使任务处理慢还会过度消耗系统资源。</li>
+<li>连接取出：当连接池已经无可用连接时，是一直等待直到有可用连接还是分配一个新的临时连接。</li>
+<li>连接放入：当连接使用完毕且连接池未满时，将连接放入连接池（包括连接池已经无可用连接时创建的临时连接），否则关闭。</li>
+<li>连接检测：长时间空闲连接和失效连接需要关闭并从连接池移除。常用的检测方法有：使用时检测和定期检测。</li>
+</ul>
+<h3 id="2-4-4-对象池"><a href="#2-4-4-对象池" class="headerlink" title="2.4.4 对象池"></a>2.4.4 对象池</h3><h2 id="2-5-批量"><a href="#2-5-批量" class="headerlink" title="2.5 批量"></a>2.5 批量</h2><p>能批量就不要并发。</p>
+<p>如果调用方需要调用我们接口多次才能进行一个完整的操作，那么这个接口设计就可能有问题。</p>
+<p>比如获取数据的接口，如果仅仅提供<code>getData(int id)</code>接口，那么使用方如果要一次性获取 20 个数据，它就需要循环遍历调用我们接口 20 次，不仅使用方性能很差，也无端增加了我们服务的压力，这时提供一个批量拉取的接口<code>getDataBatch(List&lt;Integer&gt; idList)</code>显然是必要的。</p>
+<p>对于批量接口，我们也要注意接口的吞吐能力，避免长时间执行。</p>
+<p>还是以获取数据的接口为例：<code>getDataList(List&lt;Integer&gt; idList)</code>，假设一个用户一次传 1w 个id进来，那么接口可能需要很长的时间才能处理完，这往往会导致超时，用户怎么调用结果都是超时异常，那怎么办？限制长度，比如限制长度为 100，即每次最多只能传 100 个id，这样就能避免长时间执行，如果用户传的 id 列表长度超过 100 就报异常。</p>
+<p>加了这样限制后，必须要让使用方清晰地知道这个方法有此限制，尽可能地避免用户误用。</p>
+<p>有三种方法：</p>
+<ul>
+<li><p>改变方法名，比如<code>getDataListWithLimitLength(List&lt;Integer&gt; idList)</code>；</p>
+</li>
+<li><p>在接口说明文档中增加必要的注释说明；</p>
+</li>
+<li><p>接口明确抛出超长异常，直白告知主调;</p>
+</li>
+</ul>
+<h2 id="2-6-并发"><a href="#2-6-并发" class="headerlink" title="2.6 并发"></a>2.6 并发</h2><h3 id="2-6-1-请求并发"><a href="#2-6-1-请求并发" class="headerlink" title="2.6.1 请求并发"></a>2.6.1 请求并发</h3><p>如果一个任务需要处理多个子任务，可以将没有依赖关系的子任务并发化，这种场景在后台开发很常见。如一个请求需要查询 3 个数据，分别耗时T1、T2、T3，如果串行调用总耗时 T&#x3D;T1+T2+T3。对三个任务执行并发，总耗时 T&#x3D;max(T1,T 2,T3)。同理，写操作也如此。对于同种请求，还可以同时进行批量合并，减少 RPC 调用次数。</p>
+<h3 id="2-6-2-冗余请求"><a href="#2-6-2-冗余请求" class="headerlink" title="2.6.2 冗余请求"></a>2.6.2 冗余请求</h3><p>冗余请求指的是同时向后端服务发送多个同样的请求，谁响应快就是使用谁，其他的则丢弃。这种策略缩短了主调方的等待时间，但也使整个系统调用量猛增，一般适用于初始化或者请求少的场景。比如腾讯公司 WNS 的跑马模块其实就是这种机制，跑马模块为了快速建立长连接同时向后台多个 IP&#x2F;Port 发起请求，谁快就用谁，这在弱网的移动设备上特别有用，如果使用等待超时再重试的机制，无疑将大大增加用户的等待时间。</p>
+<p>这种方式较少使用，知道即可。</p>
+<h2 id="2-7-存储设计"><a href="#2-7-存储设计" class="headerlink" title="2.7 存储设计"></a>2.7 存储设计</h2><p>任何一个系统，从单机到分布式，从前端到后台，功能和逻辑各不相同，但干的只有两件事：读和写。而每个系统的业务特性可能都不一样，有的侧重读、有的侧重写，有的两者兼备，本节主要探讨在不同业务场景下存储读写的一些方法论。</p>
+<h3 id="2-7-1-读写分离"><a href="#2-7-1-读写分离" class="headerlink" title="2.7.1 读写分离"></a>2.7.1 读写分离</h3><p>大多数业务都是读多写少，为了提高系统处理能力，可以采用读写分离的方式将主节点用于写，从节点用于读。</p>
+<p>读写分离架构有以下几个特点： （1）数据库服务为主从架构； （2）主节点负责写操作，从节点负责读操作； （3）主节点将数据复制到从节点；</p>
+<p>基于读写分离思想，可以设计出多种主从架构，如主-主-从、主-从-从等。主从节点也可以是不同的存储，如MySQL+Redis。</p>
+<h3 id="2-7-2-分库分表"><a href="#2-7-2-分库分表" class="headerlink" title="2.7.2 分库分表"></a>2.7.2 分库分表</h3><p>读写分离虽然可以明显的提示查询的效率，但是无法解决更高的并发写入请求的场景，这时候就需要进行分库分表，提高并发写入的能力。</p>
+<p>通常，在以下情况下需要进行分库分表：</p>
+<p>（1）单表的数据量达到了一定的量级（如mysql一般为千万级），读写的性能会下降。这时索引也会很大，性能不佳，需要分解单表。</p>
+<p>（2）数据库吞吐量达到瓶颈，需要增加更多数据库实例来分担数据读写压力。</p>
+<p>分库分表按照特定的条件将数据分散到多个数据库和表中，分为垂直切分和水平切分两种模式。</p>
+<h3 id="2-7-3-动静分离"><a href="#2-7-3-动静分离" class="headerlink" title="2.7.3 动静分离"></a>2.7.3 动静分离</h3><p>动静分离将经常更新的数据和更新频率低的数据进行分离。</p>
+<p>最常见于 CDN，一个网页通常分为静态资源（图片&#x2F;JS&#x2F;CSS等）和动态资源（JSP、PHP等），采取动静分离的方式将静态资源缓存在 CDN 边缘节点上，只需请求动态资源即可，减少网络传输和服务负载。</p>
+<p>在数据库和 KV 存储上也可以采取动态分离的方式。动静分离更像是一种垂直切分，将动态和静态的字段分别存储在不同的库表中，减小数据库锁的粒度，同时可以分配不同的数据库资源来合理提升利用率。</p>
+<h3 id="2-7-4-冷热分离"><a href="#2-7-4-冷热分离" class="headerlink" title="2.7.4 冷热分离"></a>2.7.4 冷热分离</h3><p>冷热分离可以说是每个存储产品和海量业务的必备功能，MySQL、ElasticSearch 等都直接或间接支持冷热分离。将热数据放到性能更好的存储设备上，冷数据下沉到廉价的磁盘，从而节约成本。</p>
+<h3 id="2-8-零拷贝"><a href="#2-8-零拷贝" class="headerlink" title="2.8 零拷贝"></a>2.8 零拷贝</h3><h1 id="3-易维护"><a href="#3-易维护" class="headerlink" title="3.易维护"></a>3.易维护</h1><h3 id="3-1-单一职责"><a href="#3-1-单一职责" class="headerlink" title="3.1 单一职责"></a>3.1 单一职责</h3><p>每个 API 应该只专注做一件事情。</p>
+<p>就像我们开发人员一样，要么从事后台开发，要么从事前端开发，要么从事服务器运维开发。公司一般不会让一个人包揽所有的开发工作，因为这让员工的职责不够单一，不利于员工在专业领域的深耕，很容易成为万金油。对公司的影响是因员工对专业知识掌握的不够深，导致开发出的软件质量得不到保证。</p>
+<p>让接口的功能保持单一，实现起来不仅简单，维护起来也会容易很多，不会因为大而全的冗杂功能导致接口经常出错。</p>
+<h3 id="3-2-内聚解耦"><a href="#3-2-内聚解耦" class="headerlink" title="3.2 内聚解耦"></a>3.2 内聚解耦</h3><p>一个接口要包含完整的业务功能，而不同接口之间的关联要尽可能的小。</p>
+<p>这样便降低了对其他接口的依赖程度，如此其他接口的变动对当前接口的影响也会降低。一般都是通过消息中间件 MQ 来完成接口之间的耦合。</p>
+<h3 id="3-3-开闭原则"><a href="#3-3-开闭原则" class="headerlink" title="3.3 开闭原则"></a>3.3 开闭原则</h3><p>对扩展开放，对修改关闭。</p>
+<p>这句话怎么理解呢，也就是说，我们在设计一个接口的时候，应当使这个接口可以在不被修改的前提下被扩展其功能。换句话说，应当可以在不修改源代码的情况下改变接口的行为。</p>
+<p>比如 IM 应用中，当用户输入简介时有个长度限制，我们不应该将长度限制写死在代码，可以通过配置文件的方式来动态扩展，这就做到了对扩展开放（用户简介长度可以变更），对修改关闭（不需要修改代码）。</p>
+<h3 id="3-4-入参校验"><a href="#3-4-入参校验" class="headerlink" title="3.4 入参校验"></a>3.4 入参校验</h3><p>自己收到的请求要做好入参校验，及早发现无效请求并拒绝，然后告警。发现垃圾请求后推动上游不要传递无效请求至下游。</p>
+<p>此时，我们是上游的下游，做好入参校验，避免做无用功。</p>
+<h1 id="4-低风险"><a href="#4-低风险" class="headerlink" title="4.低风险"></a>4.低风险</h1><p>虽然很多时候感觉网络攻击和安全事故离我们很远，但一旦发生，后面不堪设想，所以服务接口的安全问题是设计实现过程中不得不考虑的一环。</p>
+<p>下面将列举常见的服务接口面临的安全问题与应对策略，来加固我们的服务，降低安全风险。</p>
+<h2 id="4-1-防-XSS"><a href="#4-1-防-XSS" class="headerlink" title="4.1 防 XSS"></a>4.1 防 XSS</h2><h3 id="4-1-1-简介"><a href="#4-1-1-简介" class="headerlink" title="4.1.1 简介"></a>4.1.1 简介</h3><p>XSS（Cross Site Scripting）名为跨站脚本攻击，因其缩写会与层叠样式表（Cascading Style Sheets，CSS）混淆，故将其缩写为 XSS。</p>
+<p>XSS 漏洞是 Web 安全中最为常见的漏洞，通常指的是通过利用网页开发时留下的漏洞，通过巧妙的方法注入恶意指令代码到网页中，使用户加载并执行攻击者恶意制造的网页程序。这些恶意网页程序通常是 JavaScript，但实际上也可以包括 Java、 VBScript、ActiveX、 Flash，甚至是普通的 HTML。攻击成功后，攻击者可能得到包括但不限于更高的权限（如执行一些操作）、私密网页内容、会话和 Cookie 等各种内容。</p>
+<p>XSS 本质是 HTML 注入。</p>
+<h2 id="4-2-防-CSRF"><a href="#4-2-防-CSRF" class="headerlink" title="4.2 防 CSRF"></a>4.2 防 CSRF</h2><h3 id="4-2-1-简介"><a href="#4-2-1-简介" class="headerlink" title="4.2.1 简介"></a>4.2.1 简介</h3><p>CSRF（Cross Site Request Forgery）名为跨站请求伪造，是一种挟制用户在当前已登录的 Web 应用程序上执行非本意的操作的攻击方法。</p>
+<p>攻击者盗用了你的身份，以你的名义发送恶意请求，对服务器来说这个请求是完全合法的，但是却完成了攻击者所期望的一个操作，比如以你的名义发送邮件、发消息，盗取你的账号，添加系统管理员，甚至于购买商品、虚拟货币转账等。</p>
+<p>一个典型的 CSRF 攻击有着如下的流程：</p>
+<ol>
+<li>受害者登录<a target="_blank" rel="noopener" href="http://a.com,并保留了登录凭证(cookie)./">http://a.com，并保留了登录凭证（Cookie）。</a></li>
+<li>攻击者引诱受害者访问了 <a target="_blank" rel="noopener" href="http://b.com./">http://b.com。</a></li>
+<li><a target="_blank" rel="noopener" href="http://b.com/">http://b.com</a> 向 <a href="http://a.com发送了一个请求：http://a.com/act。浏览器会默认携带">http://a.com发送了一个请求：http://a.com/act。浏览器会默认携带</a> <a target="_blank" rel="noopener" href="http://a.com/">http://a.com</a> 的 Cookie。</li>
+<li><a target="_blank" rel="noopener" href="http://a.com接收到请求后,对请求进行验证,并确认是受害者的凭证,误以为是受害者自己发送的请求./">http://a.com接收到请求后，对请求进行验证，并确认是受害者的凭证，误以为是受害者自己发送的请求。</a></li>
+<li><a target="_blank" rel="noopener" href="http://a.com以受害者的名义执行了/">http://a.com以受害者的名义执行了</a> act。</li>
+</ol>
+<p>攻击完成，攻击者在受害者不知情的情况下，冒充受害者，让 <a target="_blank" rel="noopener" href="http://a.com执行了自己定义的操作./">http://a.com执行了自己定义的操作。</a></p>
+<h3 id="4-2-2-防御措施"><a href="#4-2-2-防御措施" class="headerlink" title="4.2.2 防御措施"></a>4.2.2 防御措施</h3><p>CSRF 通常从第三方网站发起，被攻击的网站无法防止攻击发生，只能通过增强自己网站针对 CSRF 的防护能力来提升安全性。</p>
+<p>上文中讲了 CSRF 的两个特点： - CSRF（通常）发生在第三方域名。 - CSRF攻击者不能获取到 Cookie 等信息，只是使用。</p>
+<p>针对这两点，我们可以专门制定防护策略，如下：</p>
+<ul>
+<li>阻止不明外域的访问 （1）同源检测(验证 HTTP Referer 字段) （2）Samesite Cookie</li>
+<li>提交时要求附加本域才能获取的信息 （1）CSRF Token （2）双重 Cookie 验证</li>
+</ul>
+<h2 id="4-3-防-SQL-注入"><a href="#4-3-防-SQL-注入" class="headerlink" title="4.3 防 SQL 注入"></a>4.3 防 SQL 注入</h2><h2 id="4-4-防刷"><a href="#4-4-防刷" class="headerlink" title="4.4 防刷"></a>4.4 防刷</h2><h2 id="4-5-防篡改"><a href="#4-5-防篡改" class="headerlink" title="4.5 防篡改"></a>4.5 防篡改</h2><p><strong>什么是篡改?</strong> 在一次客户端与服务端的请求过程中，从请求方到接收方中间要经过很多路由器和交换机，黑客可以在中途截获请求的数据，篡改请求内容后再发往服务端，比如中间人攻击。假设在一个网上存款系统中，一条消息表示用户的一笔转账，攻击者完全可以多次将收款账号改为自己的账号后再将请求发到服务端。</p>
+<p>在 API 接口中我们除了使用 HTTPS 协议进行通信外，还需要有自己的一套加解密机制，对请求的参数进行保护，防止被篡改。</p>
+<p><strong>如何防篡改?</strong> 对请求包进行签名可以有效的防篡改。</p>
+<p>具体过程如下： </p>
+<blockquote>
+<ol>
+<li>客户端使用约定好的秘钥对传输的参数进行加密，得到签名值 signature1，一般使用 HMAC’</li>
+<li>客户端将签名值也放入请求的参数中，发送请求给服务端。 3. 服务端接收到客户端的请求，然后使用约定好的秘钥对请求的参数再次进行签名，得到签名值 signature2。 4. 服务端比对 signature1 和 signature2 的值，如果对比一致，认定为合法请求。如果对比不一致，说明参数被篡改，为非法请求。</li>
+</ol>
+</blockquote>
+<p>因为黑客不知道签名的密钥，所以即使截取到请求数据，对请求参数进行篡改，但是却无法对参数进行签名，无法得到修改后参数的签名值signature。</p>
+<h2 id="4-6-防重放"><a href="#4-6-防重放" class="headerlink" title="4.6 防重放"></a>4.6 防重放</h2><p><strong>什么是重放?</strong> 如果恶意用户抓取真实的接口请求包，不停地发起重复请求，这就是对接口的重放。</p>
+<p><strong>为什么要重放?</strong> 接口重放一般是针对写接口的恶意请求，读接口不会有什么影响。比如发帖，发消息这种写接口，如果不防重放，会出现很多垃圾内容和骚扰消息。</p>
+<p><strong>如何防重放?</strong> 防重放的目的是不允许让相同内容的请求重复发起。对于一个具体的请求，我们可以限制某个请求的生命周期，如果超过其生命周期，认定为非法请求，这样便起到了防重放的效果。</p>
+<p>具体做法是： 1. 客户端基于”请求内容+时间戳+密钥”计算一个签名 signature1，一般使用 <a href="https://link.zhihu.com/?target=https://baike.baidu.com/item/hmac/7307543">HMAC</a>。 2. 客户端请求后台接口时带上签名 signature1。 3. 后台拿到签名后，会使用相同的算法计算出一个签名与前端带来的签名做比较，如果不一致，说明请求非法，直接拒绝。</p>
+<p>因为黑客不知道签名秘钥，没有办法生成新的签名。</p>
+<p>以上做法需要注意几个问题： - 签名计算使用的算法可能会被坏人破解。因为对于 APP 或桌面应用，坏人可以<a target="_blank" rel="noopener" href="https://zhida.zhihu.com/search?content_id=210105242&content_type=Article&match_order=1&q=%E5%8F%8D%E6%B1%87%E7%BC%96&zhida_source=entity">反汇编</a>获取。 - 签名计算时使用密钥需要保存在客户端本地，可能会有泄露的风险。因为对于 APP 或桌面应用，坏人可以反汇编获取。 - 终端使用的时间戳是由后台返回的，这样防止前后端的本地时间不一致导致生成的签名。 - 不适用于 Web 应用，坏人是可以直接查看网页源码获取签名计算使用的算法和密钥。</p>
+<p>如果要严格做到一段时间内某个请求只能被请求一次，需要对请求进行次数的统计，会用到后台存储，实现起来会复杂一点。不过一般不需要这么做。</p>
+<p>这个功能为服务接口的公共功能，建议做在网关层或单独的安全层。</p>
+<h2 id="4-7-防-DDoS"><a href="#4-7-防-DDoS" class="headerlink" title="4.7 防 DDoS"></a>4.7 防 DDoS</h2><p><strong>什么是 DDoS 攻击？</strong> DDoS（Distributed Denial of Service）是分布式拒绝服务攻击，攻击者利用分散在各地的设备发出海量实际上并不需要的互联网流量，耗尽目标的资源，造成正常流量无法到达其预定目的地或目标服务被压垮无法提供正常服务。</p>
+<p><strong>常见的 DDoS 攻击有哪些？</strong></p>
+<ul>
+<li>网络层攻击</li>
+</ul>
+<p>（1）ICMP Flood 攻击。 ICMP Flood 攻击属于流量型的攻击方式，是利用大的流量给服务器带来较大的负载，影响服务器的正常服务。由于目前很多防火墙直接过滤 ICMP 报文。因此 ICMP Flood 出现的频度较低。</p>
+<p>（2）UDP反射攻击 DNS 反射攻击是一种常见的攻击媒介，网络犯罪分子通过伪装其目标的 IP 地址，向开放的 DNS 服务器发送大量请求。作为回应，这些 DNS 服务器通过伪造的 IP 地址响应恶意请求，大量的 DNS 答复形成洪流，从而构成预定目标的攻击。很快，通过 DNS 答复产生的大量流量就会造成受害企业的服务不堪重负、无法使用，并造成合法流量无法到达其预定目的地。</p>
+<p>如 NTP Flood 攻击，这类攻击主要利用大流量拥塞被攻击者的网络带宽，导致被攻击者的业务无法正常响应客户访问。</p>
+<ul>
+<li>传输层攻击</li>
+</ul>
+<p>（1）SYN Flood 攻击。 SYN Flood 攻击是当前网络上最为常见的 DDoS 攻击，它利用了 TCP 协议实现上的一个缺陷。通过向网络服务所在端口发送大量的伪造源地址的攻击报文，就可能造成目标服务器中的半连接队列被占满，从而阻止其他合法用户进行访问。</p>
+<p>（2）Connection Flood 攻击。 Connection Flood 是典型的利用小流量冲击大带宽网络服务的攻击方式，这种攻击的原理是利用真实的IP地址向服务器发起大量的连接。并且建立连接之后很长时间不释放，占用服务器的资源，造成服务器上残余连接（WAIT状态）过多，效率降低，甚至资源耗尽，无法响应其他客户所发起的链接。</p>
+<p>（3）UDP Flood 攻击。 UDP Flood 是日渐猖厥的流量型 DDoS 攻击，原理也很简单。常见的情况是利用大量 UDP 小包冲击 DNS 服务器或 Radius 认证服务器、流媒体视频服务器。由于 UDP 协议是一种无连接的服务，在 UDP Flood 攻击中，攻击者可发送大量伪造源 IP 地址的小 UDP 包。</p>
+<ul>
+<li>会话层攻击</li>
+</ul>
+<p>（1）SSL 连接攻击。 比较典型的攻击类型是SSL连接攻击，这类攻击占用服务器的SSL会话资源从而达到拒绝服务的目的。</p>
+<ul>
+<li>应用层攻击</li>
+</ul>
+<p>（1）HTTP Get 攻击。 和服务器建立正常的 TCP 连接之后，不断地向后端服务接口发起 Get 请求，压垮后台服务。这种攻击的特点是可以绕过普通的防火墙防护，可通过 Proxy 代理实施攻击。</p>
+<p>（2）UDP DNS Query Flood 攻击 UDP DNS Query Flood 攻击采用的方法是向被攻击的服务器发送大量的域名解析请求，通常请求解析的域名是随机生成或者是网络世界上根本不存在的域名。域名解析的过程给服务器带来了很大的负载，每秒钟域名解析请求超过一定的数量就会造成DNS服务器解析域名超时。</p>
+<p><strong>如何防 DDoS？</strong> DDoS 防御是保障系统安全运行的必要举措，虽然不属于服务接口层面需要考虑的事情，但是知道相关的防御措施还是很有必要的。</p>
+<p>防御 DDoS 攻击的策略方法，包括但不限于：</p>
+<p>（1）定期检查服务器漏洞。 定期检查服务器软件安全漏洞，是确保服务器安全的最基本措施。无论是操作系统（Windows或linux），还是网站常用应用软件（mysql、Apache、nginx、FTP等），服务器运维人员要特别关注这些软件的最新漏洞动态，出现高危漏洞要及时打补丁修补。</p>
+<p>（2）隐藏服务器真实 IP。 通过CDN节点中转加速服务，可以有效的隐藏网站服务器的真实IP地址。CDN服务根据网站具体情况进行选择，对于普通的中小企业站点或个人站点可以先使用免费的CDN服务，比如百度云加速、七牛CDN等，待网站流量提升了，需求高了之后，再考虑付费的CDN服务。</p>
+<p>其次，防止服务器对外传送信息泄漏IP地址，最常见的情况是，服务器不要使用发送邮件功能，因为邮件头会泄漏服务器的IP地址。如果非要发送邮件，可以通过第三方代理（例如 sendcloud）发送，这样对外显示的 IP 是代理的 IP 地址。</p>
+<p>（3）关闭不必要的服务或端口。 这也是服务器运维人员最常用的做法。在服务器防火墙中，只开启使用的端口，比如网站 Web 服务的80端口、数据库的 3306 端口、SSH 服务的 22 端口等。关闭不必要的服务或端口，在路由器上过滤假IP。</p>
+<p>（4）购买高防服务器提高承受能力。 该措施是通过购买高防的盾机，提高服务器的带宽等资源，来提升自身的承受攻击能力。一些知名 IDC 服务商都有相应的服务提供，比如阿里云、腾讯云等。但该方案成本预算较高，对于普通中小企业甚至个人站长并不合适，且不被攻击时造成服务器资源闲置，所以这里不过多阐述。</p>
+<p>（5）限制 SYN&#x2F;ICMP 流量。 用户应在路由器上配置 SYN&#x2F;ICMP 的最大流量来限制 SYN&#x2F;ICMP 封包所能占有的最高频宽。这样，当出现大量的超过所限定的 SYN&#x2F;ICMP 流量时，说明不是正常的网络访问，而是有黑客入侵。早期通过限制 SYN&#x2F;ICMP 流量是最好的防范 DOS 的方法，虽然目前该方法对于 DDoS 效果不太明显了，不过仍然能够起到一定的作用。</p>
+<p>（6）黑名单。 对于恶意流量，将 IP 或 IP 段拉黑。</p>
+<p>（7）DDoS 清洗。 DDoS 清洗会对用户请求数据进行实时监控，及时发现 DOS 攻击等异常流量，在不影响正常业务开展的情况下清洗掉这些异常流量。</p>
+<p>（8）CDN 加速。 CDN 指的是网站的静态内容分发到多个服务器，用户就近访问，提高速度。因此，CDN 也是带宽扩容的一种方法，可以用来防御 DDoS 攻击。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/09/07/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/%E9%80%9A%E7%94%A8%E6%A1%86%E6%9E%B6%E5%AE%9E%E8%B7%B5%EF%BD%9CPipeline%E8%AE%BE%E8%AE%A1+%E5%B9%82%E7%AD%89%E9%87%8D%E8%AF%95/" rel="prev" title="通用框架实践｜Pipeline设计+幂等重试">
+      <i class="fa fa-chevron-left"></i> 通用框架实践｜Pipeline设计+幂等重试
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#1-%E9%AB%98%E5%8F%AF%E7%94%A8"><span class="nav-number">1.</span> <span class="nav-text">1.高可用</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-1-%E9%99%8D%E7%BA%A7%E5%85%9C%E5%BA%95"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 降级兜底</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-2-%E8%BF%87%E8%BD%BD%E4%BF%9D%E6%8A%A4%EF%BC%88%E4%BF%9D%E6%8A%A4%E8%87%AA%E5%B7%B1%EF%BC%89"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 过载保护（保护自己）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-3-%E6%B5%81%E9%87%8F%E6%8E%A7%E5%88%B6%EF%BC%88%E4%BF%9D%E6%8A%A4%E4%B8%8B%E6%B8%B8%EF%BC%89"><span class="nav-number">1.3.</span> <span class="nav-text">1.3 流量控制（保护下游）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-4-%E5%BF%AB%E9%80%9F%E5%A4%B1%E8%B4%A5"><span class="nav-number">1.4.</span> <span class="nav-text">1.4 快速失败</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-5-%E9%9A%94%E7%A6%BB%E5%8E%9F%E5%88%99"><span class="nav-number">1.5.</span> <span class="nav-text">1.5 隔离原则</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-6-%E5%B9%82%E7%AD%89%E8%AE%BE%E8%AE%A1%EF%BC%88%E5%8F%AF%E9%87%8D%E5%85%A5%EF%BC%89"><span class="nav-number">1.6.</span> <span class="nav-text">1.6 幂等设计（可重入）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-7-%E6%95%85%E9%9A%9C%E8%87%AA%E6%84%88"><span class="nav-number">1.7.</span> <span class="nav-text">1.7 故障自愈</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-%E9%AB%98%E6%80%A7%E8%83%BD"><span class="nav-number">2.</span> <span class="nav-text">2.高性能</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#2-1-%E6%97%A0%E9%94%81"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 无锁</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-2-%E4%B8%B2%E8%A1%8C%E6%97%A0%E9%94%81"><span class="nav-number">2.1.1.</span> <span class="nav-text">2.1.2 串行无锁</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-3-%E6%97%A0%E9%94%81%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84"><span class="nav-number">2.1.2.</span> <span class="nav-text">2.1.3 无锁数据结构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-4-%E5%87%8F%E5%B0%91%E9%94%81%E7%AB%9E%E4%BA%89"><span class="nav-number">2.1.3.</span> <span class="nav-text">2.1.4 减少锁竞争</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-2-%E7%BC%93%E5%AD%98"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 缓存</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-3-%E5%BC%82%E6%AD%A5"><span class="nav-number">2.3.</span> <span class="nav-text">2.3 异步</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-1-%E8%B0%83%E7%94%A8%E5%BC%82%E6%AD%A5"><span class="nav-number">2.3.1.</span> <span class="nav-text">2.3.1 调用异步</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-2-%E6%B5%81%E7%A8%8B%E5%BC%82%E6%AD%A5"><span class="nav-number">2.3.2.</span> <span class="nav-text">2.3.2 流程异步</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-4-%E6%B1%A0%E5%8C%96"><span class="nav-number">2.4.</span> <span class="nav-text">2.4 池化</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-1-%E4%B8%BA%E4%BB%80%E4%B9%88%E8%A6%81%E6%B1%A0%E5%8C%96"><span class="nav-number">2.4.1.</span> <span class="nav-text">2.4.1 为什么要池化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-1-%E5%86%85%E5%AD%98%E6%B1%A0"><span class="nav-number">2.4.2.</span> <span class="nav-text">2.4.1 内存池</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-2-%E7%BA%BF%E7%A8%8B%E6%B1%A0"><span class="nav-number">2.4.3.</span> <span class="nav-text">2.4.2 线程池</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-3-%E8%BF%9E%E6%8E%A5%E6%B1%A0"><span class="nav-number">2.4.4.</span> <span class="nav-text">2.4.3 连接池</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-4-%E5%AF%B9%E8%B1%A1%E6%B1%A0"><span class="nav-number">2.4.5.</span> <span class="nav-text">2.4.4 对象池</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-5-%E6%89%B9%E9%87%8F"><span class="nav-number">2.5.</span> <span class="nav-text">2.5 批量</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-6-%E5%B9%B6%E5%8F%91"><span class="nav-number">2.6.</span> <span class="nav-text">2.6 并发</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-6-1-%E8%AF%B7%E6%B1%82%E5%B9%B6%E5%8F%91"><span class="nav-number">2.6.1.</span> <span class="nav-text">2.6.1 请求并发</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-6-2-%E5%86%97%E4%BD%99%E8%AF%B7%E6%B1%82"><span class="nav-number">2.6.2.</span> <span class="nav-text">2.6.2 冗余请求</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-7-%E5%AD%98%E5%82%A8%E8%AE%BE%E8%AE%A1"><span class="nav-number">2.7.</span> <span class="nav-text">2.7 存储设计</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-7-1-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB"><span class="nav-number">2.7.1.</span> <span class="nav-text">2.7.1 读写分离</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-7-2-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8"><span class="nav-number">2.7.2.</span> <span class="nav-text">2.7.2 分库分表</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-7-3-%E5%8A%A8%E9%9D%99%E5%88%86%E7%A6%BB"><span class="nav-number">2.7.3.</span> <span class="nav-text">2.7.3 动静分离</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-7-4-%E5%86%B7%E7%83%AD%E5%88%86%E7%A6%BB"><span class="nav-number">2.7.4.</span> <span class="nav-text">2.7.4 冷热分离</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-8-%E9%9B%B6%E6%8B%B7%E8%B4%9D"><span class="nav-number">2.7.5.</span> <span class="nav-text">2.8 零拷贝</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-%E6%98%93%E7%BB%B4%E6%8A%A4"><span class="nav-number">3.</span> <span class="nav-text">3.易维护</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E5%8D%95%E4%B8%80%E8%81%8C%E8%B4%A3"><span class="nav-number">3.0.1.</span> <span class="nav-text">3.1 单一职责</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E5%86%85%E8%81%9A%E8%A7%A3%E8%80%A6"><span class="nav-number">3.0.2.</span> <span class="nav-text">3.2 内聚解耦</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-%E5%BC%80%E9%97%AD%E5%8E%9F%E5%88%99"><span class="nav-number">3.0.3.</span> <span class="nav-text">3.3 开闭原则</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-%E5%85%A5%E5%8F%82%E6%A0%A1%E9%AA%8C"><span class="nav-number">3.0.4.</span> <span class="nav-text">3.4 入参校验</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4-%E4%BD%8E%E9%A3%8E%E9%99%A9"><span class="nav-number">4.</span> <span class="nav-text">4.低风险</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#4-1-%E9%98%B2-XSS"><span class="nav-number">4.1.</span> <span class="nav-text">4.1 防 XSS</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-1-%E7%AE%80%E4%BB%8B"><span class="nav-number">4.1.1.</span> <span class="nav-text">4.1.1 简介</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-2-%E9%98%B2-CSRF"><span class="nav-number">4.2.</span> <span class="nav-text">4.2 防 CSRF</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-1-%E7%AE%80%E4%BB%8B"><span class="nav-number">4.2.1.</span> <span class="nav-text">4.2.1 简介</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-2-%E9%98%B2%E5%BE%A1%E6%8E%AA%E6%96%BD"><span class="nav-number">4.2.2.</span> <span class="nav-text">4.2.2 防御措施</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-3-%E9%98%B2-SQL-%E6%B3%A8%E5%85%A5"><span class="nav-number">4.3.</span> <span class="nav-text">4.3 防 SQL 注入</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-4-%E9%98%B2%E5%88%B7"><span class="nav-number">4.4.</span> <span class="nav-text">4.4 防刷</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-5-%E9%98%B2%E7%AF%A1%E6%94%B9"><span class="nav-number">4.5.</span> <span class="nav-text">4.5 防篡改</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-6-%E9%98%B2%E9%87%8D%E6%94%BE"><span class="nav-number">4.6.</span> <span class="nav-text">4.6 防重放</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-7-%E9%98%B2-DDoS"><span class="nav-number">4.7.</span> <span class="nav-text">4.7 防 DDoS</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">200</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">31</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
