@@ -1274,7 +1274,7 @@
 </ul>
 <p>&emsp;&emsp;<br>&emsp;&emsp;自动降级分类<br>&emsp;&emsp;1）超时降级：主要配置好超时时间和超时重试次数和机制，并使用异步机制探测回复情况<br>&emsp;&emsp;2）失败次数降级：主要是一些不稳定的api，当失败调用次数达到一定阀值自动降级，同样要使用异步机制探测回复情况<br>&emsp;&emsp;3）故障降级：比如要调用的远程服务挂掉了（网络故障、DNS故障、http服务返回错误的状态码、rpc服务抛出异常），则可以直接降级。降级后的处理方案有：默认值（比如库存服务挂了，返回默认现货）、兜底数据（比如广告挂了，返回提前准备好的一些静态页面）、缓存（之前暂存的一些缓存数据）<br>&emsp;&emsp;4）限流降级：秒杀或者抢购一些限购商品时，此时可能会因为访问量太大而导致系统崩溃，此时会使用限流来进行限制访问量，当达到限流阀值，后续请求会被降级；降级后的处理方案可以是：排队页面（将用户导流到排队页面等一会重试）、无货（直接告知用户没货了）、错误页（如活动太火爆了，稍后重试）。</p>
 <p>&emsp;&emsp;</p>
-<h3 id="服务熔断和服务降级的区别："><a href="#服务熔断和服务降级的区别：" class="headerlink" title="服务熔断和服务降级的区别："></a>服务熔断和服务降级的区别：</h3><p>&emsp;&emsp;触发原因不太一样，服务熔断一般是某个服务（下游服务）故障引起，而服务降级一般是从整体负荷考虑；<br>&emsp;&emsp;管理目标的层次不太一样，熔断其实是一个框架级的处理，每个微服务都需要（无层级之分），而降级一般需要对业务有层级之分（比如降级一般是从最外围服务开始）<br>&emsp;&emsp;实现方式不太一样，服务降级具有代码侵入性(由控制器完成&#x2F;或自动降级)，熔断一般称为自我熔断。</p>
+<h3 id="服务熔断和服务降级的区别："><a href="#服务熔断和服务降级的区别：" class="headerlink" title="服务熔断和服务降级的区别："></a>服务熔断和服务降级的区别：</h3><p>&emsp;&emsp;触发原因不太一样，服务熔断一般是某个服务（下游服务）故障引起，而服务降级一般是从整体性能（负荷）考虑；<br>&emsp;&emsp;管理目标的层次不太一样，熔断其实是一个框架级的处理，每个微服务都需要（无层级之分），而降级一般需要对业务有层级之分（比如降级一般是从最外围服务开始）<br>&emsp;&emsp;实现方式不太一样，服务降级具有代码侵入性(由控制器完成&#x2F;或自动降级)，熔断一般称为自我熔断。</p>
 <p>降级是解决系统资源不足和海量业务请求之间的矛盾<br>        在暴增的流量请求下，对一些非核心流程业务、非关键业务，进行有策略的放弃，以此来释放系统资源，保证核心<br>业务的正常运行，尽量避免这种系统资源分配的不平衡，打破二八策略，让更多的机器资源，承载主要的业务请<br>求。服务降级不是一个常态策略，而是应对非正常情况下的应急策略。服务降级的结果，通常是对一些业务请求，<br>返回一个统一的结果，可以理解为是一种FailOver快速失败的策略。一般通过配置中心配置开关实现开启降级</p>
 <p>熔断模式保护的是业务系统不被外部大流量或者下游系统的异常而拖垮。<br>        如果开启了熔断，订单服务可以在下游调用出现部分异常时，调节流量请求，比如在出现10%的失败后，减少<br>50%的流量请求，如果继续出现50%的异常，则减少80%的流量请求；相应的，在检测的下游服务正常后，首<br>先恢复30%的流量，然后是50%的流量，接下来是全部流量</p>
 <hr>
@@ -6777,13 +6777,13 @@
       </categories>
   </entry>
   <entry>
-    <title>通过SQL分析数据库加锁</title>
+    <title>InnoDB的锁</title>
     <url>/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&amp;%E7%BC%93%E5%AD%98/MySQL/%E5%8E%9F%E7%90%86/InnoDB%E7%9A%84%E9%94%81/</url>
     <content><![CDATA[<p>[toc]<br>&emsp;&emsp;InnoDB与MyISAM的最大不同有两点：一是支持事务（TRANSACTION）；二是采用了行级锁。（还有一个支持外键）</p>
-<h3 id="获取InnoDB行锁争用情况"><a href="#获取InnoDB行锁争用情况" class="headerlink" title="获取InnoDB行锁争用情况"></a>获取InnoDB行锁争用情况</h3><p>&emsp;&emsp;可以通过检查InnoDB_row_lock状态变量来分析系统上的行锁的争夺情况：</p>
+<h2 id="获取InnoDB行锁争用情况"><a href="#获取InnoDB行锁争用情况" class="headerlink" title="获取InnoDB行锁争用情况"></a>获取InnoDB行锁争用情况</h2><p>&emsp;&emsp;可以通过检查InnoDB_row_lock状态变量来分析系统上的行锁的争夺情况：</p>
 <figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">mysql&gt; show status like &#x27;innodb_row_lock%&#x27;;</span><br></pre></td></tr></table></figure>
 <p>&emsp;&emsp;如果发现锁争用比较严重，如InnoDB_row_lock_waits和InnoDB_row_lock_time_avg的值比较高，还可以通过设置InnoDB Monitors来进一步观察发生锁冲突的表、数据行等，并分析锁争用的原因。</p>
-<h3 id="InnoDB的行锁模式及加锁方法"><a href="#InnoDB的行锁模式及加锁方法" class="headerlink" title="InnoDB的行锁模式及加锁方法"></a>InnoDB的行锁模式及加锁方法</h3><p>&emsp;&emsp;InnoDB实现了以下两种类型的行锁。</p>
+<h2 id="InnoDB的行锁模式及加锁方法"><a href="#InnoDB的行锁模式及加锁方法" class="headerlink" title="InnoDB的行锁模式及加锁方法"></a>InnoDB的行锁模式及加锁方法</h2><p>&emsp;&emsp;InnoDB实现了以下两种类型的行锁。</p>
 <ul>
 <li>共享锁（S, shared locks）：允许一个事务去读一行，阻止其他事务获得相同数据集的排他锁。</li>
 <li>排他锁（X, exclusive locks）：允许获得排他锁的事务更新数据，阻止其他事务取得相同数据集的共享读锁和排他写锁。</li>
@@ -6807,7 +6807,7 @@
 <p>&emsp;&emsp;还用最初的表做实验，删除原有记录并在表t中插入i&#x3D;4,9,12,20,30几条记录。</p>
 <p>&emsp;&emsp;先将事务隔离级别调整为READ-COMMITED，我们已经知道，该隔离级别下用非锁定读时可以读取到其他事务中提交的更新，使前后两次同样条件的查询读取到的结果不一致，那么使用锁定读呢？从下边的例子可以看出，在READ-COMMITED隔离级别下，SESSION A中的事务使用锁定读(这里为X锁)，可以阻塞SESSION B中的事务对锁定的记录进行更新或删除，”一定程度上“避免了”不可重复读“或者”幻读”,但是，这里的锁只锁定了记录本身，也即Record Lock，没能阻止SESSION B中的事务在锁定的记录之间插入新的记录，因此当其他事物在这些”间隙“内插入记录并提交后SESSION A中的事务能够看到新插入的记录，还是存在”不可重复读“或者”幻读”。</p>
 <p>&emsp;&emsp;接下来将隔离级别调整为REATABLE READ，该隔离级别下使用非锁定读一般不会读取到其他事物提交的更新，但其他事务中的更新对其更新操作是可见的，当该事务对更新后的记录进行了更新后，同一事物内的查询便可以看到最新的结果，造成前后两次读取结果不一致（前边已有例子进行说明）。那么该隔离级别下使用锁定读呢？会不会也不能避免其他事物在锁定记录的”间隙“插入新的记录呢？答案是否定的，该隔离级别下，InnoDB使用Next-key Lock，除了锁定记录本身外还会锁定记录之间的”间隙”，从而阻止其他事物在读取的记录键插入新的记录，避免前后同一查询条件查询结果却不一致的问题。</p>
-<h3 id="锁的类型"><a href="#锁的类型" class="headerlink" title="锁的类型"></a>锁的类型</h3><p>&emsp;&emsp;Innodb Lock大体上可以分为：</p>
+<h2 id="锁的类型"><a href="#锁的类型" class="headerlink" title="锁的类型"></a>锁的类型</h2><p>&emsp;&emsp;Innodb Lock大体上可以分为：</p>
 <ul>
 <li>共享锁，shared locks（S锁）</li>
 <li>排它锁，exclusive locks（X锁）</li>
@@ -6834,25 +6834,34 @@
 </li>
 </ul>
 <h4 id="共享-排他锁"><a href="#共享-排他锁" class="headerlink" title="共享&#x2F;排他锁"></a>共享&#x2F;排他锁</h4><p>&emsp;&emsp;行锁分为：S Lock 和 X Lock。S Lock是共享锁，可以理解为读锁；X Lock即写锁。<br>&emsp;&emsp;兼容性：读锁可以读，读锁不可写；写锁不可读也不可写。</p>
-<h4 id="意向锁"><a href="#意向锁" class="headerlink" title="意向锁"></a>意向锁</h4><p>&emsp;&emsp;InnoDB支持多粒度的锁，即：允许表锁和行锁同时存在。但是，假如表锁覆盖了行锁的数据，所以表锁和行锁也会产生冲突。为了解决这种表锁和行锁共存的问题，就产生了意向锁这个东西。意向锁：从字面意思也很好理解，就是提前表明一个“意向”。</p>
-<p>&emsp;&emsp;意向锁分为：</p>
+<h4 id="意向锁"><a href="#意向锁" class="headerlink" title="意向锁"></a>意向锁</h4><p>​	什么是意向锁呢？意向锁是<strong>一种不与行级锁冲突的表级锁</strong>。未来的某个时刻，事务可能要加共享或者排它锁时，先提前声明一个意向。注意一下，意向锁，是一个<strong>表级别的锁哈</strong>。</p>
+<p>​	<strong>为什么需要意向锁呢？</strong> 或者换个通俗的说法，为什么要加共享锁或排他锁时的时候，需要提前声明个意向锁呢呢？</p>
+<blockquote>
+<p>因为InnoDB是支持表锁和行锁共存的，如果一个事务A获取到某一行的排他锁，并未提交，这时候事务B请求获取同一个表的表共享锁。因为<strong>共享锁和排他锁是互斥的</strong>，因此事务B想对这个表加共享锁时，需要保证没有其他事务持有这个表的表排他锁，同时还要保<strong>证没有其他事务持有表中任意一行的排他锁</strong>。</p>
+<p>然后问题来了，要保证没有其他事务持有表中任意一行的排他锁的话，去遍历每一行？这样显然是一个效率很差的做法。<strong>为了解决这个问题，InnoDB提出了意向锁。</strong></p>
+</blockquote>
+<p>​	<strong>意向锁是如何解决这个问题的呢？</strong>  我们来看下意向锁分为两类：</p>
 <ul>
-<li>意向共享锁。它预示着，事务有意向对表中的”某些行”加S锁。select xxxx lock in share mode，要设置IS锁。</li>
-<li>意向排他锁。它预示着，事务有意向表中的“某些行”加X锁。select xxx for update，要设置IX锁。</li>
+<li>意向共享锁：简称<code>IS</code>锁，当事务准备在某些记录上加S锁时，需要现在表级别加一个<code>IS</code>锁。（换个表达就是：事务有意向对表中的”某些行”加S锁。）</li>
+<li>意向排他锁：简称<code>IX</code>锁，当事务准备在某条记录上加上X锁时，需要现在表级别加一个<code>IX</code>锁。</li>
 </ul>
-<p>&emsp;&emsp;但意向锁仅仅是表明意向，它其实非常弱，意向锁之间可以相互并行，并不是排斥的：</p>
-<p>InnoDB还有两种内部使用的意向锁（Intention Locks），这两种意向锁都是表锁。</p>
-<ol>
-<li>意向共享锁（IS）：事务打算给数据行加行共享锁，事务在给一个数据行加共享锁前必须先取得该表的IS锁。</li>
-<li>意向排他锁（IX）：事务打算给数据行加行排他锁，事务在给一个数据行加排他锁前必须先取得该表的IX锁。</li>
-</ol>
-<p>如果一个事务请求的锁模式与当前的锁兼容，innodb 就将请求的锁授予该事务；反之，如果两者不兼容，该事务就要等待锁释放。</p>
-<p>意向锁是 innodb 自动加的，不需要用户干预。对于 update、delete 和 insert 语句，innodb 会自动给涉及数据集加排它锁（X）；对于普通 select 语句，innodb 不会加任何锁。</p>
+<p>比如：</p>
+<ul>
+<li><code>select ... lock in share mode</code>，要给表设置<code>IS</code>锁;</li>
+<li><code>select ... for update</code>，要给表设置<code>IX</code>锁;</li>
+</ul>
+<p>意向锁又是如何解决这个效率低的问题呢：</p>
+<blockquote>
+<p>如果一个事务A获取到某一行的排他锁，并未提交,这时候表上就有<code>意向排他锁</code>和这一行的<code>排他锁</code>。</p>
+<p>这时候事务B想要获取这个表的共享锁，此时因为检测到事务A持有了表的<code>意向排他锁</code>，因此事务A必然持有某些行的排他锁，也就是说事务B对表的加锁请求需要阻塞等待，不再需要去检测表的每一行数据是否存在排他锁啦。这样效率就高很多啦。</p>
+</blockquote>
+<p>意向锁仅仅表明意向的锁，意向锁之间<strong>并不会互斥，是可以并行的</strong>，整体兼容性如下图所示：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202411101555659.png" alt="图片">意向锁是 innodb 自动加的，不需要用户干预。对于 update、delete 和 insert 语句，innodb 会自动给涉及数据集加排它锁（X）；对于普通 select 语句，innodb 不会加任何锁。</p>
 <h4 id="主键自增锁"><a href="#主键自增锁" class="headerlink" title="主键自增锁"></a>主键自增锁</h4><p>&emsp;&emsp;自增锁(auto-inc Locks)是一种特殊的表级锁，专门针对事务插入AUTO_INCREMENT类型的列，往往就是主键列。可以保证主键的值自增是“原子操作”，不会出现一致性、唯一性问题。</p>
 <p>&emsp;&emsp;</p>
-<h3 id="行锁的具体分类"><a href="#行锁的具体分类" class="headerlink" title="行锁的具体分类"></a>行锁的具体分类</h3><h4 id="记录锁-Record-Lock"><a href="#记录锁-Record-Lock" class="headerlink" title="记录锁(Record Lock)"></a>记录锁(Record Lock)</h4><p>&emsp;&emsp;记录锁(Record Lock)  是会去锁住索引记录， 记录锁也叫 行锁。<br>&emsp;&emsp;例如：<code>SELECT * FROM `test` WHERE `id`=1 FOR UPDATE;</code><br>&emsp;&emsp;假如没有任何一个索引，那么InnoDB会锁住隐形创建的那个主键。注意：这里锁的是索引，不一定只是主键索引，还可能是二级普通索引。</p>
-<h4 id="间隙锁-Gap-Lock"><a href="#间隙锁-Gap-Lock" class="headerlink" title="间隙锁(Gap Lock)"></a>间隙锁(Gap Lock)</h4><p>&emsp;&emsp;顾名思义，它会封锁索引记录中的“间隔”，限制其他事务在“间隔”中插入数据。它锁定的是一个不包含索引本身的范围。<br>&emsp;&emsp;举例来说，假如emp表中只有101条记录，其empid的值分别是 1,2,…,100,101，<code>select * from  emp where empid &gt; 100 for update;</code>是一个范围条件的检索，InnoDB不仅会对符合条件的empid值为101的记录加锁，也会对empid大于101（这些记录并不存在）的“间隙”加锁。</p>
-<h4 id="临键锁-Next-Key-Lock"><a href="#临键锁-Next-Key-Lock" class="headerlink" title="临键锁(Next-Key Lock)"></a>临键锁(Next-Key Lock)</h4><p>&emsp;&emsp;Next-Key Lock 可以说是记录锁(Record Lock)和间隙锁（Gap Lock）的组合，它的封锁范围，既包含索引记录，又包含索引区间。<br>&emsp;&emsp;临键锁的主要目的，也是为了避免幻读。如果把事务的隔离级别降级为RC，临键锁则也会失效。</p>
+<h2 id="行锁的具体分类"><a href="#行锁的具体分类" class="headerlink" title="行锁的具体分类"></a>行锁的具体分类</h2><h4 id="记录锁-Record-Lock"><a href="#记录锁-Record-Lock" class="headerlink" title="记录锁(Record Lock)"></a>记录锁(Record Lock)</h4><p>&emsp;&emsp;记录锁(Record Lock)  是会去锁住索引记录的一行， 记录锁也叫 行锁。<br>&emsp;&emsp;例如：<code>SELECT * FROM `test` WHERE `id`=1 FOR UPDATE;</code><br>&emsp;&emsp;假如没有任何一个索引，那么InnoDB会锁住隐形创建的那个主键。注意：这里锁的是索引，不一定只是主键索引，还可能是二级普通索引。</p>
+<h4 id="间隙锁-Gap-Lock"><a href="#间隙锁-Gap-Lock" class="headerlink" title="间隙锁(Gap Lock)"></a>间隙锁(Gap Lock)</h4><p>&emsp;&emsp;顾名思义，它会封锁索引记录中的“间隔”，限制其他事务在“间隔”中插入数据。它锁定的是一个不包含索引本身的范围。<br>&emsp;&emsp;举例来说，假如emp表中只有101条记录，其empid的值分别是 1,2,…,100,101，<code>select * from emp where empid &gt; 100 for update;</code>是一个范围条件的检索，InnoDB不仅会对符合条件的empid值为101的记录加锁，也会对empid大于101（这些记录并不存在）的“间隙”加锁。</p>
+<h4 id="临键锁-Next-Key-Lock"><a href="#临键锁-Next-Key-Lock" class="headerlink" title="临键锁(Next-Key Lock)"></a>临键锁(Next-Key Lock)</h4><p>&emsp;&emsp;Next-Key Lock 可以说是记录锁(Record Lock)和间隙锁（Gap Lock）的组合，它的封锁范围，既包含索引记录，及这条记录前面间隙上的锁。说得更具体一点就是:临键锁会封锁索引记录本身，以及索引记录之前的区间，即它的锁区间是前开后闭，比如<code>(5,10]</code>。<br>&emsp;&emsp;临键锁的主要目的，也是为了避免幻读。如果把事务的隔离级别降级为RC，临键锁则也会失效。</p>
 <h3 id="不可重复读-No-Reaptable-Read-和幻读-Phantom-Problem"><a href="#不可重复读-No-Reaptable-Read-和幻读-Phantom-Problem" class="headerlink" title="不可重复读(No Reaptable Read)和幻读(Phantom Problem)"></a>不可重复读(No Reaptable Read)和幻读(Phantom Problem)</h3><p>&emsp;&emsp;不可重复读：修改。在同一个事务中，主要是说多次读取一条记录, 发现该记录中某些列值被修改过。<br>&emsp;&emsp;幻读: 增加或者删除。在同一个事务中，同一条完全相同的查询语句返回的结果集行数不同。</p>
 <p>&emsp;&emsp;多版本并发控制 MVCC（读）和 临键锁 Next-Key Lock（写）共同解决了幻读问题。<br>&emsp;&emsp;关于MVCC的原理，就是每份数据会有快照，事务中读取数据(简单的select xxx from，select xx from xx for update或者select xx from xxx in share mode不行)的时候，如果数据被锁住了，就读以前留下的快照数据。</p>
 <p>&emsp;&emsp;MVCC只在 Read Committed 和 Repeatable Read 下会开启。但是在这两种隔离级别下对于快照指定的数据定义不同。<br>&emsp;&emsp;在Read Committed下，MVCC读取的是被锁定数据的最新的一份数据。<br>&emsp;&emsp;在Repeatable Read下，MVCC读取的是事务刚开始时候的数据。</p>
@@ -7464,7 +7473,7 @@
 <p>​        此组合中，id是unique索引，而主键是name列。此时，加锁的情况由于组合一有所不同。由于id是unique索引，因此delete语句会选择走id列的索引进行where条件的过滤，在找到id&#x3D;10的记录后，首先会将unique索引上的id&#x3D;10索引记录加上X锁，同时，会根据读取到的name列，回主键索引(聚簇索引)，然后将聚簇索引上的name &#x3D; ‘d’ 对应的主键索引项加X锁。</p>
 <p>​        为什么聚簇索引上的记录也要加锁？试想一下，如果并发的一个SQL，是通过主键索引来更新：update t1 set id &#x3D; 100 where name &#x3D; ‘d’; 此时，如果delete语句没有将主键索引上的记录加锁，那么并发的update就会感知不到delete语句的存在，违背了同一记录上的更新&#x2F;删除需要串行执行的约束。</p>
 <p>​        结论：若id列是unique列，其上有unique索引。那么SQL需要加两个X锁，一个对应于id unique索引上的id &#x3D; 10的记录，另一把锁对应于聚簇索引上的[name&#x3D;’d’,id&#x3D;10]的记录。</p>
-<h3 id="3-组合三：id非唯一索引-RC"><a href="#3-组合三：id非唯一索引-RC" class="headerlink" title="3 组合三：id非唯一索引+RC"></a>3 组合三：id非唯一索引+RC</h3><p>相对于组合一、二，组合三又发生了变化，隔离级别仍旧是RC不变，但是id列上的约束又降低了，id列不再唯一，只有一个普通的索引。假设delete from t1 where id &#x3D; 10; 语句，仍旧选择id列上的索引进行过滤where条件，那么此时会持有哪些锁？同样见下图：</p>
+<h3 id="3-组合三：id普通索引（非唯一索引）-RC"><a href="#3-组合三：id普通索引（非唯一索引）-RC" class="headerlink" title="3 组合三：id普通索引（非唯一索引）+RC"></a>3 组合三：id普通索引（非唯一索引）+RC</h3><p>相对于组合一、二，组合三又发生了变化，隔离级别仍旧是RC不变，但是id列上的约束又降低了，id列不再唯一，只有一个普通的索引。假设delete from t1 where id &#x3D; 10; 语句，仍旧选择id列上的索引进行过滤where条件，那么此时会持有哪些锁？同样见下图：</p>
 <p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407170957687.png" alt="img"></p>
 <p>根据此图，可以看到，首先，id列索引上，满足id &#x3D; 10查询条件的记录，均已加锁。同时，这些记录对应的主键索引上的记录也都加上了锁。与组合二唯一的区别在于，组合二最多只有一个满足等值查询的记录，而组合三会将所有满足查询条件的记录都加锁。</p>
 <p>结论：若id列上有非唯一索引，那么对应的所有满足SQL查询条件的记录，都会被加锁。同时，这些记录在主键索引上的记录，也会被加锁。</p>
@@ -12634,11 +12643,26 @@
 <p>扩展方式为：</p>
 <figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">TestApplicationContextInitializer</span> <span class="keyword">implements</span> <span class="title class_">ApplicationContextInitializer</span> &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">initialize</span><span class="params">(ConfigurableApplicationContext applicationContext)</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;[ApplicationContextInitializer]&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
+
+
+<p><strong>使用场景</strong></p>
+<p>在应用启动时进行环境配置：可以使用 <code>ApplicationContextInitializer</code> 来在应用上下文初始化时进行一些环境相关的配置，例如设置系统属性、加载外部配置文件等。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">EnvironmentInitializer</span> <span class="keyword">implements</span> <span class="title class_">ApplicationContextInitializer</span>&lt;ConfigurableApplicationContext&gt; &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">initialize</span><span class="params">(ConfigurableApplicationContext applicationContext)</span> &#123;</span><br><span class="line">        <span class="type">ConfigurableEnvironment</span> <span class="variable">environment</span> <span class="operator">=</span> applicationContext.getEnvironment();</span><br><span class="line">        environment.setActiveProfiles(<span class="string">&quot;development&quot;</span>);</span><br><span class="line">        System.out.println(<span class="string">&quot;配置文件设置为development&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>注册自定义的 <code>BeanFactoryPostProcessor</code> 或者 <code>BeanPostProcessor</code>：<code>ApplicationContextInitializer</code> 可以用来注册自定义的 <code>BeanFactoryPostProcessor</code> 或者 <code>BeanPostProcessor</code>，以便在 Bean 初始化之前或之后进行某些自定义处理。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">CustomBeanFactoryPostProcessorInitializer</span> <span class="keyword">implements</span> <span class="title class_">ApplicationContextInitializer</span>&lt;ConfigurableApplicationContext&gt; &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">initialize</span><span class="params">(ConfigurableApplicationContext applicationContext)</span> &#123;</span><br><span class="line">        applicationContext.addBeanFactoryPostProcessor(beanFactory -&gt; &#123;</span><br><span class="line">            <span class="comment">// 添加自定义的 BeanFactoryPostProcessor</span></span><br><span class="line">            System.out.println(<span class="string">&quot;添加了自定义BeanFactory后处理器...&quot;</span>);</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>动态地添加 <code>PropertySource</code>：可以在初始化过程中动态地添加 <code>PropertySource</code>，以便后续的 Bean 定义和初始化过程中可以使用这些属性。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">PropertySourceInitializer</span> <span class="keyword">implements</span> <span class="title class_">ApplicationContextInitializer</span>&lt;ConfigurableApplicationContext&gt; &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">initialize</span><span class="params">(ConfigurableApplicationContext applicationContext)</span> &#123;</span><br><span class="line">        <span class="type">MutablePropertySources</span> <span class="variable">propertySources</span> <span class="operator">=</span> applicationContext.getEnvironment().getPropertySources();</span><br><span class="line">        propertySources.addFirst(<span class="keyword">new</span> <span class="title class_">MapPropertySource</span>(<span class="string">&quot;customPropertySource&quot;</span>, Collections.singletonMap(<span class="string">&quot;customKey&quot;</span>, <span class="string">&quot;customValue&quot;</span>)));</span><br><span class="line">        System.out.println(<span class="string">&quot;已添加自定义属性源&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>Spring环境下添加扩展点</strong></p>
 <p>因为这时候spring容器还没被初始化，所以想要自己的扩展的生效，有以下三种方式：</p>
 <ul>
-<li>在启动类中用<code>springApplication.addInitializers(new TestApplicationContextInitializer())</code>语句加入</li>
-<li>配置文件配置<code>context.initializer.classes=com.example.demo.TestApplicationContextInitializer</code></li>
-<li>Spring SPI扩展，在spring.factories中加入<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">org.springframework.context.ApplicationContextInitializer=\com.example.demo.TestApplicationContextInitializer</span><br></pre></td></tr></table></figure></li>
+<li>在启动类中用<code>springApplication.addInitializers(new TestApplicationContextInitializer())</code>语句加入;</li>
+<li>application配置文件配置<code>context.initializer.classes=com.example.demo.TestApplicationContextInitializer</code></li>
+<li>Spring SPI扩展，在spring.factories中加入（官方推荐）<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">org.springframework.context.ApplicationContextInitializer=\com.example.demo.TestApplicationContextInitializer</span><br></pre></td></tr></table></figure></li>
 </ul>
 <h2 id="3-BeanDefinitionRegistryPostProcessor"><a href="#3-BeanDefinitionRegistryPostProcessor" class="headerlink" title="3.BeanDefinitionRegistryPostProcessor"></a>3.BeanDefinitionRegistryPostProcessor</h2><blockquote>
 <p>org.springframework.beans.factory.support.BeanDefinitionRegistryPostProcessor</p>
@@ -12650,28 +12674,69 @@
 
 
 
+<p><strong>场景示例：</strong></p>
+<p>比如依赖Redis.jar，如果该依赖jar存在，则用redis当缓存，否则就用本地缓存。这个需求完全可以在postProcessBeanDefinitionRegistry中利用Class.forName判断依赖，存在的话则注册对应class到容器。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Configuration</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">AppConfig</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Bean</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> BeanDefinitionRegistryPostProcessor <span class="title function_">customBeanDefinitionRegistryPostProcessor</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">BeanDefinitionRegistryPostProcessor</span>() &#123;</span><br><span class="line"></span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">postProcessBeanDefinitionRegistry</span><span class="params">(BeanDefinitionRegistry registry)</span> <span class="keyword">throws</span> BeansException &#123;</span><br><span class="line">                System.out.println(<span class="string">&quot;在 postProcessBeanDefinitionRegistry 中根据条件注册缓存实现类&quot;</span>);</span><br><span class="line"></span><br><span class="line">                <span class="keyword">try</span> &#123;</span><br><span class="line">                    <span class="comment">// 检查 Redis 依赖是否存在</span></span><br><span class="line">                    Class.forName(<span class="string">&quot;redis.clients.jedis.Jedis&quot;</span>);</span><br><span class="line">                    System.out.println(<span class="string">&quot;检测到 Redis 依赖，注册 RedisCacheService&quot;</span>);</span><br><span class="line"></span><br><span class="line">                    <span class="type">AbstractBeanDefinition</span> <span class="variable">redisCacheBeanDefinition</span> <span class="operator">=</span> BeanDefinitionBuilder</span><br><span class="line">                            .genericBeanDefinition(RedisCacheService.class)</span><br><span class="line">                            .getBeanDefinition();</span><br><span class="line">                    registry.registerBeanDefinition(<span class="string">&quot;cacheService&quot;</span>, redisCacheBeanDefinition);</span><br><span class="line"></span><br><span class="line">                &#125; <span class="keyword">catch</span> (ClassNotFoundException e) &#123;</span><br><span class="line">                    System.out.println(<span class="string">&quot;未检测到 Redis 依赖，注册 LocalCacheService&quot;</span>);</span><br><span class="line"></span><br><span class="line">                    <span class="type">AbstractBeanDefinition</span> <span class="variable">localCacheBeanDefinition</span> <span class="operator">=</span> BeanDefinitionBuilder</span><br><span class="line">                            .genericBeanDefinition(LocalCacheService.class)</span><br><span class="line">                            .getBeanDefinition();</span><br><span class="line">                    registry.registerBeanDefinition(<span class="string">&quot;cacheService&quot;</span>, localCacheBeanDefinition);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">postProcessBeanFactory</span><span class="params">(ConfigurableListableBeanFactory beanFactory)</span> <span class="keyword">throws</span> BeansException &#123;</span><br><span class="line">                <span class="comment">// 此方法可以留空或用于进一步处理</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+
+
 <h2 id="4-BeanFactoryPostProcessor"><a href="#4-BeanFactoryPostProcessor" class="headerlink" title="4.BeanFactoryPostProcessor"></a>4.BeanFactoryPostProcessor</h2><blockquote>
 <p>org.springframework.beans.factory.config.BeanFactoryPostProcessor</p>
 </blockquote>
 <p>这个接口是<code>beanFactory</code>的扩展接口，调用时机在spring在读取<code>beanDefinition</code>信息之后，实例化bean之前。</p>
-<p>在这个时机，用户可以通过实现这个扩展接口来自行处理一些东西，比如修改已经注册的<code>beanDefinition</code>的元信息。</p>
+<p>虽然此时不能再注册beanDefinition，但是可以趁着bean没有实例化，可以修改 Spring 容器启动时修改其内部的 <code>BeanDefinition</code>。通过实现 <code>BeanFactoryPostProcessor</code> 接口，开发者可以在 Bean 实例化之前修改 Bean 的定义元数据，例如Scope、依赖查找方式、初始化方法、修改属性值、添加额外的元数据等，进而影响初始化行为。</p>
 <p>扩展方式为：</p>
 <figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">TestBeanFactoryPostProcessor</span> <span class="keyword">implements</span> <span class="title class_">BeanFactoryPostProcessor</span> &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">postProcessBeanFactory</span><span class="params">(ConfigurableListableBeanFactory beanFactory)</span> <span class="keyword">throws</span> BeansException &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;[BeanFactoryPostProcessor]&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 
 
+<p><strong>使用场景</strong></p>
+<ol>
+<li>修改 Bean 属性：可以动态地改变某些配置属性或者注入额外的依赖。</li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"> public class PropertyModifierBeanFactoryPostProcessor implements BeanFactoryPostProcessor &#123;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException &#123;</span><br><span class="line">        BeanDefinition beanDefinition = beanFactory.getBeanDefinition(&quot;myBean&quot;);</span><br><span class="line">        MutablePropertyValues propertyValues = beanDefinition.getPropertyValues();</span><br><span class="line">        propertyValues.addPropertyValue(&quot;propertyName&quot;, &quot;newValue&quot;);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol start="2">
+<li>动态注册 Bean：可以根据配置文件或者系统环境变量来决定是否注册某个 Bean。</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ConditionalBeanRegistrar</span> <span class="keyword">implements</span> <span class="title class_">BeanFactoryPostProcessor</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">postProcessBeanFactory</span><span class="params">(ConfigurableListableBeanFactory beanFactory)</span> <span class="keyword">throws</span> BeansException &#123;</span><br><span class="line">        <span class="keyword">if</span> (someCondition()) &#123;</span><br><span class="line">            <span class="type">BeanDefinitionBuilder</span> <span class="variable">beanDefinitionBuilder</span> <span class="operator">=</span> BeanDefinitionBuilder.genericBeanDefinition(MyBean.class);</span><br><span class="line">            beanFactory.registerBeanDefinition(<span class="string">&quot;myConditionalBean&quot;</span>, beanDefinitionBuilder.getBeanDefinition());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="type">boolean</span> <span class="title function_">someCondition</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="comment">// 自定义条件逻辑</span></span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol start="3">
+<li>修改 Bean 定义：可以修改 Bean 的作用域、初始化和销毁方法等定义信息。</li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">public class ScopeModifierBeanFactoryPostProcessor implements BeanFactoryPostProcessor &#123;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException &#123;</span><br><span class="line">        BeanDefinition beanDefinition = beanFactory.getBeanDefinition(&quot;myBean&quot;);</span><br><span class="line">        beanDefinition.setScope(BeanDefinition.SCOPE_PROTOTYPE);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol start="4">
+<li><p>属性占位符替换：可以使用 <code>PropertyPlaceholderConfigurer</code> 实现 <code>BeanFactoryPostProcessor</code> 接口，来替换 Bean 定义中的属性占位符。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">CustomPropertyPlaceholderConfigurer</span> <span class="keyword">extends</span> <span class="title class_">PropertyPlaceholderConfigurer</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">processProperties</span><span class="params">(ConfigurableListableBeanFactory beanFactory, Properties props)</span></span><br><span class="line">            <span class="keyword">throws</span> BeansException &#123;</span><br><span class="line">        <span class="built_in">super</span>.processProperties(beanFactory, props);</span><br><span class="line">        <span class="comment">// 自定义属性处理逻辑</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ol>
+<h2 id="BeanPostProcessor"><a href="#BeanPostProcessor" class="headerlink" title="BeanPostProcessor"></a>BeanPostProcessor</h2><blockquote>
+<p>org.springframework.beans.factory.config.BeanPostProcessor</p>
+</blockquote>
+<p><code>BeanPostProcessor</code> 接口定义了两个基本的Bean初始化回调方法，在属性赋值前后执行。</p>
+<ul>
+<li><code>postProcessBeforeInitialization</code>：在 Bean 初始化方法（如 <code>@PostConstruct</code>、<code>InitializingBean.afterPropertiesSet</code> 或自定义初始化方法）调用之前执行；返回的对象将是实际注入到容器中的 Bean，如果返回 null，则该 Bean 不会被注册。可用于创建代理类</li>
+<li><code>postProcessAfterInitialization</code>：初始化bean之后，返回的对象将是实际注入到容器中的 Bean，如果返回 null，则该 Bean 不会被注册。</li>
+</ul>
 <h2 id="5-InstantiationAwareBeanPostProcessor"><a href="#5-InstantiationAwareBeanPostProcessor" class="headerlink" title="5.InstantiationAwareBeanPostProcessor"></a>5.InstantiationAwareBeanPostProcessor</h2><blockquote>
 <p>org.springframework.beans.factory.config.InstantiationAwareBeanPostProcessor</p>
 </blockquote>
 <p>该接口继承了<code>BeanPostProcess</code>接口，区别如下：</p>
 <p><strong><code>BeanPostProcess</code>接口只在bean的初始化阶段进行扩展（注入spring上下文前后），而<code>InstantiationAwareBeanPostProcessor</code>接口在此基础上增加了3个方法，把可扩展的范围增加了实例化阶段和属性注入阶段。</strong></p>
-<p>该类主要的扩展点有以下5个方法，主要在bean生命周期的两大阶段：<strong>实例化阶段</strong>和<strong>初始化阶段</strong>，下面一起进行说明，按调用顺序为：</p>
+<p>该类主要的扩展点有以下几个方法，主要在bean生命周期的两大阶段：<strong>实例化阶段</strong>和<strong>初始化阶段</strong>，下面一起进行说明，按调用顺序为：</p>
 <ul>
 <li><code>postProcessBeforeInstantiation</code>：实例化bean之前，相当于new这个bean之前</li>
 <li><code>postProcessAfterInstantiation</code>：实例化bean之后，相当于new这个bean之后</li>
-<li><code>postProcessPropertyValues</code>：bean已经实例化完成，在属性注入时阶段触发，<code>@Autowired</code>,<code>@Resource</code>等注解原理基于此方法实现</li>
-<li><code>postProcessBeforeInitialization</code>：初始化bean之前，相当于把bean注入spring上下文之前</li>
-<li><code>postProcessAfterInitialization</code>：初始化bean之后，相当于把bean注入spring上下文之后</li>
+<li><code>postProcessPropertyValues</code>：（方法在spring5.1版本后就已弃用）,bean已经实例化完成，在属性注入时阶段触发，<code>@Autowired</code>,<code>@Resource</code>等注解原理基于此方法实现；可以修改Bean的属性值或进行其他自定义操作，<strong>当postProcessAfterInstantiation返回true才执行。</strong></li>
+<li><code>postProcessBeforeInitialization</code>：初始化bean之前，相当于把bean注入spring上下文之前;可用于创建代理类，如果返回的不是 null（也就是返回的是一个代理类） ，那么后续只会调用 postProcessAfterInitialization() 方法</li>
+<li><code>postProcessAfterInitialization</code>：初始化bean之后，相当于把bean注入spring上下文之后；返回值会影响 postProcessProperties() 是否执行，其中返回 false 的话，是不会执行。</li>
+<li><code>postProcessProperties()</code>：在 Bean 设置属性前调用；用于修改 bean 的属性，如果返回值不为空，那么会更改指定字段的值</li>
 </ul>
 <p>使用场景：这个扩展点非常有用 ，无论是写中间件和业务中，都能利用这个特性。比如对实现了某一类接口的bean在各个生命期间进行收集，或者对某个类型的bean进行统一的设值等等。</p>
 <p>扩展方式为：</p>
@@ -12773,17 +12838,35 @@
 
 
 
-<h2 id="14-CommandLineRunner"><a href="#14-CommandLineRunner" class="headerlink" title="14.CommandLineRunner"></a>14.CommandLineRunner</h2><blockquote>
+<h2 id="14-CommandLineRunner和ApplicationRunner"><a href="#14-CommandLineRunner和ApplicationRunner" class="headerlink" title="14.CommandLineRunner和ApplicationRunner"></a>14.CommandLineRunner和ApplicationRunner</h2><blockquote>
 <p>org.springframework.boot.CommandLineRunner</p>
 </blockquote>
-<p>这个接口也只有一个方法：<code>run(String... args)</code>，触发时机为整个项目启动完毕后，自动执行。如果有多个<code>CommandLineRunner</code>，可以利用<code>@Order</code>来进行排序。</p>
-<p>使用场景：用户扩展此接口，进行启动项目之后一些业务的预处理。</p>
-<p>扩展方式为：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">TestCommandLineRunner</span> <span class="keyword">implements</span> <span class="title class_">CommandLineRunner</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">(String... args)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;[TestCommandLineRunner]&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这两个是Springboot中新增的扩展点，之所以将这两个扩展点放在一起，是因为它两个功能特性高度相似，不同的只是名字、扩展方法形参数类型、执行先后的一些小的不同。</p>
+<p>这两个接口触发时机为整个项目启动完毕后，自动执行。如果有多个<code>CommandLineRunner</code>，可以利用<code>@Order</code>来进行排序。</p>
+<p>注意：</p>
+<ul>
+<li>CommandLineRunner和ApplicationRunner都有一个扩展方法run()，但是run()形参数类型不同；</li>
+<li>CommandLineRunner.run()方法的形参数类型是String… args，ApplicationRunner.run()的形参数类型是ApplicationArguments args；</li>
+<li>CommandLineRunner.run()的执行时机要晚于ApplicationRunner.run()一点；</li>
+<li>CommandLineRunner和ApplicationRunner触发执行时机是在Spring容器、Tomcat容器正式启动完成后，可以正式处理业务请求前，即项目启动的最后一步；</li>
+<li>CommandLineRunner和ApplicationRunner可以应用的场景：项目启动前，热点数据的预加载、清除临时文件、读取自定义配置信息等；</li>
+</ul>
+<h3 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h3><ol>
+<li>初始化数据：使用 <code>CommandLineRunner</code> 可以在应用启动后初始化一些必要的数据，例如从数据库加载某些配置或插入初始数据。</li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">@Component</span><br><span class="line">public class DataInitializer implements CommandLineRunner &#123;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public void run(String... args) &#123;</span><br><span class="line">        System.out.println(&quot;初始化数据：插入初始数据&quot;);</span><br><span class="line">        // 模拟插入初始数据</span><br><span class="line">        insertInitialData();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    private void insertInitialData() &#123;</span><br><span class="line">        System.out.println(&quot;插入数据：用户表初始数据&quot;);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
+<ol>
+<li>启动后执行任务：使用 <code>CommandLineRunner</code> 可以在应用启动后执行一些特定的任务，比如发送一个通知或启动一些背景任务。</li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">@Component</span><br><span class="line">public class TaskExecutor implements CommandLineRunner &#123;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public void run(String... args) &#123;</span><br><span class="line">        System.out.println(&quot;启动后执行任务：发送启动通知&quot;);</span><br><span class="line">        // 模拟发送启动通知</span><br><span class="line">        sendStartupNotification();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    private void sendStartupNotification() &#123;</span><br><span class="line">        System.out.println(&quot;通知：应用已启动&quot;);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
+<ol>
+<li>读取命令行参数：使用 <code>CommandLineRunner</code> 可以获取并处理命令行参数，这对于需要根据启动参数动态配置应用的场景非常有用。</li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">@Component</span><br><span class="line">public class CommandLineArgsProcessor implements CommandLineRunner &#123;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public void run(String... args) &#123;</span><br><span class="line">        System.out.println(&quot;处理命令行参数：&quot;);</span><br><span class="line">        for (String arg : args) &#123;</span><br><span class="line">            System.out.println(&quot;参数：&quot; + arg);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@SpringBootApplication</span><br><span class="line">public class AppConfig &#123;</span><br><span class="line">    public static void main(String[] args) &#123;</span><br><span class="line">        SpringApplication.run(AppConfig.class, new String[]&#123;&quot;参数1&quot;, &quot;参数2&quot;, &quot;参数3&quot;&#125;);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<h2 id="15-DisposableBean"><a href="#15-DisposableBean" class="headerlink" title="15.DisposableBean"></a>15.DisposableBean</h2><blockquote>
+<h2 id=""><a href="#" class="headerlink" title=""></a></h2><h2 id="15-DisposableBean"><a href="#15-DisposableBean" class="headerlink" title="15.DisposableBean"></a>15.DisposableBean</h2><blockquote>
 <p>org.springframework.beans.factory.DisposableBean</p>
 </blockquote>
 <p>这个扩展点也只有一个方法：<code>destroy()</code>，其触发时机为当此对象销毁时，会自动执行这个方法。比如说运行<code>applicationContext.registerShutdownHook</code>时，就会触发这个方法。</p>
@@ -12806,6 +12889,48 @@
 <li>ContextClosedEvent<br>当使用 <code>ConfigurableApplicationContext</code>接口中的 <code>close()</code>方法关闭 <code>ApplicationContext</code> 时，该事件被发布。一个已关闭的上下文到达生命周期末端；它不能被刷新或重启</li>
 <li>RequestHandledEvent<br>这是一个 web-specific 事件，告诉所有 bean HTTP 请求已经被服务。只能应用于使用DispatcherServlet的Web应用。在使用Spring作为前端的MVC控制器时，当Spring处理用户请求结束后，系统会自动触发该事件</li>
 </ul>
+<h2 id="BeanClassLoaderAware"><a href="#BeanClassLoaderAware" class="headerlink" title="BeanClassLoaderAware"></a>BeanClassLoaderAware</h2><blockquote>
+<p>org.springframework.beans.factory.BeanClassLoaderAware</p>
+</blockquote>
+<h3 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h3><p>用于让一个 Bean 获取到加载它的 <code>ClassLoader</code>。实现这个接口的 Bean 会在其属性设置完成后、初始化方法调用之前被注入 <code>ClassLoader</code>。该接口定义了一个方法：</p>
+<ul>
+<li><code>void setBeanClassLoader(ClassLoader classLoader)</code>：在某些需要动态加载类的场景中，获取 <code>ClassLoader</code> 是非常有用的。</li>
+</ul>
+<h3 id="使用场景-1"><a href="#使用场景-1" class="headerlink" title="使用场景"></a>使用场景</h3><ol>
+<li>动态加载类：有时候，我们可能需要在运行时动态加载类，利用 <code>BeanClassLoaderAware</code> 可以方便地获取到 <code>ClassLoader</code> 来实现这一需求。</li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">@Component</span><br><span class="line">public class DynamicClassLoader implements BeanClassLoaderAware &#123;</span><br><span class="line"></span><br><span class="line">    private ClassLoader classLoader;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public void setBeanClassLoader(ClassLoader classLoader) &#123;</span><br><span class="line">        this.classLoader = classLoader;</span><br><span class="line">        System.out.println(&quot;已设置类加载器&quot;);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public void loadClass(String className) &#123;</span><br><span class="line">        try &#123;</span><br><span class="line">            Class&lt;?&gt; clazz = classLoader.loadClass(className);</span><br><span class="line">            System.out.println(&quot;已加载类：&quot; + clazz.getName());</span><br><span class="line">        &#125; catch (ClassNotFoundException e) &#123;</span><br><span class="line">            System.out.println(&quot;类未找到：&quot; + className);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@SpringBootApplication</span><br><span class="line">public class AppConfig &#123;</span><br><span class="line">    public static void main(String[] args) &#123;</span><br><span class="line">        ConfigurableApplicationContext context = SpringApplication.run(AppConfig.class, args);</span><br><span class="line">        DynamicClassLoader dynamicClassLoader = context.getBean(DynamicClassLoader.class);</span><br><span class="line">        dynamicClassLoader.loadClass(&quot;java.util.ArrayList&quot;);</span><br><span class="line">        dynamicClassLoader.loadClass(&quot;不存在的类&quot;);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li>检查类的可用性：在某些情况下，我们可能需要检查某个类是否在当前的类路径中可用。利用 <code>BeanClassLoaderAware</code> 可以方便地实现这一需求。</li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">@Component</span><br><span class="line">public class ClassAvailabilityChecker implements BeanClassLoaderAware &#123;</span><br><span class="line"></span><br><span class="line">    private ClassLoader classLoader;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public void setBeanClassLoader(ClassLoader classLoader) &#123;</span><br><span class="line">        this.classLoader = classLoader;</span><br><span class="line">        System.out.println(&quot;已设置类加载器&quot;);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public boolean isClassAvailable(String className) &#123;</span><br><span class="line">        try &#123;</span><br><span class="line">            Class&lt;?&gt; clazz = classLoader.loadClass(className);</span><br><span class="line">            System.out.println(&quot;类可用：&quot; + clazz.getName());</span><br><span class="line">            return true;</span><br><span class="line">        &#125; catch (ClassNotFoundException e) &#123;</span><br><span class="line">            System.out.println(&quot;类不可用：&quot; + className);</span><br><span class="line">            return false;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@SpringBootApplication</span><br><span class="line">public class AppConfig &#123;</span><br><span class="line">    public static void main(String[] args) &#123;</span><br><span class="line">        ConfigurableApplicationContext context = SpringApplication.run(AppConfig.class, args);</span><br><span class="line">        ClassAvailabilityChecker checker = context.getBean(ClassAvailabilityChecker.class);</span><br><span class="line">        checker.isClassAvailable(&quot;java.util.HashMap&quot;);</span><br><span class="line">        checker.isClassAvailable(&quot;不存在的类&quot;);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li>加载资源文件：通过 <code>BeanClassLoaderAware</code> 获取的 <code>ClassLoader</code>，我们还可以方便地加载资源文件。</li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">@Component</span><br><span class="line">public class ResourceLoader implements BeanClassLoaderAware &#123;</span><br><span class="line"></span><br><span class="line">    private ClassLoader classLoader;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public void setBeanClassLoader(ClassLoader classLoader) &#123;</span><br><span class="line">        this.classLoader = classLoader;</span><br><span class="line">        System.out.println(&quot;已设置类加载器&quot;);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public void loadResource(String resourcePath) &#123;</span><br><span class="line">        InputStream inputStream = classLoader.getResourceAsStream(resourcePath);</span><br><span class="line">        if (inputStream != null) &#123;</span><br><span class="line">            System.out.println(&quot;资源已加载：&quot; + resourcePath);</span><br><span class="line">        &#125; else &#123;</span><br><span class="line">            System.out.println(&quot;资源未找到：&quot; + resourcePath);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@SpringBootApplication</span><br><span class="line">public class AppConfig &#123;</span><br><span class="line">    public static void main(String[] args) &#123;</span><br><span class="line">        ConfigurableApplicationContext context = SpringApplication.run(AppConfig.class, args);</span><br><span class="line">        ResourceLoader resourceLoader = context.getBean(ResourceLoader.class);</span><br><span class="line">        resourceLoader.loadResource(&quot;application.properties&quot;);</span><br><span class="line">        resourceLoader.loadResource(&quot;不存在的资源&quot;);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="BeanFactoryAware"><a href="#BeanFactoryAware" class="headerlink" title="BeanFactoryAware"></a>BeanFactoryAware</h2><blockquote>
+<p>org.springframework.beans.factory.BeanFactoryAware</p>
+</blockquote>
+<h3 id="介绍-1"><a href="#介绍-1" class="headerlink" title="介绍"></a>介绍</h3><p>这个类只有一个触发点，发生在bean的实例化之后，注入属性之前，也就是Setter之前。这个类的扩展点方法为<code>setBeanFactory</code>，可以拿到<code>BeanFactory</code>这个属性，从而能够进行更复杂的 Bean 操作。例如，动态获取其他 Bean、检查 Bean 的状态等。</p>
+<h3 id="使用场景-2"><a href="#使用场景-2" class="headerlink" title="使用场景"></a>使用场景</h3><ol>
+<li>动态获取其他 Bean：通过实现 <code>BeanFactoryAware</code> 接口，一个 Bean 可以在运行时动态获取其他 Bean。这在一些需要解耦的场景下非常有用。</li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">@Component</span><br><span class="line">public class DynamicBeanFetcher implements BeanFactoryAware &#123;</span><br><span class="line"></span><br><span class="line">    private BeanFactory beanFactory;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public void setBeanFactory(BeanFactory beanFactory) throws BeansException &#123;</span><br><span class="line">        this.beanFactory = beanFactory;</span><br><span class="line">        System.out.println(&quot;注入 BeanFactory 实例&quot;);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public void fetchAndUseBean() &#123;</span><br><span class="line">        MyBean myBean = beanFactory.getBean(MyBean.class);</span><br><span class="line">        System.out.println(&quot;获取到的 Bean 实例: &quot; + myBean);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@Component</span><br><span class="line">public class MyBean &#123;</span><br><span class="line">    @Override</span><br><span class="line">    public String toString() &#123;</span><br><span class="line">        return &quot;这是 MyBean 实例&quot;;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@Configuration</span><br><span class="line">@ComponentScan(basePackages = &quot;com.seven&quot;)</span><br><span class="line">public class AppConfig &#123;</span><br><span class="line">    public static void main(String[] args) &#123;</span><br><span class="line">        ApplicationContext context = new AnnotationConfigApplicationContext(AppConfig.class);</span><br><span class="line">        DynamicBeanFetcher fetcher = context.getBean(DynamicBeanFetcher.class);</span><br><span class="line">        fetcher.fetchAndUseBean();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li>检查 Bean 的状态：通过 <code>BeanFactoryAware</code>，可以在运行时检查某个 Bean 是否存在或者其状态，这对一些需要动态检查 Bean 状态的场景非常有用。</li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">@Component</span><br><span class="line">public class BeanStateChecker implements BeanFactoryAware &#123;</span><br><span class="line"></span><br><span class="line">    private BeanFactory beanFactory;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public void setBeanFactory(BeanFactory beanFactory) throws BeansException &#123;</span><br><span class="line">        this.beanFactory = beanFactory;</span><br><span class="line">        System.out.println(&quot;注入 BeanFactory 实例&quot;);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public void checkBeanState() &#123;</span><br><span class="line">        boolean exists = beanFactory.containsBean(&quot;myBean&quot;);</span><br><span class="line">        System.out.println(&quot;MyBean 是否存在: &quot; + exists);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@Component(&quot;myBean&quot;)</span><br><span class="line">public class MyBean &#123;</span><br><span class="line">    @Override</span><br><span class="line">    public String toString() &#123;</span><br><span class="line">        return &quot;这是 MyBean 实例&quot;;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@Configuration</span><br><span class="line">@ComponentScan(basePackages = &quot;com.seven&quot;)</span><br><span class="line">public class AppConfig &#123;</span><br><span class="line">    public static void main(String[] args) &#123;</span><br><span class="line">        ApplicationContext context = new AnnotationConfigApplicationContext(AppConfig.class);</span><br><span class="line">        BeanStateChecker checker = context.getBean(BeanStateChecker.class);</span><br><span class="line">        checker.checkBeanState();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li>创建复杂 Bean 的初始化逻辑：在一些复杂的业务场景中，有时需要在 Bean 初始化时执行一些复杂的逻辑，例如动态创建其他 Bean 并注入到当前 Bean 中。通过 <code>BeanFactoryAware</code> 可以实现这一点。</li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">@Component</span><br><span class="line">public class ComplexBeanInitializer implements BeanFactoryAware &#123;</span><br><span class="line"></span><br><span class="line">    private BeanFactory beanFactory;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public void setBeanFactory(BeanFactory beanFactory) throws BeansException &#123;</span><br><span class="line">        this.beanFactory = beanFactory;</span><br><span class="line">        System.out.println(&quot;注入 BeanFactory 实例&quot;);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public void initializeComplexBean() &#123;</span><br><span class="line">        MyBean myBean = beanFactory.getBean(MyBean.class);</span><br><span class="line">        System.out.println(&quot;初始化复杂 Bean, 获取到的 MyBean 实例: &quot; + myBean);</span><br><span class="line">        // 在这里可以执行复杂的初始化逻辑</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@Component</span><br><span class="line">public class MyBean &#123;</span><br><span class="line">    @Override</span><br><span class="line">    public String toString() &#123;</span><br><span class="line">        return &quot;这是 MyBean 实例&quot;;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@Configuration</span><br><span class="line">@ComponentScan(basePackages = &quot;com.seven&quot;)</span><br><span class="line">public class AppConfig &#123;</span><br><span class="line">    public static void main(String[] args) &#123;</span><br><span class="line">        ApplicationContext context = new AnnotationConfigApplicationContext(AppConfig.class);</span><br><span class="line">        ComplexBeanInitializer initializer = context.getBean(ComplexBeanInitializer.class);</span><br><span class="line">        initializer.initializeComplexBean();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="-1"><a href="#-1" class="headerlink" title=""></a></h2><p><a href="https://mp.weixin.qq.com/s/O0W6vCuqQfeAH0UB7elpeA">https://mp.weixin.qq.com/s/O0W6vCuqQfeAH0UB7elpeA</a></p>
 ]]></content>
       <categories>
         <category>Spring</category>
@@ -13656,17 +13781,17 @@
 <p>最常见于 CDN，一个网页通常分为静态资源（图片&#x2F;JS&#x2F;CSS等）和动态资源（JSP、PHP等），采取动静分离的方式将静态资源缓存在 CDN 边缘节点上，只需请求动态资源即可，减少网络传输和服务负载。</p>
 <p>在数据库和 KV 存储上也可以采取动态分离的方式。动静分离更像是一种垂直切分，将动态和静态的字段分别存储在不同的库表中，减小数据库锁的粒度，同时可以分配不同的数据库资源来合理提升利用率。</p>
 <h3 id="2-7-4-冷热分离"><a href="#2-7-4-冷热分离" class="headerlink" title="2.7.4 冷热分离"></a>2.7.4 冷热分离</h3><p>冷热分离可以说是每个存储产品和海量业务的必备功能，MySQL、ElasticSearch 等都直接或间接支持冷热分离。将热数据放到性能更好的存储设备上，冷数据下沉到廉价的磁盘，从而节约成本。</p>
-<h3 id="2-8-零拷贝"><a href="#2-8-零拷贝" class="headerlink" title="2.8 零拷贝"></a>2.8 零拷贝</h3><h1 id="3-易维护"><a href="#3-易维护" class="headerlink" title="3.易维护"></a>3.易维护</h1><h3 id="3-1-单一职责"><a href="#3-1-单一职责" class="headerlink" title="3.1 单一职责"></a>3.1 单一职责</h3><p>每个 API 应该只专注做一件事情。</p>
+<h2 id="2-8-零拷贝"><a href="#2-8-零拷贝" class="headerlink" title="2.8 零拷贝"></a>2.8 零拷贝</h2><h1 id="3-易维护"><a href="#3-易维护" class="headerlink" title="3.易维护"></a>3.易维护</h1><h2 id="3-1-单一职责"><a href="#3-1-单一职责" class="headerlink" title="3.1 单一职责"></a>3.1 单一职责</h2><p>每个 API 应该只专注做一件事情。</p>
 <p>就像我们开发人员一样，要么从事后台开发，要么从事前端开发，要么从事服务器运维开发。公司一般不会让一个人包揽所有的开发工作，因为这让员工的职责不够单一，不利于员工在专业领域的深耕，很容易成为万金油。对公司的影响是因员工对专业知识掌握的不够深，导致开发出的软件质量得不到保证。</p>
 <p>让接口的功能保持单一，实现起来不仅简单，维护起来也会容易很多，不会因为大而全的冗杂功能导致接口经常出错。</p>
-<h3 id="3-2-内聚解耦"><a href="#3-2-内聚解耦" class="headerlink" title="3.2 内聚解耦"></a>3.2 内聚解耦</h3><p>一个接口要包含完整的业务功能，而不同接口之间的关联要尽可能的小。</p>
+<h2 id="3-2-内聚解耦"><a href="#3-2-内聚解耦" class="headerlink" title="3.2 内聚解耦"></a>3.2 内聚解耦</h2><p>一个接口要包含完整的业务功能，而不同接口之间的关联要尽可能的小。</p>
 <p>这样便降低了对其他接口的依赖程度，如此其他接口的变动对当前接口的影响也会降低。一般都是通过消息中间件 MQ 来完成接口之间的耦合。</p>
-<h3 id="3-3-开闭原则"><a href="#3-3-开闭原则" class="headerlink" title="3.3 开闭原则"></a>3.3 开闭原则</h3><p>对扩展开放，对修改关闭。</p>
+<h2 id="3-3-开闭原则"><a href="#3-3-开闭原则" class="headerlink" title="3.3 开闭原则"></a>3.3 开闭原则</h2><p>对扩展开放，对修改关闭。</p>
 <p>这句话怎么理解呢，也就是说，我们在设计一个接口的时候，应当使这个接口可以在不被修改的前提下被扩展其功能。换句话说，应当可以在不修改源代码的情况下改变接口的行为。</p>
 <p>比如 IM 应用中，当用户输入简介时有个长度限制，我们不应该将长度限制写死在代码，可以通过配置文件的方式来动态扩展，这就做到了对扩展开放（用户简介长度可以变更），对修改关闭（不需要修改代码）。</p>
-<h3 id="3-4-入参校验"><a href="#3-4-入参校验" class="headerlink" title="3.4 入参校验"></a>3.4 入参校验</h3><p>自己收到的请求要做好入参校验，及早发现无效请求并拒绝，然后告警。发现垃圾请求后推动上游不要传递无效请求至下游。</p>
+<h2 id="3-4-入参校验"><a href="#3-4-入参校验" class="headerlink" title="3.4 入参校验"></a>3.4 入参校验</h2><p>自己收到的请求要做好入参校验，及早发现无效请求并拒绝，然后告警。发现垃圾请求后推动上游不要传递无效请求至下游。</p>
 <p>此时，我们是上游的下游，做好入参校验，避免做无用功。</p>
-<h1 id="4-低风险"><a href="#4-低风险" class="headerlink" title="4.低风险"></a>4.低风险</h1><p>虽然很多时候感觉网络攻击和安全事故离我们很远，但一旦发生，后面不堪设想，所以服务接口的安全问题是设计实现过程中不得不考虑的一环。</p>
+<h1 id="4-安全"><a href="#4-安全" class="headerlink" title="4.安全"></a>4.安全</h1><p>虽然很多时候感觉网络攻击和安全事故离我们很远，但一旦发生，后面不堪设想，所以服务接口的安全问题是设计实现过程中不得不考虑的一环。</p>
 <p>下面将列举常见的服务接口面临的安全问题与应对策略，来加固我们的服务，降低安全风险。</p>
 <h2 id="4-1-防-XSS"><a href="#4-1-防-XSS" class="headerlink" title="4.1 防 XSS"></a>4.1 防 XSS</h2><h3 id="4-1-1-简介"><a href="#4-1-1-简介" class="headerlink" title="4.1.1 简介"></a>4.1.1 简介</h3><p>XSS（Cross Site Scripting）名为跨站脚本攻击，因其缩写会与层叠样式表（Cascading Style Sheets，CSS）混淆，故将其缩写为 XSS。</p>
 <p>XSS 漏洞是 Web 安全中最为常见的漏洞，通常指的是通过利用网页开发时留下的漏洞，通过巧妙的方法注入恶意指令代码到网页中，使用户加载并执行攻击者恶意制造的网页程序。这些恶意网页程序通常是 JavaScript，但实际上也可以包括 Java、 VBScript、ActiveX、 Flash，甚至是普通的 HTML。攻击成功后，攻击者可能得到包括但不限于更高的权限（如执行一些操作）、私密网页内容、会话和 Cookie 等各种内容。</p>
@@ -13705,7 +13830,13 @@
 <p><strong>如何防重放?</strong> 防重放的目的是不允许让相同内容的请求重复发起。对于一个具体的请求，我们可以限制某个请求的生命周期，如果超过其生命周期，认定为非法请求，这样便起到了防重放的效果。</p>
 <p>具体做法是： 1. 客户端基于”请求内容+时间戳+密钥”计算一个签名 signature1，一般使用 <a href="https://link.zhihu.com/?target=https://baike.baidu.com/item/hmac/7307543">HMAC</a>。 2. 客户端请求后台接口时带上签名 signature1。 3. 后台拿到签名后，会使用相同的算法计算出一个签名与前端带来的签名做比较，如果不一致，说明请求非法，直接拒绝。</p>
 <p>因为黑客不知道签名秘钥，没有办法生成新的签名。</p>
-<p>以上做法需要注意几个问题： - 签名计算使用的算法可能会被坏人破解。因为对于 APP 或桌面应用，坏人可以<a href="https://zhida.zhihu.com/search?content_id=210105242&content_type=Article&match_order=1&q=%E5%8F%8D%E6%B1%87%E7%BC%96&zhida_source=entity">反汇编</a>获取。 - 签名计算时使用密钥需要保存在客户端本地，可能会有泄露的风险。因为对于 APP 或桌面应用，坏人可以反汇编获取。 - 终端使用的时间戳是由后台返回的，这样防止前后端的本地时间不一致导致生成的签名。 - 不适用于 Web 应用，坏人是可以直接查看网页源码获取签名计算使用的算法和密钥。</p>
+<p>以上做法需要注意几个问题：</p>
+<ul>
+<li>签名计算使用的算法可能会被坏人破解。因为对于 APP 或桌面应用，坏人可以反汇编获取。 </li>
+<li>签名计算时使用密钥需要保存在客户端本地，可能会有泄露的风险。因为对于 APP 或桌面应用，坏人可以反汇编获取。 </li>
+<li>终端使用的时间戳是由后台返回的，这样防止前后端的本地时间不一致导致生成的签名。 </li>
+<li>不适用于 Web 应用，坏人是可以直接查看网页源码获取签名计算使用的算法和密钥。</li>
+</ul>
 <p>如果要严格做到一段时间内某个请求只能被请求一次，需要对请求进行次数的统计，会用到后台存储，实现起来会复杂一点。不过一般不需要这么做。</p>
 <p>这个功能为服务接口的公共功能，建议做在网关层或单独的安全层。</p>
 <h2 id="4-7-防-DDoS"><a href="#4-7-防-DDoS" class="headerlink" title="4.7 防 DDoS"></a>4.7 防 DDoS</h2><p><strong>什么是 DDoS 攻击？</strong> DDoS（Distributed Denial of Service）是分布式拒绝服务攻击，攻击者利用分散在各地的设备发出海量实际上并不需要的互联网流量，耗尽目标的资源，造成正常流量无法到达其预定目的地或目标服务被压垮无法提供正常服务。</p>
@@ -13745,6 +13876,842 @@
 ]]></content>
       <categories>
         <category>微服务接口设计原则</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>Redis主从切换，锁失效 怎么办？</title>
+    <url>/2024/11/09/%E6%95%B0%E6%8D%AE%E5%BA%93&amp;%E7%BC%93%E5%AD%98/Redis/Redis%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2%EF%BC%8C%E9%94%81%E5%A4%B1%E6%95%88%20%E6%80%8E%E4%B9%88%E5%8A%9E%EF%BC%9F/</url>
+    <content><![CDATA[<h1 id="1-Redis主从架构的分布式锁的执行流程"><a href="#1-Redis主从架构的分布式锁的执行流程" class="headerlink" title="1.Redis主从架构的分布式锁的执行流程"></a>1.Redis主从架构的分布式锁的执行流程</h1><p>在Redis主从架构中，写入的都是 master Redis实例，master 主实例会向 slave 从实例同步key。</p>
+<p>一个业务线程 通过向主Redis实例中写入 key-value 来实现加分布式锁，加锁后开始执行业务代码。</p>
+<p>具体如下图所示：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202411091331425.webp" alt="图片"></p>
+<p>当前，这里也涉及到一个核心问题： 锁过期了，业务还没执行完， 怎么办？</p>
+<p>锁过期问题,大概的解决方案 有2种：</p>
+<p>1：模拟CAS乐观锁的方式，增加版本号</p>
+<p>2：<strong>watch dog自动延期机制</strong>（推荐）</p>
+<p>现在聚焦的问题： master Redis实例挂掉了，slave 从Redis 还没有完成复制，导致 Redis分布式锁失效，怎么办？</p>
+<span id="more"></span>
+
+<h1 id="2-master-挂了但slave-没有完成复制，锁失效了，怎么办？"><a href="#2-master-挂了但slave-没有完成复制，锁失效了，怎么办？" class="headerlink" title="2.master 挂了但slave 没有完成复制，锁失效了，怎么办？"></a>2.master 挂了但slave 没有完成复制，锁失效了，怎么办？</h1><p>一般情况下：如果主master Redis实例挂掉了，会选举出一个从Redis实例成为主的。这是redis 集群的故障转移机制。</p>
+<p>但是，如果刚刚加锁的key还没有来得及同步到slave Redis中，新选出的主Redis实例中就没有这个key，这个时候业务线程B就能加锁来获取分布式锁，导致锁失效了。线程B 加锁成功，也执行业务代码了。</p>
+<p>而这个时候A还没有执行结束，所以就会出现并发安全问题，这就是Redis主从架构下的分布式锁失效问题。</p>
+<h1 id="3-Redis-分布式锁的高可用方案"><a href="#3-Redis-分布式锁的高可用方案" class="headerlink" title="3.Redis 分布式锁的高可用方案"></a>3.Redis 分布式锁的高可用方案</h1><p>本质上，Redis 分布式锁的高可用，有两个层面的解决方案：</p>
+<p><img src="https://mmbiz.qpic.cn/sz_mmbiz_png/xlgvgPaib7WOviahK2JPlGTB89D57hDSNo9bHjdRVz2TbJJqcGpvvl3yqlnekwV2Hz0kIIicwO7mXvTb3dBUj5vbw/640?wx_fmt=png&from=appmsg&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1" alt="图片"></p>
+<h2 id="3-1-Server端-的高可用方案"><a href="#3-1-Server端-的高可用方案" class="headerlink" title="3.1.Server端 的高可用方案"></a>3.1.Server端 的高可用方案</h2><p>Redis 分布式锁的Server端高可用方案, 就是通过配置， 保证Server 尽量可能少的数据丢失。</p>
+<p>在redis的配置文件中有两个参数我们可以设置：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">min-slaves-to-write 1</span><br><span class="line">min-slaves-max-lag 10</span><br></pre></td></tr></table></figure>
+
+<p>min-slaves-to-write默认情况下是0，min-slaves-max-lag默认情况下是10。</p>
+<ul>
+<li><code>min-slaves-to-write</code>：设置主库最少得有 N 个健康的从库存活才能执行写命令。这个配置虽然不能保证 N 个从库都一定能接收到主库的写操作，但是能避免当没有足够健康的从库时，主库无法正常写入，以此来避免数据的丢失。</li>
+<li><code>min-slaves-max-lag</code>：配置从库和主库进行数据复制时的 ACK 消息延迟的最大时间，可以确保从库在指定的时间内，如果 ACK 时间没在规定时间内，则拒绝写入。</li>
+</ul>
+<p>以上面配置为例，这两个参数表示至少有1个salve的与master的同步复制延迟不能超过10s，一旦所有的slave复制和同步的延迟达到了10s，那么此时master就不会接受任何请求。</p>
+<p>可以减小min-slaves-max-lag参数的值，这样就可以避免在发生故障时大量的数据丢失，一旦发现延迟超过了该值就不会往master中写入数据。</p>
+<p>配置了 Server端 的高可用方案， 那么对于client，可以设计好合理的降级措施。</p>
+<p>如果 Server端 不可用，需要进行及时预警和合理的降级。 比如，把redis 锁降级为 Zookeeper 分布式锁。</p>
+<p>从 CAP定理来说， Redis集群倾向AP（高并发），ZP集群则倾向CP（高可用）。</p>
+<p>从写入的流程上来说：</p>
+<ul>
+<li>在向Redis集群里的主结点写入数据时，写入主节点就立刻告诉客户端写入成功。</li>
+<li>而在向ZK的主结点写入数据时，并不是立刻告诉客户端写入成功，而是先同步给从结点，至少半数的节点同步成功才能返回“写入成功”给客户端。</li>
+</ul>
+<p>这个时候如果ZK的主节点挂了，ZK的ZAB分布式一致性协议能保证一定是数据同步完成的结点被选举为主节点，所以ZK 不会发生分布式锁的失效问题。</p>
+<p>但是，ZK是低性能的方案。</p>
+<h2 id="3-2-Client-端-的高可用方案"><a href="#3-2-Client-端-的高可用方案" class="headerlink" title="3.2.Client 端 的高可用方案"></a>3.2.Client 端 的高可用方案</h2><p>如果不改用ZK，就是要用Redis Client 端 方案来解决主从架构的分布式锁失效问题。</p>
+<p>Client 端 的高可用方案，就是使用 红锁（RedLock）。</p>
+<p>什么是RedLock ？ 红锁（RedLock） 的设计，就是从 client 客户端 解决了单一 Redis 实例作为分布式锁可能出现的单点故障问题。</p>
+<p>红锁（RedLock）是一种分布式锁算法，由 Redis 的作者 Salvatore Sanfilippo（也称为 Antirez）设计，用于在分布式系统中实现可靠的锁机制。</p>
+<p><strong>红锁（RedLock）实现原理：</strong></p>
+<ol>
+<li><strong>多节点加锁：</strong> RedLock 不在单个 Redis 实例上加锁，而是在多个独立的 Redis 实例上同时尝试获取锁。通常建议使用奇数个 Redis 实例（如 5 个），以确保系统具有较好的容错性。</li>
+<li><strong>多数节点同意：</strong> 系统只有在获得了大多数 Redis 实例的锁（即 N&#x2F;2 + 1 个节点，N 为节点总数）之后，才认为成功获取了分布式锁。这样即使部分 Redis 实例发生故障，整体锁服务仍然可用。</li>
+<li><strong>时间同步：</strong> 为防止客户端在持有锁的过程中发生故障而导致锁无法释放，RedLock 会在获取锁时设置一个超时时间。如果客户端在锁超时之前未能完成任务并释放锁，其他客户端可以在锁超时后重新尝试获取。</li>
+<li><strong>锁释放：</strong> 释放锁时，客户端需要向所有 Redis 实例发送释放锁的命令，以确保所有实例上的锁都被清除。</li>
+</ol>
+<p>首先要有多个（最好是奇数个）对等的（没有主从关系）Redis结点。</p>
+<p>当进行加锁时（比如是用SETNX命令），则这个设置key-value的命令会发给每个Redis结点执行，当且仅当客户端收到超过半数的结点写成功的消息时，才认为加锁成功，才开始执行后面的业务代码。</p>
+<p><strong>红锁（RedLock）具体应用：</strong></p>
+<p>红锁（RedLock）工作流程，总结如下：</p>
+<ol>
+<li>客户端尝试顺序地向所有 Redis 实例发送加锁命令。</li>
+<li>对于每个实例，客户端尝试在指定的超时时间内获取锁。</li>
+<li>客户端计算已经成功加锁的实例数量，如果达到多数（N&#x2F;2 + 1），则认为客户端成功获取了分布式锁。</li>
+<li>如果获取锁失败，客户端需要向所有实例发送释放锁的命令，以避免留下未释放的锁。</li>
+</ol>
+]]></content>
+      <categories>
+        <category>数据库&amp;缓存</category>
+        <category>Redis</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>解析RocketMQ中的NameServer</title>
+    <url>/2024/11/10/MQ/%E8%A7%A3%E6%9E%90RocketMQ%E4%B8%AD%E7%9A%84NameServer/</url>
+    <content><![CDATA[<p>Name Server 负责维护整个 RocketMQ 集群中各个 Broker 的路由信息，客户端通过与 Name Server 交互获取消息发送或者消费的路由信息。</p>
+<p>下面详细解释一下 Name Server 的功能：</p>
+<span id="more"></span>
+
+<h2 id="1、路由注册"><a href="#1、路由注册" class="headerlink" title="1、路由注册"></a><strong>1、路由注册</strong></h2><p>当一个 Broker 启动时，它会向 Name Server 注册自己的信息，包括 Broker 的名称、IP 地址、监听端口等。Name Server 会将这些信息记录下来，并在需要时向其他组件提供。</p>
+<p>那么路由注册是如何进行的呢？</p>
+<h3 id="1-1-Broker-启动时注册"><a href="#1-1-Broker-启动时注册" class="headerlink" title="1.1.  Broker 启动时注册"></a><strong>1.1.  Broker 启动时注册</strong></h3><p>当一个 Broker 启动时，它会向集群中的所有 Name Server 发送注册请求。这个注册请求包含了 Broker 的基本信息，如 Broker 名称、IP地址、监听端口等。</p>
+<h3 id="1-2-Name-Server-接收注册请求"><a href="#1-2-Name-Server-接收注册请求" class="headerlink" title="1.2 Name Server 接收注册请求"></a><strong>1.2 Name Server 接收注册请求</strong></h3><p>Name Server 接收到 Broker 的注册请求后，会将该 Broker 的信息记录下来，并在自身的路由表中维护该 Broker 的路由信息。</p>
+<h3 id="1-3-路由信息更新"><a href="#1-3-路由信息更新" class="headerlink" title="1.3 路由信息更新"></a><strong>1.3 路由信息更新</strong></h3><p>如果一个 Broker 发生了变化，比如新增了一个 Broker 节点、删除了一个 Broker 节点或者修改了 Broker 的配置信息，那么该 Broker 会重新向 Name Server 发送注册请求，告知 Name Server 发生了变化。Name Server 接收到变化后会更新自身的路由表，保证路由信息的实时性和准确性。</p>
+<h3 id="1-4-心跳检测"><a href="#1-4-心跳检测" class="headerlink" title="1.4 心跳检测"></a><strong>1.4 心跳检测</strong></h3><p>Broker会定期向已注册的 Name Server 发送心跳请求，提交并更新自己的信息，Name Server 可以据此检测 Broker 的状态是否正常。如果某个 Broker 长时间未响应心跳请求，Name Server 会将其标记为不可用，并从路由信息中移除，以保证客户端获取到的路由信息是最新的和可用的。</p>
+<h3 id="1-5-路由信息的提供"><a href="#1-5-路由信息的提供" class="headerlink" title="1.5 路由信息的提供"></a><strong>1.5 路由信息的提供</strong></h3><p>客户端在需要与 Broker 通信时，先通过与 Name Server 交互获取路由信息。Name Server 会根据客户端的请求，提供相应的路由信息，包括 Broker 的地址和端口等。客户端可以根据路由信息选择合适的 Broker 进行通信。</p>
+<h2 id="2、路由查询"><a href="#2、路由查询" class="headerlink" title="2、路由查询"></a><strong>2、路由查询</strong></h2><p>客户端（包括生产者和消费者）需要与 Broker 通信时，首先要获取 Broker 的路由信息，以确定消息应该发送到哪个 Broker 或者从哪个 Broker 消费消息。客户端通过与 Name Server 交互，可以获取到所需的 Broker 信息，包括该 Broker 所在的地址和端口等。</p>
+<p>那么路由查询具体如何执行的呢？</p>
+<h3 id="2-1-客户端发送路由查询请求"><a href="#2-1-客户端发送路由查询请求" class="headerlink" title="2.1  客户端发送路由查询请求"></a><strong>2.1  客户端发送路由查询请求</strong></h3><p>客户端在需要与 Broker 通信时，首先向集群中的任意一个 Name Server 发送路由查询请求。查询请求中通常包含了客户端所需操作的主题（Topic）信息。</p>
+<h3 id="2-2-Name-Server-接收路由查询请求"><a href="#2-2-Name-Server-接收路由查询请求" class="headerlink" title="2.2 Name Server 接收路由查询请求"></a><strong>2.2 Name Server 接收路由查询请求</strong></h3><p>当一个 Name Server 接收到路由查询请求后，会根据请求中的主题信息，在自身维护的路由表中查找与该主题相关的 Broker 的路由信息。</p>
+<h3 id="2-3-路由信息响应"><a href="#2-3-路由信息响应" class="headerlink" title="2.3 路由信息响应"></a><strong>2.3 路由信息响应</strong></h3><p>如果 Name Server 找到了与请求主题相关的 Broker 的路由信息，它会将这些路由信息打包成响应，发送给客户端。路由信息中包括了每个 Broker 的名称、地址、端口等信息。</p>
+<h3 id="2-4-客户端获取路由信息"><a href="#2-4-客户端获取路由信息" class="headerlink" title="2.4 客户端获取路由信息"></a><strong>2.4 客户端获取路由信息</strong></h3><p>客户端接收到 Name Server 的响应后，获取到了与请求主题相关的 Broker 的路由信息。根据这些路由信息，客户端可以选择合适的 Broker 进行通信。</p>
+<h3 id="2-5-负载均衡和容错处理"><a href="#2-5-负载均衡和容错处理" class="headerlink" title="2.5 负载均衡和容错处理"></a><strong>2.5 负载均衡和容错处理</strong></h3><p>客户端在获取到路由信息后，通常会根据一定的负载均衡策略选择一个Broker进行通信。同时，客户端也会实施一些容错机制，如当选择的 Broker 不可用时，会尝试选择其他可用的 Broker 进行通信。</p>
+<h2 id="3、心跳检测"><a href="#3、心跳检测" class="headerlink" title="3、心跳检测"></a><strong>3、心跳检测</strong></h2><p>Name Server 会定期向已注册的 Broker 发送心跳请求，以检测 Broker 的状态是否正常。如果某个 Broker 长时间未响应心跳请求，Name Server 会将其标记为不可用，并从路由信息中移除，以保证客户端获取到的路由信息是最新的和可用的。</p>
+<h3 id="3-1-Broker-注册时发送心跳"><a href="#3-1-Broker-注册时发送心跳" class="headerlink" title="3.1 Broker 注册时发送心跳"></a><strong>3.1 Broker 注册时发送心跳</strong></h3><p>当一个 Broker 启动并向 Name Server 注册时，它会定期（通常是每隔一定时间间隔）向所有已知的 Name Server 发送心跳消息。</p>
+<h3 id="3-2-心跳消息格式"><a href="#3-2-心跳消息格式" class="headerlink" title="3.2 心跳消息格式"></a><strong>3.2 心跳消息格式</strong></h3><p>心跳消息通常包含了 Broker 的基本信息，比如 Broker 名称、IP 地址、监听端口等。这些信息用于让 Name Server 确认 Broker 的存在和可用性。</p>
+<h3 id="3-3-Name-Server-接收心跳消息"><a href="#3-3-Name-Server-接收心跳消息" class="headerlink" title="3.3 Name Server 接收心跳消息"></a><strong>3.3 Name Server 接收心跳消息</strong></h3><p>当一个 Name Server 接收到 Broker 发送的心跳消息后，会更新自己维护的 Broker 信息表，标记该 Broker 为在线状态，并记录下最近收到心跳的时间。</p>
+<h3 id="3-4-超时检测"><a href="#3-4-超时检测" class="headerlink" title="3.4 超时检测"></a><strong>3.4 超时检测</strong></h3><p>Name Server 会定期检查维护的 Broker 信息表，判断哪些 Broker 已经超过了一定的时间没有发送心跳消息。如果发现某个 Broker 已经长时间未发送心跳消息，则认为该 Broker 可能已经宕机或者不可用。</p>
+<h3 id="3-5-处理超时-Broker"><a href="#3-5-处理超时-Broker" class="headerlink" title="3.5 处理超时 Broker"></a><strong>3.5 处理超时 Broker</strong></h3><p>当发现某个 Broker 已经超时未发送心跳消息时，Name Server会将其标记为离线状态，并从维护的 Broker 信息表中移除该 Broker 的信息。同时，Name Server会将这一信息广播给集群中的其他 Name Server，以确保整个集群中都能及时更新 Broker 的状态。</p>
+<h3 id="3-6-更新路由信息"><a href="#3-6-更新路由信息" class="headerlink" title="3.6 更新路由信息"></a><strong>3.6 更新路由信息</strong></h3><p>当有 Broker 的状态发生变化时，Name Server 会相应地更新维护的路由信息表。这样，客户端在获取路由信息时可以获得最新的、可用的 Broker 列表。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a><strong>总结</strong></h2><p>也就是说通过路由信息的维护和查询，Name Server 实现了 Broker 集群的动态扩展和节点的动态发现，使得 RocketMQ 集群具备了高可用性和灵活性。客户端通过与 Name Server 交互，可以快速地获取到消息发送和消费的路由信息，从而实现消息的可靠传输和高效处理。</p>
+]]></content>
+      <categories>
+        <category>MQ</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>大量的 TIME_WAIT 状态 TCP 连接，对业务有什么影响？怎么处理？</title>
+    <url>/2024/09/01/Linux%E7%9B%B8%E5%85%B3/%E5%A4%A7%E9%87%8F%E7%9A%84%20TIME_WAIT%20%E7%8A%B6%E6%80%81%20TCP%20%E8%BF%9E%E6%8E%A5%EF%BC%8C%E5%AF%B9%E4%B8%9A%E5%8A%A1%E6%9C%89%E4%BB%80%E4%B9%88%E5%BD%B1%E5%93%8D%EF%BC%9F%E6%80%8E%E4%B9%88%E5%A4%84%E7%90%86%EF%BC%9F/</url>
+    <content><![CDATA[<p>[toc]</p>
+<h3 id="1-问题描述"><a href="#1-问题描述" class="headerlink" title="1.问题描述"></a>1.问题描述</h3><p>模拟高并发的场景，会出现批量的 <code>TIME_WAIT</code> 的 TCP 连接：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202510061642147.png" alt="图片"></p>
+<p>短时间后，所有的 <code>TIME_WAIT</code> 全都消失，被回收，端口包括服务，均正常。</p>
+<p>即，在高并发的场景下，<code>TIME_WAIT</code> 连接存在，属于正常现象。</p>
+<p>线上场景中，持续的高并发场景</p>
+<ul>
+<li>一部分 <code>TIME_WAIT</code> 连接被回收，但新的 <code>TIME_WAIT</code> 连接产生；</li>
+<li>一些极端情况下，会出现<strong>大量</strong>的 <code>TIME_WAIT</code> 连接。</li>
+</ul>
+<p>Think：</p>
+<blockquote>
+<p>上述大量的 <code>TIME_WAIT</code> 状态 TCP 连接，有什么业务上的影响吗？</p>
+</blockquote>
+<p>Nginx 作为反向代理时，大量的短链接，可能导致 Nginx 上的 TCP 连接处于 <code>time_wait</code> 状态：</p>
+<ul>
+<li>每一个 time_wait 状态，都会占用一个「本地端口」，上限为 <code>65535</code>(16 bit，2 Byte)；</li>
+<li>当大量的连接处于 <code>time_wait</code> 时，新建立 TCP 连接会出错，<strong>address already in use : connect</strong> 异常</li>
+</ul>
+<p>统计 TCP 连接的状态：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1.  `// 统计：各种连接的数量`</span><br><span class="line">2.  `$ netstat -n | awk &#x27;/^tcp/ &#123;++S[$NF]&#125; END &#123;for(a in S) print a, S[a]&#125;&#x27;`</span><br><span class="line">3.  `ESTABLISHED 1154`</span><br><span class="line">4.  `TIME_WAIT 1645`</span><br></pre></td></tr></table></figure>
+
+<p>Tips：</p>
+<blockquote>
+<p>TCP 本地端口数量，上限为 <code>65535</code>（6.5w），这是因为 TCP 头部使用 <code>16 bit</code>，存储「<strong>端口号</strong>」，因此约束上限为 <code>65535</code>。</p>
+</blockquote>
+<span id="more"></span>
+
+<h3 id="2-问题分析"><a href="#2-问题分析" class="headerlink" title="2.问题分析"></a>2.问题分析</h3><p>大量的 <code>TIME_WAIT</code> 状态 TCP 连接存在，其本质原因是什么？</p>
+<ul>
+<li>大量的<strong>短连接</strong>存在</li>
+<li>特别是 HTTP 请求中，如果 <code>connection</code> 头部取值被设置为 <code>close</code> 时，基本都由「<strong>服务端</strong>」发起<strong>主动关闭连接</strong></li>
+<li>而，<code>TCP 四次挥手</code>关闭连接机制中，为了保证 <code>ACK 重发</code>和<code>丢弃延迟数据</code>，设置 <code>time_wait</code> 为 2 倍的 <code>MSL</code>（报文最大存活时间）</li>
+</ul>
+<p>TIME_WAIT 状态：</p>
+<ul>
+<li>TCP 连接中，<strong>主动关闭连接</strong>的一方出现的状态；（收到 FIN 命令，进入 TIME_WAIT 状态，并返回 ACK 命令）</li>
+<li>保持 2 个 <code>MSL</code> 时间，即，<code>4 分钟</code>；（MSL 为 2 分钟）</li>
+</ul>
+<h3 id="3-解决办法"><a href="#3-解决办法" class="headerlink" title="3.解决办法"></a>3.解决办法</h3><p>解决上述 <code>time_wait</code> 状态大量存在，导致新连接创建失败的问题，一般解决办法：</p>
+<p>1、<strong>客户端</strong>，HTTP 请求的头部，connection 设置为 keep-alive，保持存活一段时间：现在的浏览器，一般都这么进行了;</p>
+<p>2、<strong>服务器端</strong>，</p>
+<ul>
+<li>允许 <code>time_wait</code> 状态的 socket 被<strong>重用</strong></li>
+<li>缩减 <code>time_wait</code> 时间，设置为 <code>1 MSL</code>（即，2 mins）</li>
+</ul>
+<p>更多细节，参考：</p>
+<ul>
+<li><a href="https://www.cnblogs.com/yjf512/p/5327886.html">https://www.cnblogs.com/yjf512/p/5327886.html</a></li>
+</ul>
+<p><strong>结论</strong>：几个核心要点</p>
+<p>1、 <strong>time_wait 状态的影响</strong>：</p>
+<ul>
+<li>TCP 连接中，「主动发起关闭连接」的一端，会进入 time_wait 状态</li>
+<li>time_wait 状态，默认会持续 <code>2 MSL</code>（报文的最大生存时间），一般是 2x2 mins</li>
+<li>time_wait 状态下，TCP 连接占用的端口，无法被再次使用</li>
+<li>TCP 端口数量，上限是 6.5w（<code>65535</code>，16 bit）</li>
+<li>大量 time_wait 状态存在，会导致新建 TCP 连接会出错，<strong>address already in use : connect</strong> 异常</li>
+</ul>
+<p>2、 <strong>现实场景</strong>：</p>
+<ul>
+<li>服务器端，一般设置：<strong>不允许</strong>「主动关闭连接」</li>
+<li>但 HTTP 请求中，http 头部 connection 参数，可能设置为 close，则，服务端处理完请求会主动关闭 TCP 连接</li>
+<li>现在浏览器中， HTTP 请求 <code>connection</code> 参数，一般都设置为 <code>keep-alive</code></li>
+<li>Nginx 反向代理场景中，可能出现大量短链接，服务器端，可能存在</li>
+</ul>
+<p>3、 <strong>解决办法：服务器端</strong>，</p>
+<ul>
+<li><p>允许 <code>time_wait</code> 状态的 socket 被重用</p>
+</li>
+<li><p>缩减 <code>time_wait</code> 时间，设置为 <code>1 MSL</code>（即，2 mins）</p>
+</li>
+</ul>
+<h3 id="4-附录"><a href="#4-附录" class="headerlink" title="4.附录"></a>4.附录</h3><p>几个方面：</p>
+<ol>
+<li>TCP 连接状态的查询</li>
+<li>MSL 时间</li>
+<li>TCP 三次握手和四次握手</li>
+</ol>
+<h3 id="附录-A：查询-TCP-连接状态"><a href="#附录-A：查询-TCP-连接状态" class="headerlink" title="附录 A：查询 TCP 连接状态"></a>附录 A：查询 TCP 连接状态</h3><p>Mac 下，查询 TCP 连接状态的具体命令：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1.  `// Mac 下，查询 TCP 连接状态`</span><br><span class="line">2.  `$ netstat -nat |grep TIME_WAIT`</span><br><span class="line">3.  ``</span><br><span class="line">4.  `// Mac 下，查询 TCP 连接状态，其中 -E 表示 grep 或的匹配逻辑`</span><br><span class="line">5.  `$ netstat -nat | grep -E &quot;TIME_WAIT|Local Address&quot;`</span><br><span class="line">6.  `Proto  Recv-Q Send-Q Local  Address  Foreign  Address  (state)`</span><br><span class="line">7.  `tcp4 0  0  127.0.0.1.1080  127.0.0.1.59061 TIME_WAIT`</span><br><span class="line">8.  ``</span><br><span class="line">9.  `// 统计：各种连接的数量`</span><br><span class="line">10.  `$ netstat -n | awk &#x27;/^tcp/ &#123;++S[$NF]&#125; END &#123;for(a in S) print a, S[a]&#125;&#x27;`</span><br><span class="line">11.  `ESTABLISHED 1154`</span><br><span class="line">12.  `TIME_WAIT 1645`</span><br></pre></td></tr></table></figure>
+
+<h3 id="附录-B：MSL-时间"><a href="#附录-B：MSL-时间" class="headerlink" title="附录 B：MSL 时间"></a>附录 B：MSL 时间</h3><p>MSL，Maximum Segment Lifetime，“报文最大生存时间”，</p>
+<ol>
+<li>任何报文在网络上存在的最长时间，超过这个时间报文将被丢弃。（IP 报文）</li>
+<li>TCP报文 （segment）是ip数据报（datagram）的数据部分。</li>
+</ol>
+<p>Tips：</p>
+<blockquote>
+<p>RFC 793中规定MSL为2分钟，实际应用中常用的是30秒，1分钟和2分钟等。</p>
+</blockquote>
+<p>2MSL，TCP 的 <code>TIME_WAIT</code> 状态，也称为<strong>2MSL等待状态</strong>：</p>
+<ol>
+<li>当TCP的一端发起主动关闭（收到 FIN 请求），在发出最后一个ACK 响应后，即第3次握 手完成后，发送了第四次握手的ACK包后，就进入了TIME_WAIT状态。</li>
+<li>必须在此状态上停留两倍的MSL时间，等待2MSL时间主要目的是怕最后一个 ACK包对方没收到，那么对方在超时后将重发第三次握手的FIN包，主动关闭端接到重发的FIN包后，可以再发一个ACK应答包。</li>
+<li>在 TIME_WAIT 状态时，两端的端口不能使用，要等到2MSL时间结束，才可继续使用。（IP 层）</li>
+<li>当连接处于2MSL等待阶段时，任何迟到的报文段都将被丢弃。</li>
+</ol>
+<p>不过在实际应用中，可以通过设置 「<strong>SO_REUSEADDR选项</strong>」，达到不必等待2MSL时间结束，即可使用被占用的端口。</p>
+<h3 id="附录-C：TCP-三次握手和四次握手"><a href="#附录-C：TCP-三次握手和四次握手" class="headerlink" title="附录 C：TCP 三次握手和四次握手"></a>附录 C：TCP 三次握手和四次握手</h3><p>详细细节，参考：</p>
+<ul>
+<li>TCP的三次握手与四次挥手（详解+动图）</li>
+</ul>
+<p>具体示意图：</p>
+<ol>
+<li><strong>三次握手</strong>，<code>建立</code>连接过程</li>
+<li><strong>四次挥手</strong>，<code>释放</code>连接过程</li>
+</ol>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202510061642590.png" alt="图片"></p>
+<p>几个核心疑问：</p>
+<p>1、 <strong>time_wait 是「服务器端」的状态？or 「客户端」的状态？</strong></p>
+<ul>
+<li>RE：time_wait 是「主动关闭 TCP 连接」一方的状态，可能是「客服端」的，也可能是「服务器端」的</li>
+<li>一般情况下，都是「客户端」所处的状态；「服务器端」一般设置「不主动关闭连接」</li>
+</ul>
+<p>2、 <strong>服务器在对外服务时，是「客户端」发起的断开连接？还是「服务器」发起的断开连接？</strong></p>
+<ul>
+<li>正常情况下，都是「客户端」发起的断开连接</li>
+<li>「服务器」一般设置为「不主动关闭连接」，服务器通常执行「被动关闭」</li>
+<li>但 HTTP 请求中，http 头部 connection 参数，可能设置为 close，则，服务端处理完请求会主动关闭 TCP 连接</li>
+</ul>
+<p>关于 Apache httpd 服务器的关联配置，参考：<a href="https://elf8848.iteye.com/blog/1739571">https://elf8848.iteye.com/blog/1739571</a></p>
+<p>关于 HTTP 请求中，设置的主动关闭 TCP 连接的机制：TIME_WAIT的是主动断开方才会出现的，所以主动断开方是服务端？</p>
+<ul>
+<li>答案是是的。在HTTP1.1协议中，有个 Connection 头，Connection有两个值，close和keep-alive，这个头就相当于客户端告诉服务端，服务端你执行完成请求之后，是关闭连接还是保持连接，保持连接就意味着在保持连接期间，只能由客户端主动断开连接。还有一个keep-alive的头，设置的值就代表了服务端保持连接保持多久。</li>
+<li>HTTP默认的Connection值为close，那么就意味着关闭请求的一方几乎都会是由服务端这边发起的。那么这个服务端产生TIME_WAIT过多的情况就很正常了。</li>
+<li>虽然HTTP默认Connection值为close，但是，现在的浏览器发送请求的时候一般都会设置Connection为keep-alive了。所以，也有人说，现在没有必要通过调整参数来使TIME_WAIT降低了。</li>
+</ul>
+<p>关于 <strong>time_wait</strong>：</p>
+<p>1、TCP 连接建立后，「<strong>主动关闭连接</strong>」的一端，收到对方的 FIN 请求后，发送 ACK 响应，会处于 time_wait 状态；</p>
+<p>2、 <strong>time_wait 状态</strong>，存在的<code>必要性</code>：</p>
+<ul>
+<li><strong>可靠的实现 TCP 全双工连接的终止</strong>：四次挥手关闭 TCP 连接过程中，最后的 ACK 是由「主动关闭连接」的一端发出的，如果这个 ACK 丢失，则，对方会重发 FIN 请求，因此，在「主动关闭连接」的一段，需要维护一个 time_wait 状态，处理对方重发的 FIN 请求；</li>
+<li><strong>处理延迟到达的报文</strong>：由于路由器可能抖动，TCP 报文会延迟到达，为了避免「延迟到达的 TCP 报文」被误认为是「新 TCP 连接」的数据，则，需要在允许新创建 TCP 连接之前，保持一个不可用的状态，等待所有延迟报文的消失，一般设置为 2 倍的 MSL（报文的最大生存时间），解决「延迟达到的 TCP 报文」问题；</li>
+</ul>
+<p>转载自：</p>
+<p><a href="https://mp.weixin.qq.com/s/t1ZUXvAUKlIt5UtiZFh1VQ?poc_token=HCQb7majRmBp8W_PXUiBXdp2pwppq4v0y7HbFarG">https://mp.weixin.qq.com/s/t1ZUXvAUKlIt5UtiZFh1VQ?poc_token=HCQb7majRmBp8W_PXUiBXdp2pwppq4v0y7HbFarG</a></p>
+]]></content>
+      <categories>
+        <category>Linux相关</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>如何保证不丢消息</title>
+    <url>/2024/08/03/MQ/%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81%E4%B8%8D%E4%B8%A2%E6%B6%88%E6%81%AF/</url>
+    <content><![CDATA[<h2 id="一、消息丢失的原因有哪些"><a href="#一、消息丢失的原因有哪些" class="headerlink" title="一、消息丢失的原因有哪些"></a>一、消息丢失的原因有哪些</h2><h3 id="1、消息生产阶段"><a href="#1、消息生产阶段" class="headerlink" title="1、消息生产阶段"></a>1、消息生产阶段</h3><ul>
+<li>生产者配置错误：生产者在发送消息时，配置错误的主体、分区或者消息的过期时间，造成消息无法正确发送到MQ中。</li>
+<li>网络故障：生产者与MQ集群之间网络故障。</li>
+</ul>
+<h3 id="2、消息存储阶段"><a href="#2、消息存储阶段" class="headerlink" title="2、消息存储阶段"></a>2、消息存储阶段</h3><ul>
+<li>磁盘故障：以Kafka举例，如果磁盘出现故障，Kafka中的消息无法落盘，可能导致消息的丢失。</li>
+<li>同步策略：消息未同步到follow节点，leader节点就挂了。</li>
+</ul>
+<h3 id="3、消息消费阶段"><a href="#3、消息消费阶段" class="headerlink" title="3、消息消费阶段"></a>3、消息消费阶段</h3><ul>
+<li>消费者处理失败：在处理消费逻辑时，由于程序bug等原因，造成系统异常，错误应答从而丢失消息。</li>
+<li>消费者提交偏移量错误：当消费者消费完消息之后，提交错误的偏移量造成消息的重复消费或者消息丢失。</li>
+</ul>
+<span id="more"></span>
+
+<h2 id="二、消息丢失的解决方案有哪些"><a href="#二、消息丢失的解决方案有哪些" class="headerlink" title="二、消息丢失的解决方案有哪些"></a>二、消息丢失的解决方案有哪些</h2><h3 id="1、消息生产阶段-1"><a href="#1、消息生产阶段-1" class="headerlink" title="1、消息生产阶段"></a>1、消息生产阶段</h3><ul>
+<li>配置正确的主体、分区、以及TTL。</li>
+<li>使用ACK应答，等待消息被MQ写入成功之后在确认为发送成功。</li>
+</ul>
+<blockquote>
+<ul>
+<li>ack&#x3D;-1或者ack&#x3D;all：生产者需要等待ISR中的所有副本都成功写入消息才为消息发送成功。</li>
+</ul>
+</blockquote>
+<ul>
+<li><p>消息发送重试。</p>
+</li>
+<li><p>设置合理的消息缓冲区大小。</p>
+</li>
+</ul>
+<blockquote>
+<p>buffer.memory：默认33554432。生产者用于缓存一批发送到服务器消息的总内存字节数。</p>
+</blockquote>
+<h3 id="2、消息存储阶段-1"><a href="#2、消息存储阶段-1" class="headerlink" title="2、消息存储阶段"></a>2、消息存储阶段</h3><ul>
+<li><p>配置适当的副本数量和ISR。在发生故障的时候消息仍然可以从其他的副本中进行恢复。</p>
+</li>
+<li><p>使用监控，实时检测消息的复制、磁盘的使用率。</p>
+</li>
+<li><p>定期备份。</p>
+</li>
+</ul>
+<h3 id="3、消息消费阶段-1"><a href="#3、消息消费阶段-1" class="headerlink" title="3、消息消费阶段"></a>3、消息消费阶段</h3><ul>
+<li>编写健壮的代码。对于可能产生的异常原因进行分析处理。当发生异常时，可以做如下处理：<ol>
+<li>记录错误，有异常处理机制，保证能够正确的处理异常情况。</li>
+<li>消息重试消息。（需要注意消费幂等以及死循环造成消息堆积）</li>
+</ol>
+</li>
+<li>使用手动提交偏移量。（需保证所有的异常情况代码中都有对应的异常处理机制，也就是第一点，健壮的代码）</li>
+<li>使用自动提交偏移量。（需要保证消费逻辑正确）</li>
+<li>使用监控，监控消费者的消费情况，发现异常立即上报。</li>
+<li>正确的消费者组管理，类似消费者重平衡或者重启等造成的消息偏移量丢失。</li>
+<li>备份，发生异常或者消息丢失时，可以跟踪到消费者的消费情况，直接使用备份恢复。</li>
+</ul>
+<hr>
+<p>以rockermq场景而言</p>
+<p>生产者：</p>
+<ul>
+<li>同步阳塞的方式发送消息，加上失败重试机制，可能broker存储失败，可以通过查询确认</li>
+<li>异步发送需要重写回调方法，检查发送结果</li>
+<li>ack机制，可能存储CommitLog，存储ConsumerQueue失败，此时对消费者不可见</li>
+</ul>
+<p>broker：</p>
+<p>同步刷盘、集群模式下采用同步复制、会等待slave复制完成才会返回确认</p>
+<p>消费者：</p>
+<ul>
+<li>offset手动提交，消息消费保证幂等</li>
+</ul>
+]]></content>
+      <categories>
+        <category>MQ</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>负载均衡</title>
+    <url>/2024/08/16/%E7%9B%AE%E5%BD%95%E5%BE%85%E5%AE%9A/%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1/</url>
+    <content><![CDATA[<p>[toc]</p>
+<h2 id="什么是负载均衡技术"><a href="#什么是负载均衡技术" class="headerlink" title="什么是负载均衡技术"></a>什么是负载均衡技术</h2><p>&emsp;&emsp;负载均衡技术其原理是通过运行在前面的负载均衡服务器，根据执行的负载均衡算法，将流量均衡地分配到后端服务器上，从而提高整个系统的扩展能力，实现服务的并行扩展，同时，负载均衡技术还可以起到对外网屏蔽内网服务器，从而提高系统的可用性。</p>
+<p>&emsp;&emsp;负载均衡根据类型划分，主要划分为三种类型：</p>
+<ul>
+<li>第一种类型为DNS负载均衡（软硬结合的方式），主要是使用DNS解析出IP的方式，来进行业务流量的分发，并发无上限；</li>
+<li>第二种类型为硬件负载均衡，例如那些贵的离谱的硬件设备，F5，A10，并发百万级别；</li>
+<li>第三种类型为软件负载均衡，就是我们常见的负载均衡软件，例如nginx，lvs，并发几万到百万级别</li>
+</ul>
+<p>&emsp;&emsp;</p>
+<h3 id="DNS-负载均衡"><a href="#DNS-负载均衡" class="headerlink" title="DNS 负载均衡"></a>DNS 负载均衡</h3><p>DNS 是最简单也是最常见的负载均衡方式，一般用来实现地理级别的均衡。例如，北方的用户访问北京的机房，南方的用户访问深圳的机房。DNS 负载均衡的本质是 DNS 解析同一个域名可以返回不同的 IP 地址。例如，同样是 <a href="http://www.baidu.com,/">www.baidu.com，</a> 北方用户解析后获取的地址是 61.135.165.224（这是北京机房的 IP），南方用户解析后获取的地址是 14.215.177.38（这是深圳机房的 IP）。</p>
+<p>下面是 DNS 负载均衡的简单示意图：<br><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171145191.png" alt="在这里插入图片描述" style="zoom: 33%;" /><br>DNS 负载均衡实现简单、成本低，但也存在粒度太粗、负载均衡算法少等缺点。仔细分析一下优缺点，其优点有：</p>
+<ul>
+<li>简单、成本低：负载均衡工作交给 DNS 服务器处理，无须自己开发或者维护负载均衡设备。</li>
+<li>就近访问，提升访问速度：DNS 解析时可以根据请求来源 IP，解析成距离用户最近的服务器地址，可以加快访问速度，改善性能。</li>
+</ul>
+<p>缺点有：</p>
+<ul>
+<li>更新不及时：DNS 缓存的时间比较长，修改 DNS 配置后，由于缓存的原因，还是有很多用户会继续访问修改前的 IP，这样的访问会失败，达不到负载均衡的目的，并且也影响用户正常使用业务。</li>
+<li>扩展性差：DNS 负载均衡的控制权在域名商那里，无法根据业务特点针对其做更多的定制化功能和扩展特性。</li>
+<li>分配策略比较简单：DNS 负载均衡支持的算法少；不能区分服务器的差异（不能根据系统与服务的状态来判断负载）；也无法感知后端服务器的状态。</li>
+</ul>
+<p>针对 DNS 负载均衡的一些缺点，对于时延和故障敏感的业务，有一些公司自己实现了 HTTP-DNS 的功能，即使用 HTTP 协议实现一个私有的 DNS 系统。这样的方案和通用的 DNS 优缺点正好相反。</p>
+<h3 id="硬件负载均衡"><a href="#硬件负载均衡" class="headerlink" title="硬件负载均衡"></a>硬件负载均衡</h3><p>硬件负载均衡是通过单独的硬件设备来实现负载均衡功能，这类设备和路由器、交换机类似，可以理解为一个用于负载均衡的基础网络设备。目前业界典型的硬件负载均衡设备有两款：F5 和 A10。这类设备性能强劲、功能强大，但价格都不便宜，一般只有“土豪”公司才会考虑使用此类设备。普通业务量级的公司一是负担不起，二是业务量没那么大，用这些设备也是浪费。</p>
+<p>硬件负载均衡的优点是：</p>
+<ul>
+<li>功能强大：全面支持各层级的负载均衡，支持全面的负载均衡算法，支持全局负载均衡。</li>
+<li>性能强大：对比一下，软件负载均衡支持到 10 万级并发已经很厉害了，硬件负载均衡可以支持 100 万以上的并发。</li>
+<li>稳定性高：商用硬件负载均衡，经过了良好的严格测试，经过大规模使用，稳定性高。</li>
+<li>支持安全防护：硬件均衡设备除具备负载均衡功能外，还具备防火墙、防 DDoS 攻击等安全功能。</li>
+</ul>
+<p>硬件负载均衡的缺点是：</p>
+<ul>
+<li>价格昂贵：最普通的一台 F5 就是一台“马 6”，好一点的就是“Q7”了。</li>
+<li>扩展能力差：硬件设备，可以根据业务进行配置，但无法进行扩展和定制。</li>
+</ul>
+<h3 id="软件负载均衡"><a href="#软件负载均衡" class="headerlink" title="软件负载均衡"></a>软件负载均衡</h3><p>软件负载均衡通过负载均衡软件来实现负载均衡功能，软件负载均衡服务一般分为两种：四层负载均衡 和 七层负载均衡。四层和七层指的是负载均衡服务运行的位置，分别对应ISO网络协议中的传输层和网络层。在实际应用中，四层负载均衡一般就是位于层的TCP协议（或者SSL协议）的负载均衡，而七层负载均衡就是HTTP协议（或者HTTPS）协议的负载均衡。</p>
+<p>常见的有 Nginx 和 LVS，其中 Nginx 是软件的 7 层负载均衡，LVS 是 Linux 内核的 4 层负载均衡。4 层和 7 层的区别就在于<strong>协议</strong>和<strong>灵活性</strong>，Nginx 支持 HTTP、E-mail 协议；而 LVS 是 4 层负载均衡，和协议无关，几乎所有应用都可以做，例如，聊天、数据库等。</p>
+<p>软件和硬件的最主要区别就在于性能，硬件负载均衡性能远远高于软件负载均衡性能。Nginx 的性能是万级，一般的 Linux 服务器上装一个 Nginx 大概能到 5 万 &#x2F; 秒；LVS 的性能是十万级，据说可达到 80 万 &#x2F; 秒；而 F5 性能是百万级，从 200 万 &#x2F; 秒到 800 万 &#x2F; 秒都有（数据来源网络，仅供参考，如需采用请根据实际业务场景进行性能测试）。当然，软件负载均衡的最大优势是便宜。</p>
+<p>除了使用开源的系统进行负载均衡，如果业务比较特殊，也可能基于开源系统进行定制（例如，Nginx 插件），甚至进行自研。</p>
+<p>软件负载均衡的优点：</p>
+<ul>
+<li>简单：无论是部署还是维护都比较简单。</li>
+<li>便宜：只要买个 Linux 服务器，装上软件即可。</li>
+<li>灵活：4 层和 7 层负载均衡可以根据业务进行选择；也可以根据业务进行比较方便的扩展，例如，可以通过 Nginx 的插件来实现业务的定制化功能。</li>
+</ul>
+<p>其实下面的缺点都是和硬件负载均衡相比的，并不是说软件负载均衡没法用。</p>
+<ul>
+<li>性能一般：一个 Nginx 大约能支撑 5 万并发。</li>
+<li>功能没有硬件负载均衡那么强大。</li>
+<li>一般不具备防火墙和防 DDoS 攻击等安全功能。</li>
+</ul>
+<h2 id="负载均衡典型架构"><a href="#负载均衡典型架构" class="headerlink" title="负载均衡典型架构"></a>负载均衡典型架构</h2><p>前面我们介绍了 3 种常见的负载均衡机制：DNS 负载均衡、硬件负载均衡、软件负载均衡，每种方式都有一些优缺点，但并不意味着在实际应用中只能基于它们的优缺点进行非此即彼的选择，反而是基于它们的优缺点进行组合使用。具体来说，组合的<strong>基本原则</strong>为：</p>
+<ul>
+<li>DNS 负载均衡用于实现地理级别的负载均衡；</li>
+<li>硬件负载均衡用于实现集群级别的负载均衡；</li>
+<li>软件负载均衡用于实现机器级别的负载均衡。</li>
+</ul>
+<p>以一个假想的实例来说明一下这种组合方式，如下图所示。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171145655.png" alt="在这里插入图片描述"></p>
+<p>整个系统的负载均衡分为三层。</p>
+<ul>
+<li>地理级别负载均衡：<a href="http://www.xxx.com/">www.xxx.com</a> 部署在北京、广州、上海三个机房，当用户访问时，DNS 会根据用户的地理位置来决定返回哪个机房的 IP，图中返回了广州机房的 IP 地址，这样用户就访问到广州机房了。</li>
+<li>集群级别负载均衡：广州机房的负载均衡用的是 F5 设备，F5 收到用户请求后，进行集群级别的负载均衡，将用户请求发给 3 个本地集群中的一个，假设 F5 将用户请求发给了“广州集群 2”。</li>
+<li>机器级别的负载均衡：广州集群 2 的负载均衡用的是 Nginx，Nginx 收到用户请求后，将用户请求发送给集群里面的某台服务器，服务器处理用户的业务请求并返回业务响应。</li>
+</ul>
+<p>需要注意的是，上图只是一个示例，一般在大型业务场景下才会这样用，如果业务量没这么大，则没有必要严格照搬这套架构。例如，一个大学的论坛，完全可以不需要 DNS 负载均衡，也不需要 F5 设备，只需要用 Nginx 作为一个简单的负载均衡就足够了。</p>
+<h2 id="负载均衡算法"><a href="#负载均衡算法" class="headerlink" title="负载均衡算法"></a>负载均衡算法</h2><h3 id="1-轮询"><a href="#1-轮询" class="headerlink" title="1. 轮询"></a>1. 轮询</h3><p>负载均衡系统接收到请求后，按照顺序轮流分配给服务器。</p>
+<p>这种方式非常简单，只管按顺序分配，至于服务器当前负载情况、硬件能力等都不关心，只要服务器还能工作，就可以分配，除非服务器挂了。</p>
+<h3 id="2-加权轮询"><a href="#2-加权轮询" class="headerlink" title="2. 加权轮询"></a>2. 加权轮询</h3><p>是轮询方式的一种改进，轮询方式是无差别分配，但实际服务器的处理能力是有差异的，所以需要区别对待。</p>
+<p>为服务器设置权值，权值高的就多分配点。</p>
+<h3 id="3-负载最低优先"><a href="#3-负载最低优先" class="headerlink" title="3. 负载最低优先"></a>3. 负载最低优先</h3><p>将任务分配给当前负载最低的服务器。</p>
+<p>例如 LVS 可以根据“连接数”判断服务器状态，NGINX 可以根据“HTTP请求数”来判断。</p>
+<p>这种方式比轮询高级很多，可以感知服务器的状态了，但其复杂度也大大提高了，要收集统计服务器的负载信息。</p>
+<h3 id="4-性能最优"><a href="#4-性能最优" class="headerlink" title="4. 性能最优"></a>4. 性能最优</h3><p>优先将任务分配给处理速度最快的服务器，来达到最快响应客户端的目的。</p>
+<p>此方式也是感知服务器的状态，标准是<strong>响应时间</strong>。</p>
+<p>需要收集分析服务器的响应时间，这个工作本身消耗也不小，所以采用<strong>采样</strong>的方式，不统计所有任务的响应时间，统计一个周期（例如 10秒&#x2F;1分钟&#x2F;5分钟）内的状态。</p>
+<p>优缺点与 <em>负载最低优先</em> 相同。</p>
+<h3 id="5-Hash"><a href="#5-Hash" class="headerlink" title="5. Hash"></a>5. Hash</h3><p>对请求中的关键信息（如IP）进行hash计算，hash值相同的请求分配到同一台服务器，例如业务中希望同一用户的请求都由同一台服务器来处理。</p>
+]]></content>
+      <categories>
+        <category>目录待定</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>虚拟机（VM）的工作原理</title>
+    <url>/2024/06/11/k8s&amp;docker/%E5%AE%B9%E5%99%A8%E5%92%8C%E8%99%9A%E6%8B%9F%E6%9C%BA%E7%9A%84%E5%8E%9F%E7%90%86/</url>
+    <content><![CDATA[<p>[toc]</p>
+<h2 id="容器"><a href="#容器" class="headerlink" title="容器"></a>容器</h2><p>容器的工作原理主要依赖于操作系统层面的资源隔离和限制技术。</p>
+<p>与传统的虚拟机不同，容器不需要运行完整的操作系统，而是直接在宿主机的操作系统上运行。容器共享宿主机的内核，但在文件系统、进程、网络和其他资源方面实现了隔离。以下是容器工作原理的关键技术：</p>
+<h3 id="命名空间（Namespaces）"><a href="#命名空间（Namespaces）" class="headerlink" title="命名空间（Namespaces）"></a>命名空间（Namespaces）</h3><p><code>namespaces</code>是Linux内核提供的一种资源隔离机制，它可以将系统资源（如进程、文件系统、网络等）划分为多个独立的命名空间。容器内进程拥有独立视图：</p>
+<ul>
+<li>PID命名空间隔离进程ID，网络命名空间提供独立网络栈。‌</li>
+<li>其他类型包括Mount（文件系统挂载点）、IPC（进程通信）、UTS（主机名）和User（用户ID）命名空间。‌</li>
+</ul>
+<p>每个容器运行在自己的名字空间中，互不干扰。</p>
+<span id="more"></span>
+
+<h3 id="控制组（cgroups）"><a href="#控制组（cgroups）" class="headerlink" title="控制组（cgroups）"></a>控制组（cgroups）</h3><p>控制组是Linux内核提供的一种资源限制和管理机制，它可以为进程分配和限制CPU、内存、磁盘I&#x2F;O等资源。</p>
+<p>通过控制组，容器可以实现CPU、内存、磁盘I&#x2F;O等资源的分配和隔离，避免争抢资源。  </p>
+<h3 id="联合文件系统（Union-File-System）"><a href="#联合文件系统（Union-File-System）" class="headerlink" title="联合文件系统（Union File System）"></a>联合文件系统（Union File System）</h3><p>联合文件系统是一种分层、轻量级的文件系统，它允许将多个文件系统层叠在一起，形成一个统一的视图。</p>
+<p>容器镜像使用联合文件系统来存储和管理文件，实现了分层存储和版本控制。当容器启动时，它会创建一个新的可写层，用于存储运行时的数据。这样，容器之间可以共享相同的基础镜像，减少了存储空间的占用。  </p>
+<hr>
+<p>Linux 早就支持 2.6.x 的版本就已经支持 <code>namespace</code> 隔离了，使用 <code>namespace</code> 可以将两个进程完全隔离。</p>
+<p>仅仅将资源隔离还不够，还需要限制对资源的使用，比如 CPU、内存、磁盘、带宽这些也得做限制；这点也可以使用 <code>cgroups</code> 进行配置。它可以限制某个进程的资源，比如宿主机是 4 核 CPU，8G 内存，为了保护其他容器，必须给这个容器配置使用上限：1核 CPU，2G内存。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202510061547420.png" alt="image.png"></p>
+<p>这张图就很清晰的表示了 <code>namespace</code> 和 <code>cgroups</code> 在容器技术中的作用，简单来说就是：</p>
+<ul>
+<li>namespace 负责隔离</li>
+<li>cgroups 负责限制</li>
+</ul>
+<p>容器是一种轻量级的虚拟化技术，它在单个操作系统上运行多个隔离的实例。与虚拟机不同，容器不模拟硬件，而是共享宿主机的操作系统内核。容器通过Linux内核的namespaces和cgroups等特性实现隔离。namespaces提供了一种隔离资源（如进程ID、网络接口等）的方法，而cgroups则用于限制和监控资源使用。容器内运行的应用程序直接与宿主机的内核交互，而不是通过Hypervisor。</p>
+<hr>
+<hr>
+<h2 id="虚拟机（VM）"><a href="#虚拟机（VM）" class="headerlink" title="虚拟机（VM）"></a>虚拟机（VM）</h2><p>虚拟机是通过虚拟化技术在物理服务器上创建的完整计算机系统。它模拟了底层硬件，运行完整的操作系统（OS）和应用程序。虚拟机通过Hypervisor（也称为虚拟机监控程序）与物理硬件交互，Hypervisor负责管理硬件资源并将其分配给各个虚拟机。虚拟机可以被视为一个完整的计算机系统，拥有自己的操作系统、应用程序和用户空间。</p>
+<p>虚拟机通常需要更多的资源，因为每个虚拟机都需要运行自己的操作系统，这包括内核、系统库和驱动程序。此外，虚拟机还需要为其操作系统和应用程序分配内存和存储空间。这导致虚拟机的启动和运行相对较慢，并且占用更多的磁盘空间。</p>
+<p>虚拟机的性能受到虚拟化开销的影响，尤其是在I&#x2F;O操作和网络通信方面。虚拟机需要通过Hypervisor与物理硬件交互，这会增加额外的延迟。此外，虚拟机的资源分配通常是静态的，不易动态调整。</p>
+<p>虚拟机提供了较强的隔离性，因为每个虚拟机都运行在自己的操作系统上。这有助于防止不同虚拟机之间的资源冲突和安全威胁。虚拟机可以通过网络隔离、存储加密等技术增强安全性。<br>容器的安全性通常低于虚拟机，因为它们共享宿主机的操作系统内核。容器之间的隔离依赖于namespaces和cgroups等内核特性，但这些隔离机制可能被绕过。然而，容器可以通过用户名称空间、安全策略和运行时沙箱等技术提高安全性。</p>
+]]></content>
+      <categories>
+        <category>k8s&amp;docker</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>初级程序员常见问题</title>
+    <url>/2025/01/16/%E7%9B%AE%E5%BD%95%E5%BE%85%E5%AE%9A/%E5%88%9D%E7%BA%A7%E7%A8%8B%E5%BA%8F%E5%91%98%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98/</url>
+    <content><![CDATA[<p>转载自：<a href="https://blog.csdn.net/bruce128/article/details/134042861">https://blog.csdn.net/bruce128/article/details/134042861</a></p>
+<p>到今年已经工作十一个年头了，把这些年自己出现在自己身上或者同事身上的问题记录下来。</p>
+<span id="more"></span>
+
+<p><strong>手里有锤子，看神马都是钉子</strong><br>&emsp;&emsp;新人程序员很容易手段目的化，战术战略化。学了一门新技术后，不管具体的技术场景，哪里都想拿出来比划两下。掌握一门技术需要不少时间，导致主观情绪上有明显的偏好倾向，内心自然想急切的用上，人之常情。<br>&emsp;&emsp;曾经接手的一个业务，梳理业务流程的时候，发现多个业务会用MQ调MQ再调MQ，很困惑为何不用DUBBO这样的RPC。于是在该业务系统的9个工程里找rpc的配置，发现根本没有dubbo的配置。大抵开发同学把MQ当RPC用了。</p>
+<p>&emsp;&emsp;软件开发没有银弹，任何技术都有其适用的场景。数据库领域很多开发都擅长MySQL，曾经做一个新业务每天要写8000W条记录，如果我当时不做技术选型直接用自己擅长的MySQL，这个系统恐怕只能正常运行几个小时。技术工具的选择要考虑场景，不能因为手里有把锤子，看到啥都是钉子。最近接触了 “道法术器” 的做事思想，某个具体的技术仅仅是器这一层面的内容，想把事情做好还得跳出来思考。不关注工具层的东西容易务虚，但过于迷恋器层面的技术，容易练功走火入魔。纠结于“PHP是最好的技术”就属于这一现象。</p>
+<p><strong>代码写好了就够了吗</strong><br>&emsp;&emsp;毕业的第一份工作在京东。大促期间，每天都要人工巡检系统的多个功能点、机器负载、系统异常日志等等。我当时并不理解，我们把代码写好了，考虑了各种边界case，通过了严苛的测试，不就好了吗。读大学的时候，老师们十分强调代码的鲁棒性，刚毕业的时候的认知是代码写好了就可以了。后来巡检异常系统日志的时候，发现自己的代码导致的生产问题。如果不是每天的生产巡检，那得等到用户投诉才能意识到问题。自此之后，养成了新功能上线后，定时巡检系统异常的习惯。</p>
+<p>&emsp;&emsp;测试人员执行的测试用例，只是真实世界的一个子集。我们的代码虽然能通过测试，并不能保证测试用例子集在真实世界全集中的补集里正常work。除了写好代码，还需要良好的巡检、监控意识。</p>
+<p><strong>离代码很近，离用户很远</strong><br>&emsp;&emsp;在钉钉审批团队的时候，每周三全组一起解决用户反馈的问题。有些问题需要加用户好友，甚至需要打电话联系用户了解情况。用户提的问题多的时候，需要花上整个下午处理问题。刚去审批团队的时候，对这个例行工作比较抱怨，直到我很得意的一个性能优化导致的一个issue才改变我的观点。<br>&emsp;&emsp;审批团队有8台server是专门处理Excel下载和pdf下载的，每天的下载量并不大，小几十万。8台机器高峰时刻的cpu负载能高到80%，我很不解，为啥这么耗性能。用arthas定位到了问题——每次渲染会加载3个十几MB的字体文件。不改一行代码，就删了一个字体文件，优化之后，cpu水位下降了34%。于是乎洋洋得意地在内网ATA社区发了篇贴子炫耀，得到了一些技术大佬的点赞。几周后，我接到了用户的一个issue，原本的纸张没法打印全以前的报销单了。我意识到了是我删了一个字体文件导致了报销单表格变宽了。用户不会因为我为公司省了一点电感谢我，反而因为功能出了问题，选择用脚投票。</p>
+<p>&emsp;&emsp;很多工程师往往会沉溺于技术的世界无法自拔，着迷于高性能、技术流的东西，不考虑用户的痛点，往往容易做出反人类的东西。最终的结果是公司流失用户、流失订单。技术要跳出技术的视野，多从用户的角度出发，多解决用户的痛点，让用户用产品用地更爽。而不是抱着自认为牛逼的技术孤芳自赏。技术是创造价值的必要条件之一，而非充分条件。脱离用户、脱离群众、脱离业务的技术，注定是空中楼阁。<br>&emsp;&emsp;微软有句管理名言：“eat your own dog food!” （吃自家的狗粮）,提高产品在内部员工中的使用比例。产品好不好用，不需要培训，哪里不好用，用一下立马就能感受出来。员工要用自己开发出来的产品，并把不好的点反馈给产品经理，群策群力一起改进。开发人员使用自己开发的产品，才能构建用户视角，收获来自真实世界的反馈。</p>
+<p><strong>闭门造车，不学习竞品</strong><br>&emsp;&emsp;曾经负责一个金融业务的SaaS化项目，负责加签验签功能的同事给出的技术方案：前端传来的json串经过spring mvc转成的对象后我们用FastJSON框架json化，然后进行验签。这个方案评审时被毙掉了，因为不知道接入方是用什么工具转成json的，调用方和我们的系统json化出来的字符串一旦不一样，就验签失败。我们内部讨论了好几天，想了好几种在JSON化这个方向的方案。有一天我想到，加签验签这种基础的工具，支付宝微信支付应该早就有解决了方案了吧。于是搜索支付宝、微信支付和美团支付的接口文档，发现他们技术方案能完美的解决我们苦苦思索好几天的问题。柳暗花明又一村，直接抄作业就行了。<br>&emsp;&emsp;阳光底下无新事，大公司早就把路走出来了。大公司摸着石头过河，我们摸着大公司过河。学习先行者的经验，能少走很多弯路，减少一些不必要的试错成本。</p>
+<p><strong>缺乏数据度量意识</strong><br>&emsp;&emsp;做技术优化的任务，是否能带来业务质量的提升？具体能提升多少？能否用数字衡量。阿里西溪园区的一个电梯口贴过一副对联“No data no bb” “You can you up”，言辞虽戏谑，但是表达出了对数据的态度。<br>&emsp;&emsp;曾经的团队有个系统是负责封装全公司几十个外部供应商的接口，一年有几千万的调用量。这个系统经常出现外部接口调用不通的问题，在大部门公开复盘过几次生产故障。为了解决这个问题，引入了多渠道路由机制，譬如个人三要素验证功能，如果cfca提供的个人三要素接口失败了，就调公安提供的个人三要素接口，再调天威的，直到某个接口成功或者全部失败。多渠道路由技术方案评审的时候，我提出，能不能出一份数据，做完这个技术优化后，能为接口成功率提升多少个百分点，每天能拯救多少个本来会调用失败的case。产品经理同意了我的观点，但是负责这个系统的毕业两年的owner当时质疑：“要花好几天做这功能就为了出一个数据？”。无奈只好作罢。第一期给少量接口做了多渠道路由功能，上线之后并不如人意，依然是每天好几个告警。我感觉不对劲，根据多次生产环境调用不通的排查经验，断定主要原因是供应商上线新机器未通知我们，或者内部网络策略的问题。于是参考DUBBO failover的思想，借助Spring Retry，把几十个访问外部接口的HTTP调用全部都加上了retry。花了2天时间。这个功能上线后，生产环境外部调用失败告警从每天几次降低到了一周一两次。做完这件事后，团队的产品和这个系统owner依然在大力推动多渠道路由的优化，并且推动上游系统改用多渠道路由功能。多渠道路由的二期、三期一步一步的推进。<br>&emsp;&emsp;团队在错误的路上越走越远，怎么办？对了，打日志，简单的统计多渠道路由功能被使用了多少次，用数据说话！于是在多渠道功能被使用到的时候，我输出了一行日志。上线后，我人肉用关键字搜索这行日志的行数。统计了一个多月，0次！！！我跟这个系统的年轻owner和产品同步了多渠道路由的使用数据后，投入了3个多人月还要继续投入的多渠道路由功能才戛然而止。<br>&emsp;&emsp;及时用数据反馈自己的优化工作，到底是正优化、负优化还是无用功。如果是负优化或者无用功，就得立刻调转船头了。那么如何评判是负优化或者无用功呢？DATA！用数字指标衡量。语言可以花里胡哨，但死数字不说慌。数据度量在精益创业里有着十分重要的地位。</p>
+<p><strong>缺少业务sense</strong><br>&emsp;&emsp;业务视角不应该是产品的事吗？跟我一程序员有什么关系？程序员不就是把代码写好就行了吗？<br>&emsp;&emsp;缺少业务sense，是否能完全理解产品讲的需求，并还原产品需求本质，做需求的时候能让动作不变形？理解了需求的本质，有的情况下，技术开发同学可以提出更优的解决方案，直达需求本质。</p>
+<p><strong>没有全局视角</strong><br>&emsp;&emsp;不了解业务或者技术整体情况，解决问题只能用局部最优解。</p>
+<p>悟已往之不谏，知来者之可追，实迷途而未远，觉今是而昨非。技术人的成长就是不断的发现过去的做法不完善，然后持续改进之。</p>
+]]></content>
+      <categories>
+        <category>目录待定</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>Redis为什么速度快</title>
+    <url>/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&amp;%E7%BC%93%E5%AD%98/Redis/Redis%E4%B8%BA%E4%BB%80%E4%B9%88%E9%80%9F%E5%BA%A6%E5%BF%AB/</url>
+    <content><![CDATA[<ul>
+<li><p>基于内存的数据库。完全基于内存，绝大部分请求是纯粹的内存操作，非常快速。数据存在内存中，类似于HashMap，HashMap的优势就是查找和操作的时间复杂度都是O(1)；</p>
+</li>
+<li><p>多路I&#x2F;O复用模型：对于服务端接收到的大量请求，redis使用I&#x2F;O多路复用程序同时监听多个套接字，并且将这些事件push到同一个队列中逐步执行，最终再将结果返回给客户端。</p>
+</li>
+<li><p>高效的数据结构： sds (simple dynamic string) 简单动态字符串</p>
+<blockquote>
+<p>O(1) 复杂度的长度计算：在 C 语言中，要计算一个字符串的长度，需要遍历整个字符串，时间复杂度为 O(n)。而 SDS 中的 len 属性记录了字符串的长度，因此可以在 O(1) 时间内获取字符串的长度。 </p>
+<p>二进制安全：C 语言中的普通字符串使用 ‘\0’ 字节作为字符串的结束符，因此不支持存储二进制数据和包含空字符的字符串。而 SDS 使用 buf 和 len 属性来表示字符串，因此可以存储任何二进制数据，同时也支持存储包含空字符的字符串。</p>
+<p>减少缓冲区溢出的风险：在 C 语言中，如果使用 char 数组来存储字符串，当字符串的长度超过数组大小时，就会发生缓冲区溢出的错误。而 SDS 在扩展缓冲区时，会通过预留额外的空间来避免缓冲区溢出的风险。 </p>
+<p>支持快速增长和缩短：在 C 语言中，如果要对字符串进行增长或缩短操作，需要重新分配内存并复制数据。而 SDS 的 buf 属性可以支持快速增长和缩短，因为它是一个可修改大小的空间，不需要分配新的空间。 </p>
+<p>兼容部分 C 字符串库：SDS 一些 API 与标准 C 库中字符串操作函数（如 strlen、strcat）类似，因此可以兼容一些 C 字符串库的使用，同时也提高了代码的可读性和易维护性。</p>
+</blockquote>
+</li>
+<li><p>单线程模式：Redis基于Reactor模式开发了网络事件处理器，这个处理器被称为文件事件处理器。它的组成结构为4部分：多个套接字、IO多路复用程序、文件事件分派器、事件处理器。因为文件事件分派器队列的消费是单线程的，所以Redis才叫单线程模型。为什么redis会使用单线程？因为一般来说，redis比较少会有计算密集型的操作，所以cpu不会有瓶颈。redis的瓶颈，一般是在没存大小与网络IO。实际中我们为了使用cpu的多核，都是采用搭建多个redis实例来解决。在redis6.0以后的新版本中，网络IO处理模块已经使用了多线程，比如网络数据的读写与协议解析等等。但是，执行命令的模块，即文件事件分派器仍然是单线程，所以我们还是可以说redis是单线程模型。单线程模式可以使得redis变快，原因主要在于单线程在执行的过程中不需要进行上下文的切换，从而减少了耗时提高了处理速度。</p>
+</li>
+</ul>
+<p>​        Redis客户端对服务端的每次调用都经历了发送命令，执行命令，返回结果三个过程。其中执行命令阶段，由于Redis是单线程来处理命令的，所有每一条到达服务端的命令不会立刻执行，所有的命令都会进入一个队列中，然后逐个被执行。并且多个客户端发送的命令的执行顺序是不确定的。但是可以确定的是不会有两条命令被同时执行，不会产生并发问题，这就是Redis的单线程基本模型。</p>
+]]></content>
+      <categories>
+        <category>数据库&amp;缓存</category>
+        <category>Redis</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>六个案例搞懂间隙锁</title>
+    <url>/2024/11/17/%E6%95%B0%E6%8D%AE%E5%BA%93&amp;%E7%BC%93%E5%AD%98/MySQL/%E5%85%AD%E4%B8%AA%E6%A1%88%E4%BE%8B%E6%90%9E%E6%87%82%E9%97%B4%E9%9A%99%E9%94%81/</url>
+    <content><![CDATA[<p>MySQL中的间隙是指索引中两个索引键之间的空间，间隙锁用于防止范围查询期间的幻读，确保查询结果的一致性和并发安全性。</p>
+<h1 id="概念解释"><a href="#概念解释" class="headerlink" title="概念解释"></a>概念解释</h1><p><strong>记录锁（Record Lock）</strong></p>
+<p>记录锁也被称为行锁，顾名思义，它是针对数据库中的行记录进行的锁定。</p>
+<p>比如：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">SELECT * FROM `user` WHERE `id`=1 FOR UPDATE;</span><br></pre></td></tr></table></figure>
+
+<p>上面的SQL会在 <code>id=1</code> 的行记录上加上记录锁，以阻止其他事务插入，更新，删除这一行。</p>
+<p><strong>间隙锁（Gap Lock）</strong></p>
+<p>间隙锁就是对间隙加锁，用于锁定索引范围之间的间隙，以避免其他事务在这个范围内插入新的数据。间隙锁是排它锁，阻止了其他事务在间隙中插入满足条件的值。</p>
+<p><strong>临键锁（Next-Key Lock）</strong></p>
+<p>临键锁由记录锁和间隙锁组合而成，它在索引范围内的记录上加上记录锁，并在索引范围之间的间隙上加上间隙锁。这样可以避免幻读（Phantom Read）的问题，确保事务的隔离性。</p>
+<p>切记：间隙锁的区间是左开右开的，临键锁的区间是左开右闭的。</p>
+ <span id="more"></span>
+
+<h1 id="间隙锁详解"><a href="#间隙锁详解" class="headerlink" title="间隙锁详解"></a>间隙锁详解</h1><p>间隙锁是保证临键锁正常运作的基础，理解间隙锁的概念对于深入理解这三种锁非常重要。</p>
+<p><strong>间隙锁的锁定范围是指在索引范围之间的间隙</strong></p>
+<p>举个简单例子来说明：假设有一个名为<code>products</code>的表，其中有一个整型列<code>product_id</code>作为主键索引。现在有两个并发事务：事务A和事务B。</p>
+<p>事务A执行以下语句：</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">BEGIN</span>;</span><br><span class="line"><span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> `products` <span class="keyword">WHERE</span> `product_id` <span class="keyword">BETWEEN</span> <span class="number">100</span> <span class="keyword">and</span> <span class="number">200</span> <span class="keyword">FOR</span> <span class="keyword">UPDATE</span>;</span><br></pre></td></tr></table></figure>
+
+<p>事务B执行以下语句：</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">BEGIN</span>;</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `products` (`product_id`, `name`) <span class="keyword">VALUES</span> (<span class="number">150</span>, <span class="string">&#x27;Product 150&#x27;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>在这种情况下，事务A会在<code>products</code>表中<code>product_id</code>值在 100 和 200 之间的范围上设置间隙锁。因此，在事务A运行期间，其他事务无法在这个范围内插入新的数据，在事务B尝试插入<code>product_id</code>为150的记录时，由于该记录位于事务A锁定的间隙范围内，事务B将被阻塞，直到事务A释放间隙锁为止。</p>
+<h3 id="间隙锁触发条件"><a href="#间隙锁触发条件" class="headerlink" title="间隙锁触发条件"></a>间隙锁触发条件</h3><p>在可重复读（Repeatable Read）事务隔离级别下，以下情况会产生间隙锁：</p>
+<ul>
+<li>使用普通索引锁定：当一个事务使用普通索引进行条件查询时，MySQL会在满足条件的索引范围之间的间隙上生成间隙锁。</li>
+<li>使用多列唯一索引：如果一个表存在多列组成的唯一索引，并且事务对这些列进行条件查询时，MySQL会在满足条件的索引范围之间的间隙上生成间隙锁。</li>
+<li>使用唯一索引锁定多行记录：当一个事务使用唯一索引来锁定多行记录时，MySQL会在这些记录之间的间隙上生成间隙锁，以确保其他事务无法在这个范围内插入新的数据。</li>
+</ul>
+<p>需要注意的是，上述情况仅在可重复读隔离级别下才会产生间隙锁。在其他隔离级别下，如读提交（Read Committed）隔离级别，MySQL可能会使用临时的意向锁来避免并发问题，而不是生成真正的间隙锁。</p>
+<p>为什么这里强调的是普通索引呢？因为对唯一索引锁定并不会触发间隙锁，请看下面这个例子：</p>
+<p>假设有一个名为<code>students</code>的表，其中有两个字段：id 和 name。id是主键，现在有两个事务同时进行操作：</p>
+<p>事务A执行以下语句：</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> students <span class="keyword">WHERE</span> id <span class="operator">=</span> <span class="number">1</span> <span class="keyword">FOR</span> <span class="keyword">UPDATE</span>;</span><br></pre></td></tr></table></figure>
+
+<p>事务B执行以下语句：</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> students (id, name) <span class="keyword">VALUES</span> (<span class="number">2</span>, <span class="string">&#x27;John&#x27;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>由于事务A使用了唯一索引锁定，它会锁定id为1的记录，不会触发间隙锁。同时，在事务B中插入id为2的记录也不会受到影响。这是因为唯一索引只会锁定匹配条件的具体记录，而不会锁定不存在的记录（如间隙）。</p>
+<p><strong>当使用唯一索引锁定一条存在的记录时，会使用记录锁，而不是间隙锁</strong></p>
+<p>但是当搜索条件仅涉及到多列唯一索引的一部分列时，可能会产生间隙锁。以下是一个例子：</p>
+<p>假设<code>students</code>表，包含三个列：id、name和age。我们在(name, age)上创建了一个唯一索引。</p>
+<p>现在有两个事务同时进行操作：</p>
+<p>事务A执行以下语句：</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> students <span class="keyword">WHERE</span> name <span class="operator">=</span> <span class="string">&#x27;John&#x27;</span> <span class="keyword">FOR</span> <span class="keyword">UPDATE</span>;</span><br></pre></td></tr></table></figure>
+
+<p>事务B执行以下语句：</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> students (id, name, age) <span class="keyword">VALUES</span> (<span class="number">2</span>, <span class="string">&#x27;John&#x27;</span>, <span class="number">25</span>);</span><br></pre></td></tr></table></figure>
+
+<p>在这种情况下，事务A搜索的条件只涉及到了唯一索引的一部分列（name），而没有涉及到完整的索引列（name, age）。因此，MySQL会对匹配的记录加上行锁，并且还会对与该条件范围相邻的间隙加上间隙锁。</p>
+<h1 id="间隙锁加锁规则"><a href="#间隙锁加锁规则" class="headerlink" title="间隙锁加锁规则"></a>间隙锁加锁规则</h1><p>间隙锁有以下加锁规则：</p>
+<ul>
+<li>规则1：加锁的基本单位是 Next-Key Lock，左开右闭区间。</li>
+<li>规则2：查找过程中访问到的对象才会加锁。</li>
+<li>规则3：<strong>唯一索引上的范围查询会上锁到不满足条件的第一个值为止。</strong></li>
+<li>规则4：<strong>唯一索引等值查询，并且记录存在，Next-Key Lock 退化为行锁。</strong></li>
+<li>规则5：<strong>索引上的等值查询，会将距离最近的左边界和右边界作为锁定范围，如果索引不是唯一索引还会继续向右匹配，直到遇见第一个不满足条件的值，如果最后一个值不等于查询条件，Next-Key Lock 退化为间隙锁。</strong></li>
+</ul>
+<p>记住上述这些规则，这些规则不太好理解，我们下面通过案例来讲解。</p>
+<h1 id="案例演示"><a href="#案例演示" class="headerlink" title="案例演示"></a>案例演示</h1><p>环境：MySQL，InnoDB，RR隔离级别。</p>
+<p>数据表：</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> `<span class="keyword">user</span>` (</span><br><span class="line">  `id` <span class="type">bigint</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span> AUTO_INCREMENT,</span><br><span class="line">  `age` <span class="type">int</span> <span class="keyword">DEFAULT</span> <span class="keyword">NULL</span>,</span><br><span class="line">  `name` <span class="type">varchar</span>(<span class="number">32</span>) <span class="keyword">DEFAULT</span> <span class="keyword">NULL</span>,</span><br><span class="line">   <span class="keyword">PRIMARY</span> KEY (`id`)</span><br><span class="line">   KEY `age` (`age`)</span><br><span class="line">) ENGINE<span class="operator">=</span>InnoDB <span class="keyword">DEFAULT</span> CHARSET<span class="operator">=</span>utf8;</span><br></pre></td></tr></table></figure>
+
+<p>数据：</p>
+<table>
+<thead>
+<tr>
+<th>id</th>
+<th>age</th>
+<th>name</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>1</td>
+<td>小明</td>
+</tr>
+<tr>
+<td>5</td>
+<td>5</td>
+<td>小王</td>
+</tr>
+<tr>
+<td>7</td>
+<td>7</td>
+<td>小张</td>
+</tr>
+<tr>
+<td>11</td>
+<td>11</td>
+<td>小陈</td>
+</tr>
+</tbody></table>
+<p>在进行测试之前，我们先来看看 user 表中存在的隐藏间隙：</p>
+<ul>
+<li>(-∞, 1]</li>
+<li>(1, 5]</li>
+<li>(5, 7]</li>
+<li>(7, 11]</li>
+<li>(11, +∞]</li>
+</ul>
+<h3 id="案例一：唯一索引等值存在"><a href="#案例一：唯一索引等值存在" class="headerlink" title="案例一：唯一索引等值存在"></a>案例一：唯一索引等值存在</h3><p>如下是事务A和事务B执行的顺序：（主键也是唯一索引）</p>
+<table>
+<thead>
+<tr>
+<th>时刻</th>
+<th>事务A</th>
+<th>事务B</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>T1</td>
+<td>begin</td>
+<td>begin</td>
+</tr>
+<tr>
+<td>T2</td>
+<td>select * from user where id &#x3D; 5 for update</td>
+<td></td>
+</tr>
+<tr>
+<td>T3</td>
+<td></td>
+<td>insert into user value(3,3,”小黑”) —不阻塞</td>
+</tr>
+<tr>
+<td>T4</td>
+<td></td>
+<td>insert into user value(6,6,”小蓝”) —不阻塞</td>
+</tr>
+<tr>
+<td>T5</td>
+<td>commit</td>
+<td>commit</td>
+</tr>
+</tbody></table>
+<p>根据规则4，加的是记录锁，不会使用间隙锁，所以只会锁定 5 这一行记录。</p>
+<h3 id="案例二：唯一索引等值不存在"><a href="#案例二：唯一索引等值不存在" class="headerlink" title="案例二：唯一索引等值不存在"></a>案例二：唯一索引等值不存在</h3><table>
+<thead>
+<tr>
+<th>时刻</th>
+<th>事务A</th>
+<th>事务B</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>T1</td>
+<td>begin</td>
+<td>begin</td>
+</tr>
+<tr>
+<td>T2</td>
+<td>select * from user where id &#x3D; 3 for update — 不存在的数据</td>
+<td></td>
+</tr>
+<tr>
+<td>T3</td>
+<td></td>
+<td>insert into user value(6,6,”小蓝”) — 不阻塞</td>
+</tr>
+<tr>
+<td>T4</td>
+<td></td>
+<td>insert into user value(2,2,”小黄”) — 阻塞</td>
+</tr>
+<tr>
+<td>T5</td>
+<td>commit</td>
+<td></td>
+</tr>
+</tbody></table>
+<p>这是一个索引等值查询，根据规则1和规则5，加锁范围是（ 1，5 ] ，又由于向右遍历时最后一个值 5 不满足查询需求，Next-Key Lock 退化为间隙锁。也就是最终锁定范围区间是 （ 1，5 ）。</p>
+<h3 id="案例三：唯一索引范围锁定"><a href="#案例三：唯一索引范围锁定" class="headerlink" title="案例三：唯一索引范围锁定"></a>案例三：唯一索引范围锁定</h3><table>
+<thead>
+<tr>
+<th>时刻</th>
+<th>事务A</th>
+<th>事务B</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>T1</td>
+<td>begin</td>
+<td>begin</td>
+</tr>
+<tr>
+<td>T2</td>
+<td>select * from user where id &gt;&#x3D; 5 and id&lt;6 for update</td>
+<td></td>
+</tr>
+<tr>
+<td>T3</td>
+<td></td>
+<td>insert into user value(7,7,”小赵”) — 阻塞</td>
+</tr>
+<tr>
+<td>T4</td>
+<td>commit</td>
+<td></td>
+</tr>
+</tbody></table>
+<p>根据规则3，会上锁到不满足条件的第一个值为止，也就是7，所以最终加锁范围是 [ 5，7 ]。</p>
+<p>其实这里可以分为两个步骤，第一次用 id&#x3D;5 定位记录的时候，其实加上了间隙锁 （ 1，5 ]，又因为是唯一索引等值查询，所以退化为了行锁，只锁定 5。</p>
+<p>第二次用 id&lt;6 定位记录的时候，其实加上了间隙锁（ 5，7 ]，所以最终合起来锁定区间是 [ 5，7 ]。</p>
+<h3 id="案例四：非唯一索引范围锁定"><a href="#案例四：非唯一索引范围锁定" class="headerlink" title="案例四：非唯一索引范围锁定"></a>案例四：非唯一索引范围锁定</h3><table>
+<thead>
+<tr>
+<th>时刻</th>
+<th>事务A</th>
+<th>事务B</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>T1</td>
+<td>begin</td>
+<td>begin</td>
+</tr>
+<tr>
+<td>T2</td>
+<td>select * from user where age &gt;&#x3D; 5 and age&lt;6 for update</td>
+<td></td>
+</tr>
+<tr>
+<td>T3</td>
+<td></td>
+<td>insert into user value(8,8,”小青”) — 不阻塞</td>
+</tr>
+<tr>
+<td>T4</td>
+<td></td>
+<td>insert into user value(2,2,”小 黄”) — 阻塞</td>
+</tr>
+<tr>
+<td>T5</td>
+<td>commit</td>
+<td></td>
+</tr>
+</tbody></table>
+<p>参考上面那个例子。</p>
+<p>第一次用 age &#x3D;5 定位记录的时候，加上了间隙锁 （ 1，5 ]，不是唯一索引，所以不会退化为行锁，根据规则5，会继续向右匹配，最后一个值不等于查询条件，Next-Key Lock 退化为间隙锁，所以最终合起来锁定区间是（1,7）。</p>
+<h3 id="案例五：间隙锁死锁"><a href="#案例五：间隙锁死锁" class="headerlink" title="案例五：间隙锁死锁"></a>案例五：间隙锁死锁</h3><table>
+<thead>
+<tr>
+<th>时刻</th>
+<th>事务A</th>
+<th>事务B</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>T1</td>
+<td>begin</td>
+<td>begin</td>
+</tr>
+<tr>
+<td>T2</td>
+<td>select * from user where id &#x3D; 3 for update</td>
+<td></td>
+</tr>
+<tr>
+<td>T3</td>
+<td></td>
+<td>select * from user where id &#x3D; 4 for update</td>
+</tr>
+<tr>
+<td>T4</td>
+<td></td>
+<td>insert into user value(2,2,”小黄”) — 阻塞</td>
+</tr>
+<tr>
+<td>T5</td>
+<td>insert into user value(4,4,”小紫”) — 阻塞</td>
+<td></td>
+</tr>
+</tbody></table>
+<p>间隙锁之间不是互斥的，如果一个事务A获取到了（ 1,5 ] 之间的间隙锁，另一个事务B仍然可以获取到（ 1,5 ] 之间的间隙锁。这时就可能会发生死锁问题。</p>
+<p>在事务A事务提交，间隙锁释放之前，事务B也获取到了间隙锁（ 1,5 ] ，这时两个事务就处于死锁状态。</p>
+<h3 id="案例六：limit对加锁的影响"><a href="#案例六：limit对加锁的影响" class="headerlink" title="案例六：limit对加锁的影响"></a>案例六：limit对加锁的影响</h3><table>
+<thead>
+<tr>
+<th>时刻</th>
+<th>事务A</th>
+<th>事务B</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>T1</td>
+<td>begin</td>
+<td>begin</td>
+</tr>
+<tr>
+<td>T2</td>
+<td>delete user where age &#x3D; 6 limt 1</td>
+<td></td>
+</tr>
+<tr>
+<td>T3</td>
+<td></td>
+<td>insert into user value(7,7,”小赵”) — 不阻塞</td>
+</tr>
+<tr>
+<td>T4</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>T5</td>
+<td>commit</td>
+<td>commit</td>
+</tr>
+</tbody></table>
+<p>根据规则5，锁定区间应该是 ( 5，7 ]，但是因为加了 limit 1 的限制，因此在遍历到 age&#x3D;6 这一行之后，循环就结束了。</p>
+<p>根据规则2，查找过程中访问到的对象才会加锁，所以最终锁定区间应该是：( 5，6 ]。</p>
+<p>参考：<a href="https://zhuanlan.zhihu.com/p/678052735">https://zhuanlan.zhihu.com/p/678052735</a></p>
+<hr>
+<p>MySQL中的间隙锁（Gap Lock）主要用于防止幻读，在RR（可重复读）事务隔离级别下是默认开启的。然而，需要注意的是，间隙锁并非只在RR级别下发生。</p>
+<p>在RC（读已提交）级别下，虽然间隙锁是关闭的，但在某些特殊情况下，如往一个具有唯一约束属性的索引（包括主键索引和唯一索引）中插入新数据前，会对相应的位置加载一个共享的next-key lock，而next-key lock是包含间隙锁的。因此，在这些特定情况下，RC级别下也可能出现间隙锁。参考：<a href="https://zhuanlan.zhihu.com/p/569570307">https://zhuanlan.zhihu.com/p/569570307</a></p>
+]]></content>
+      <categories>
+        <category>数据库&amp;缓存</category>
+        <category>MySQL</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>Redis命中率计算</title>
+    <url>/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&amp;%E7%BC%93%E5%AD%98/Redis/Redis%E5%91%BD%E4%B8%AD%E7%8E%87%E8%AE%A1%E7%AE%97/</url>
+    <content><![CDATA[<p>Redis提供了INFO这个命令，能够随时监控服务器的状态，只用telnet到对应服务器的端口，执行命令即可：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">telnet localhost 6379</span><br><span class="line">info</span><br></pre></td></tr></table></figure>
+<p>在输出的信息里面有这几项和缓存的状态比较有关系：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">keyspace_hits:14414110</span><br><span class="line">keyspace_misses:3228654</span><br><span class="line">used_memory:433264648</span><br><span class="line">expired_keys:1333536</span><br><span class="line">evicted_keys:1547380</span><br></pre></td></tr></table></figure>
+<p>通过计算hits和miss，我们可以得到缓存的命中率：14414110 &#x2F; (14414110 + 3228654) &#x3D; 81% ，一个缓存失效机制，和过期时间设计良好的系统，命中率可以做到95%以上</p>
+<p>有个ruby gem叫redis-stat，它利用INFO命令展现出更直观的信息报表，推荐：<br><a href="https://github.com/junegunn/redis-stat">https://github.com/junegunn/redis-stat</a></p>
+]]></content>
+      <categories>
+        <category>数据库&amp;缓存</category>
+        <category>Redis</category>
       </categories>
   </entry>
 </search>

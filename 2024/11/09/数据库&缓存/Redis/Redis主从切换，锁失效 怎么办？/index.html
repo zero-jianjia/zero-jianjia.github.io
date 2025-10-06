@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="1.Redis主从架构的分布式锁的执行流程在Redis主从架构中，写入的都是 master Redis实例，master 主实例会向 slave 从实例同步key。 一个业务线程 通过向主Redis实例中写入 key-value 来实现加分布式锁，加锁后开始执行业务代码。 具体如下图所示：  当前，这里也涉及到一个核心问题： 锁过期了，业务还没执行完， 怎么办？ 锁过期问题,大概的解决方案 有2种">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Redis主从切换，锁失效 怎么办？">
+<meta property="og:url" content="http://example.com/2024/11/09/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/Redis/Redis%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2%EF%BC%8C%E9%94%81%E5%A4%B1%E6%95%88%20%E6%80%8E%E4%B9%88%E5%8A%9E%EF%BC%9F/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="1.Redis主从架构的分布式锁的执行流程在Redis主从架构中，写入的都是 master Redis实例，master 主实例会向 slave 从实例同步key。 一个业务线程 通过向主Redis实例中写入 key-value 来实现加分布式锁，加锁后开始执行业务代码。 具体如下图所示：  当前，这里也涉及到一个核心问题： 锁过期了，业务还没执行完， 怎么办？ 锁过期问题,大概的解决方案 有2种">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202411091331425.webp">
+<meta property="og:image" content="https://mmbiz.qpic.cn/sz_mmbiz_png/xlgvgPaib7WOviahK2JPlGTB89D57hDSNo9bHjdRVz2TbJJqcGpvvl3yqlnekwV2Hz0kIIicwO7mXvTb3dBUj5vbw/640?wx_fmt=png&from=appmsg&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1">
+<meta property="article:published_time" content="2024-11-08T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-11-09T05:39:42.355Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202411091331425.webp">
+
+<link rel="canonical" href="http://example.com/2024/11/09/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/Redis/Redis%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2%EF%BC%8C%E9%94%81%E5%A4%B1%E6%95%88%20%E6%80%8E%E4%B9%88%E5%8A%9E%EF%BC%9F/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>Redis主从切换，锁失效 怎么办？ | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/11/09/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/Redis/Redis%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2%EF%BC%8C%E9%94%81%E5%A4%B1%E6%95%88%20%E6%80%8E%E4%B9%88%E5%8A%9E%EF%BC%9F/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Redis主从切换，锁失效 怎么办？
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-11-09 00:00:00" itemprop="dateCreated datePublished" datetime="2024-11-09T00:00:00+08:00">2024-11-09</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93-%E7%BC%93%E5%AD%98/" itemprop="url" rel="index"><span itemprop="name">数据库&缓存</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93-%E7%BC%93%E5%AD%98/Redis/" itemprop="url" rel="index"><span itemprop="name">Redis</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="1-Redis主从架构的分布式锁的执行流程"><a href="#1-Redis主从架构的分布式锁的执行流程" class="headerlink" title="1.Redis主从架构的分布式锁的执行流程"></a>1.Redis主从架构的分布式锁的执行流程</h1><p>在Redis主从架构中，写入的都是 master Redis实例，master 主实例会向 slave 从实例同步key。</p>
+<p>一个业务线程 通过向主Redis实例中写入 key-value 来实现加分布式锁，加锁后开始执行业务代码。</p>
+<p>具体如下图所示：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202411091331425.webp" alt="图片"></p>
+<p>当前，这里也涉及到一个核心问题： 锁过期了，业务还没执行完， 怎么办？</p>
+<p>锁过期问题,大概的解决方案 有2种：</p>
+<p>1：模拟CAS乐观锁的方式，增加版本号</p>
+<p>2：<strong>watch dog自动延期机制</strong>（推荐）</p>
+<p>现在聚焦的问题： master Redis实例挂掉了，slave 从Redis 还没有完成复制，导致 Redis分布式锁失效，怎么办？</p>
+<span id="more"></span>
+
+<h1 id="2-master-挂了但slave-没有完成复制，锁失效了，怎么办？"><a href="#2-master-挂了但slave-没有完成复制，锁失效了，怎么办？" class="headerlink" title="2.master 挂了但slave 没有完成复制，锁失效了，怎么办？"></a>2.master 挂了但slave 没有完成复制，锁失效了，怎么办？</h1><p>一般情况下：如果主master Redis实例挂掉了，会选举出一个从Redis实例成为主的。这是redis 集群的故障转移机制。</p>
+<p>但是，如果刚刚加锁的key还没有来得及同步到slave Redis中，新选出的主Redis实例中就没有这个key，这个时候业务线程B就能加锁来获取分布式锁，导致锁失效了。线程B 加锁成功，也执行业务代码了。</p>
+<p>而这个时候A还没有执行结束，所以就会出现并发安全问题，这就是Redis主从架构下的分布式锁失效问题。</p>
+<h1 id="3-Redis-分布式锁的高可用方案"><a href="#3-Redis-分布式锁的高可用方案" class="headerlink" title="3.Redis 分布式锁的高可用方案"></a>3.Redis 分布式锁的高可用方案</h1><p>本质上，Redis 分布式锁的高可用，有两个层面的解决方案：</p>
+<p><img src="https://mmbiz.qpic.cn/sz_mmbiz_png/xlgvgPaib7WOviahK2JPlGTB89D57hDSNo9bHjdRVz2TbJJqcGpvvl3yqlnekwV2Hz0kIIicwO7mXvTb3dBUj5vbw/640?wx_fmt=png&from=appmsg&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1" alt="图片"></p>
+<h2 id="3-1-Server端-的高可用方案"><a href="#3-1-Server端-的高可用方案" class="headerlink" title="3.1.Server端 的高可用方案"></a>3.1.Server端 的高可用方案</h2><p>Redis 分布式锁的Server端高可用方案, 就是通过配置， 保证Server 尽量可能少的数据丢失。</p>
+<p>在redis的配置文件中有两个参数我们可以设置：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">min-slaves-to-write 1</span><br><span class="line">min-slaves-max-lag 10</span><br></pre></td></tr></table></figure>
+
+<p>min-slaves-to-write默认情况下是0，min-slaves-max-lag默认情况下是10。</p>
+<ul>
+<li><code>min-slaves-to-write</code>：设置主库最少得有 N 个健康的从库存活才能执行写命令。这个配置虽然不能保证 N 个从库都一定能接收到主库的写操作，但是能避免当没有足够健康的从库时，主库无法正常写入，以此来避免数据的丢失。</li>
+<li><code>min-slaves-max-lag</code>：配置从库和主库进行数据复制时的 ACK 消息延迟的最大时间，可以确保从库在指定的时间内，如果 ACK 时间没在规定时间内，则拒绝写入。</li>
+</ul>
+<p>以上面配置为例，这两个参数表示至少有1个salve的与master的同步复制延迟不能超过10s，一旦所有的slave复制和同步的延迟达到了10s，那么此时master就不会接受任何请求。</p>
+<p>可以减小min-slaves-max-lag参数的值，这样就可以避免在发生故障时大量的数据丢失，一旦发现延迟超过了该值就不会往master中写入数据。</p>
+<p>配置了 Server端 的高可用方案， 那么对于client，可以设计好合理的降级措施。</p>
+<p>如果 Server端 不可用，需要进行及时预警和合理的降级。 比如，把redis 锁降级为 Zookeeper 分布式锁。</p>
+<p>从 CAP定理来说， Redis集群倾向AP（高并发），ZP集群则倾向CP（高可用）。</p>
+<p>从写入的流程上来说：</p>
+<ul>
+<li>在向Redis集群里的主结点写入数据时，写入主节点就立刻告诉客户端写入成功。</li>
+<li>而在向ZK的主结点写入数据时，并不是立刻告诉客户端写入成功，而是先同步给从结点，至少半数的节点同步成功才能返回“写入成功”给客户端。</li>
+</ul>
+<p>这个时候如果ZK的主节点挂了，ZK的ZAB分布式一致性协议能保证一定是数据同步完成的结点被选举为主节点，所以ZK 不会发生分布式锁的失效问题。</p>
+<p>但是，ZK是低性能的方案。</p>
+<h2 id="3-2-Client-端-的高可用方案"><a href="#3-2-Client-端-的高可用方案" class="headerlink" title="3.2.Client 端 的高可用方案"></a>3.2.Client 端 的高可用方案</h2><p>如果不改用ZK，就是要用Redis Client 端 方案来解决主从架构的分布式锁失效问题。</p>
+<p>Client 端 的高可用方案，就是使用 红锁（RedLock）。</p>
+<p>什么是RedLock ？ 红锁（RedLock） 的设计，就是从 client 客户端 解决了单一 Redis 实例作为分布式锁可能出现的单点故障问题。</p>
+<p>红锁（RedLock）是一种分布式锁算法，由 Redis 的作者 Salvatore Sanfilippo（也称为 Antirez）设计，用于在分布式系统中实现可靠的锁机制。</p>
+<p><strong>红锁（RedLock）实现原理：</strong></p>
+<ol>
+<li><strong>多节点加锁：</strong> RedLock 不在单个 Redis 实例上加锁，而是在多个独立的 Redis 实例上同时尝试获取锁。通常建议使用奇数个 Redis 实例（如 5 个），以确保系统具有较好的容错性。</li>
+<li><strong>多数节点同意：</strong> 系统只有在获得了大多数 Redis 实例的锁（即 N&#x2F;2 + 1 个节点，N 为节点总数）之后，才认为成功获取了分布式锁。这样即使部分 Redis 实例发生故障，整体锁服务仍然可用。</li>
+<li><strong>时间同步：</strong> 为防止客户端在持有锁的过程中发生故障而导致锁无法释放，RedLock 会在获取锁时设置一个超时时间。如果客户端在锁超时之前未能完成任务并释放锁，其他客户端可以在锁超时后重新尝试获取。</li>
+<li><strong>锁释放：</strong> 释放锁时，客户端需要向所有 Redis 实例发送释放锁的命令，以确保所有实例上的锁都被清除。</li>
+</ol>
+<p>首先要有多个（最好是奇数个）对等的（没有主从关系）Redis结点。</p>
+<p>当进行加锁时（比如是用SETNX命令），则这个设置key-value的命令会发给每个Redis结点执行，当且仅当客户端收到超过半数的结点写成功的消息时，才认为加锁成功，才开始执行后面的业务代码。</p>
+<p><strong>红锁（RedLock）具体应用：</strong></p>
+<p>红锁（RedLock）工作流程，总结如下：</p>
+<ol>
+<li>客户端尝试顺序地向所有 Redis 实例发送加锁命令。</li>
+<li>对于每个实例，客户端尝试在指定的超时时间内获取锁。</li>
+<li>客户端计算已经成功加锁的实例数量，如果达到多数（N&#x2F;2 + 1），则认为客户端成功获取了分布式锁。</li>
+<li>如果获取锁失败，客户端需要向所有实例发送释放锁的命令，以避免留下未释放的锁。</li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/10/04/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%8E%A5%E5%8F%A3%E8%AE%BE%E8%AE%A1%E5%8E%9F%E5%88%99/" rel="prev" title="微服务架构">
+      <i class="fa fa-chevron-left"></i> 微服务架构
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/11/10/MQ/%E8%A7%A3%E6%9E%90RocketMQ%E4%B8%AD%E7%9A%84NameServer/" rel="next" title="解析RocketMQ中的NameServer">
+      解析RocketMQ中的NameServer <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#1-Redis%E4%B8%BB%E4%BB%8E%E6%9E%B6%E6%9E%84%E7%9A%84%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81%E7%9A%84%E6%89%A7%E8%A1%8C%E6%B5%81%E7%A8%8B"><span class="nav-number">1.</span> <span class="nav-text">1.Redis主从架构的分布式锁的执行流程</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-master-%E6%8C%82%E4%BA%86%E4%BD%86slave-%E6%B2%A1%E6%9C%89%E5%AE%8C%E6%88%90%E5%A4%8D%E5%88%B6%EF%BC%8C%E9%94%81%E5%A4%B1%E6%95%88%E4%BA%86%EF%BC%8C%E6%80%8E%E4%B9%88%E5%8A%9E%EF%BC%9F"><span class="nav-number">2.</span> <span class="nav-text">2.master 挂了但slave 没有完成复制，锁失效了，怎么办？</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-Redis-%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81%E7%9A%84%E9%AB%98%E5%8F%AF%E7%94%A8%E6%96%B9%E6%A1%88"><span class="nav-number">3.</span> <span class="nav-text">3.Redis 分布式锁的高可用方案</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#3-1-Server%E7%AB%AF-%E7%9A%84%E9%AB%98%E5%8F%AF%E7%94%A8%E6%96%B9%E6%A1%88"><span class="nav-number">3.1.</span> <span class="nav-text">3.1.Server端 的高可用方案</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-2-Client-%E7%AB%AF-%E7%9A%84%E9%AB%98%E5%8F%AF%E7%94%A8%E6%96%B9%E6%A1%88"><span class="nav-number">3.2.</span> <span class="nav-text">3.2.Client 端 的高可用方案</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">210</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">31</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

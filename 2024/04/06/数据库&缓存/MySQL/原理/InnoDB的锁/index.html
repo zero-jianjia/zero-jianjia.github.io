@@ -22,14 +22,15 @@
 
   <meta name="description" content="[toc]&emsp;&emsp;InnoDB与MyISAM的最大不同有两点：一是支持事务（TRANSACTION）；二是采用了行级锁。（还有一个支持外键） 获取InnoDB行锁争用情况&emsp;&emsp;可以通过检查InnoDB_row_lock状态变量来分析系统上的行锁的争夺情况： 1mysql&gt; show status like &#x27;innodb_row_lock%&amp;#x2">
 <meta property="og:type" content="article">
-<meta property="og:title" content="通过SQL分析数据库加锁">
+<meta property="og:title" content="InnoDB的锁">
 <meta property="og:url" content="http://example.com/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/MySQL/%E5%8E%9F%E7%90%86/InnoDB%E7%9A%84%E9%94%81/index.html">
 <meta property="og:site_name" content="zero&#39;s Blog">
 <meta property="og:description" content="[toc]&emsp;&emsp;InnoDB与MyISAM的最大不同有两点：一是支持事务（TRANSACTION）；二是采用了行级锁。（还有一个支持外键） 获取InnoDB行锁争用情况&emsp;&emsp;可以通过检查InnoDB_row_lock状态变量来分析系统上的行锁的争夺情况： 1mysql&gt; show status like &#x27;innodb_row_lock%&amp;#x2">
 <meta property="og:locale" content="en_US">
 <meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171003468.png">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202411101555659.png">
 <meta property="article:published_time" content="2024-04-05T16:00:00.000Z">
-<meta property="article:modified_time" content="2024-07-27T02:20:41.754Z">
+<meta property="article:modified_time" content="2024-11-10T08:07:04.694Z">
 <meta property="article:author" content="jianjia">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171003468.png">
@@ -47,7 +48,7 @@
   };
 </script>
 
-  <title>通过SQL分析数据库加锁 | zero's Blog</title>
+  <title>InnoDB的锁 | zero's Blog</title>
   
 
 
@@ -205,7 +206,7 @@
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          通过SQL分析数据库加锁
+          InnoDB的锁
         </h1>
 
         <div class="post-meta">
@@ -247,10 +248,10 @@
 
       
         <p>[toc]<br>&emsp;&emsp;InnoDB与MyISAM的最大不同有两点：一是支持事务（TRANSACTION）；二是采用了行级锁。（还有一个支持外键）</p>
-<h3 id="获取InnoDB行锁争用情况"><a href="#获取InnoDB行锁争用情况" class="headerlink" title="获取InnoDB行锁争用情况"></a>获取InnoDB行锁争用情况</h3><p>&emsp;&emsp;可以通过检查InnoDB_row_lock状态变量来分析系统上的行锁的争夺情况：</p>
+<h2 id="获取InnoDB行锁争用情况"><a href="#获取InnoDB行锁争用情况" class="headerlink" title="获取InnoDB行锁争用情况"></a>获取InnoDB行锁争用情况</h2><p>&emsp;&emsp;可以通过检查InnoDB_row_lock状态变量来分析系统上的行锁的争夺情况：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; show status like &#x27;innodb_row_lock%&#x27;;</span><br></pre></td></tr></table></figure>
 <p>&emsp;&emsp;如果发现锁争用比较严重，如InnoDB_row_lock_waits和InnoDB_row_lock_time_avg的值比较高，还可以通过设置InnoDB Monitors来进一步观察发生锁冲突的表、数据行等，并分析锁争用的原因。</p>
-<h3 id="InnoDB的行锁模式及加锁方法"><a href="#InnoDB的行锁模式及加锁方法" class="headerlink" title="InnoDB的行锁模式及加锁方法"></a>InnoDB的行锁模式及加锁方法</h3><p>&emsp;&emsp;InnoDB实现了以下两种类型的行锁。</p>
+<h2 id="InnoDB的行锁模式及加锁方法"><a href="#InnoDB的行锁模式及加锁方法" class="headerlink" title="InnoDB的行锁模式及加锁方法"></a>InnoDB的行锁模式及加锁方法</h2><p>&emsp;&emsp;InnoDB实现了以下两种类型的行锁。</p>
 <ul>
 <li>共享锁（S, shared locks）：允许一个事务去读一行，阻止其他事务获得相同数据集的排他锁。</li>
 <li>排他锁（X, exclusive locks）：允许获得排他锁的事务更新数据，阻止其他事务取得相同数据集的共享读锁和排他写锁。</li>
@@ -274,7 +275,7 @@
 <p>&emsp;&emsp;还用最初的表做实验，删除原有记录并在表t中插入i&#x3D;4,9,12,20,30几条记录。</p>
 <p>&emsp;&emsp;先将事务隔离级别调整为READ-COMMITED，我们已经知道，该隔离级别下用非锁定读时可以读取到其他事务中提交的更新，使前后两次同样条件的查询读取到的结果不一致，那么使用锁定读呢？从下边的例子可以看出，在READ-COMMITED隔离级别下，SESSION A中的事务使用锁定读(这里为X锁)，可以阻塞SESSION B中的事务对锁定的记录进行更新或删除，”一定程度上“避免了”不可重复读“或者”幻读”,但是，这里的锁只锁定了记录本身，也即Record Lock，没能阻止SESSION B中的事务在锁定的记录之间插入新的记录，因此当其他事物在这些”间隙“内插入记录并提交后SESSION A中的事务能够看到新插入的记录，还是存在”不可重复读“或者”幻读”。</p>
 <p>&emsp;&emsp;接下来将隔离级别调整为REATABLE READ，该隔离级别下使用非锁定读一般不会读取到其他事物提交的更新，但其他事务中的更新对其更新操作是可见的，当该事务对更新后的记录进行了更新后，同一事物内的查询便可以看到最新的结果，造成前后两次读取结果不一致（前边已有例子进行说明）。那么该隔离级别下使用锁定读呢？会不会也不能避免其他事物在锁定记录的”间隙“插入新的记录呢？答案是否定的，该隔离级别下，InnoDB使用Next-key Lock，除了锁定记录本身外还会锁定记录之间的”间隙”，从而阻止其他事物在读取的记录键插入新的记录，避免前后同一查询条件查询结果却不一致的问题。</p>
-<h3 id="锁的类型"><a href="#锁的类型" class="headerlink" title="锁的类型"></a>锁的类型</h3><p>&emsp;&emsp;Innodb Lock大体上可以分为：</p>
+<h2 id="锁的类型"><a href="#锁的类型" class="headerlink" title="锁的类型"></a>锁的类型</h2><p>&emsp;&emsp;Innodb Lock大体上可以分为：</p>
 <ul>
 <li>共享锁，shared locks（S锁）</li>
 <li>排它锁，exclusive locks（X锁）</li>
@@ -301,25 +302,34 @@
 </li>
 </ul>
 <h4 id="共享-排他锁"><a href="#共享-排他锁" class="headerlink" title="共享&#x2F;排他锁"></a>共享&#x2F;排他锁</h4><p>&emsp;&emsp;行锁分为：S Lock 和 X Lock。S Lock是共享锁，可以理解为读锁；X Lock即写锁。<br>&emsp;&emsp;兼容性：读锁可以读，读锁不可写；写锁不可读也不可写。</p>
-<h4 id="意向锁"><a href="#意向锁" class="headerlink" title="意向锁"></a>意向锁</h4><p>&emsp;&emsp;InnoDB支持多粒度的锁，即：允许表锁和行锁同时存在。但是，假如表锁覆盖了行锁的数据，所以表锁和行锁也会产生冲突。为了解决这种表锁和行锁共存的问题，就产生了意向锁这个东西。意向锁：从字面意思也很好理解，就是提前表明一个“意向”。</p>
-<p>&emsp;&emsp;意向锁分为：</p>
+<h4 id="意向锁"><a href="#意向锁" class="headerlink" title="意向锁"></a>意向锁</h4><p>​	什么是意向锁呢？意向锁是<strong>一种不与行级锁冲突的表级锁</strong>。未来的某个时刻，事务可能要加共享或者排它锁时，先提前声明一个意向。注意一下，意向锁，是一个<strong>表级别的锁哈</strong>。</p>
+<p>​	<strong>为什么需要意向锁呢？</strong> 或者换个通俗的说法，为什么要加共享锁或排他锁时的时候，需要提前声明个意向锁呢呢？</p>
+<blockquote>
+<p>因为InnoDB是支持表锁和行锁共存的，如果一个事务A获取到某一行的排他锁，并未提交，这时候事务B请求获取同一个表的表共享锁。因为<strong>共享锁和排他锁是互斥的</strong>，因此事务B想对这个表加共享锁时，需要保证没有其他事务持有这个表的表排他锁，同时还要保<strong>证没有其他事务持有表中任意一行的排他锁</strong>。</p>
+<p>然后问题来了，要保证没有其他事务持有表中任意一行的排他锁的话，去遍历每一行？这样显然是一个效率很差的做法。<strong>为了解决这个问题，InnoDB提出了意向锁。</strong></p>
+</blockquote>
+<p>​	<strong>意向锁是如何解决这个问题的呢？</strong>  我们来看下意向锁分为两类：</p>
 <ul>
-<li>意向共享锁。它预示着，事务有意向对表中的”某些行”加S锁。select xxxx lock in share mode，要设置IS锁。</li>
-<li>意向排他锁。它预示着，事务有意向表中的“某些行”加X锁。select xxx for update，要设置IX锁。</li>
+<li>意向共享锁：简称<code>IS</code>锁，当事务准备在某些记录上加S锁时，需要现在表级别加一个<code>IS</code>锁。（换个表达就是：事务有意向对表中的”某些行”加S锁。）</li>
+<li>意向排他锁：简称<code>IX</code>锁，当事务准备在某条记录上加上X锁时，需要现在表级别加一个<code>IX</code>锁。</li>
 </ul>
-<p>&emsp;&emsp;但意向锁仅仅是表明意向，它其实非常弱，意向锁之间可以相互并行，并不是排斥的：</p>
-<p>InnoDB还有两种内部使用的意向锁（Intention Locks），这两种意向锁都是表锁。</p>
-<ol>
-<li>意向共享锁（IS）：事务打算给数据行加行共享锁，事务在给一个数据行加共享锁前必须先取得该表的IS锁。</li>
-<li>意向排他锁（IX）：事务打算给数据行加行排他锁，事务在给一个数据行加排他锁前必须先取得该表的IX锁。</li>
-</ol>
-<p>如果一个事务请求的锁模式与当前的锁兼容，innodb 就将请求的锁授予该事务；反之，如果两者不兼容，该事务就要等待锁释放。</p>
-<p>意向锁是 innodb 自动加的，不需要用户干预。对于 update、delete 和 insert 语句，innodb 会自动给涉及数据集加排它锁（X）；对于普通 select 语句，innodb 不会加任何锁。</p>
+<p>比如：</p>
+<ul>
+<li><code>select ... lock in share mode</code>，要给表设置<code>IS</code>锁;</li>
+<li><code>select ... for update</code>，要给表设置<code>IX</code>锁;</li>
+</ul>
+<p>意向锁又是如何解决这个效率低的问题呢：</p>
+<blockquote>
+<p>如果一个事务A获取到某一行的排他锁，并未提交,这时候表上就有<code>意向排他锁</code>和这一行的<code>排他锁</code>。</p>
+<p>这时候事务B想要获取这个表的共享锁，此时因为检测到事务A持有了表的<code>意向排他锁</code>，因此事务A必然持有某些行的排他锁，也就是说事务B对表的加锁请求需要阻塞等待，不再需要去检测表的每一行数据是否存在排他锁啦。这样效率就高很多啦。</p>
+</blockquote>
+<p>意向锁仅仅表明意向的锁，意向锁之间<strong>并不会互斥，是可以并行的</strong>，整体兼容性如下图所示：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202411101555659.png" alt="图片">意向锁是 innodb 自动加的，不需要用户干预。对于 update、delete 和 insert 语句，innodb 会自动给涉及数据集加排它锁（X）；对于普通 select 语句，innodb 不会加任何锁。</p>
 <h4 id="主键自增锁"><a href="#主键自增锁" class="headerlink" title="主键自增锁"></a>主键自增锁</h4><p>&emsp;&emsp;自增锁(auto-inc Locks)是一种特殊的表级锁，专门针对事务插入AUTO_INCREMENT类型的列，往往就是主键列。可以保证主键的值自增是“原子操作”，不会出现一致性、唯一性问题。</p>
 <p>&emsp;&emsp;</p>
-<h3 id="行锁的具体分类"><a href="#行锁的具体分类" class="headerlink" title="行锁的具体分类"></a>行锁的具体分类</h3><h4 id="记录锁-Record-Lock"><a href="#记录锁-Record-Lock" class="headerlink" title="记录锁(Record Lock)"></a>记录锁(Record Lock)</h4><p>&emsp;&emsp;记录锁(Record Lock)  是会去锁住索引记录， 记录锁也叫 行锁。<br>&emsp;&emsp;例如：<code>SELECT * FROM `test` WHERE `id`=1 FOR UPDATE;</code><br>&emsp;&emsp;假如没有任何一个索引，那么InnoDB会锁住隐形创建的那个主键。注意：这里锁的是索引，不一定只是主键索引，还可能是二级普通索引。</p>
-<h4 id="间隙锁-Gap-Lock"><a href="#间隙锁-Gap-Lock" class="headerlink" title="间隙锁(Gap Lock)"></a>间隙锁(Gap Lock)</h4><p>&emsp;&emsp;顾名思义，它会封锁索引记录中的“间隔”，限制其他事务在“间隔”中插入数据。它锁定的是一个不包含索引本身的范围。<br>&emsp;&emsp;举例来说，假如emp表中只有101条记录，其empid的值分别是 1,2,…,100,101，<code>select * from  emp where empid &gt; 100 for update;</code>是一个范围条件的检索，InnoDB不仅会对符合条件的empid值为101的记录加锁，也会对empid大于101（这些记录并不存在）的“间隙”加锁。</p>
-<h4 id="临键锁-Next-Key-Lock"><a href="#临键锁-Next-Key-Lock" class="headerlink" title="临键锁(Next-Key Lock)"></a>临键锁(Next-Key Lock)</h4><p>&emsp;&emsp;Next-Key Lock 可以说是记录锁(Record Lock)和间隙锁（Gap Lock）的组合，它的封锁范围，既包含索引记录，又包含索引区间。<br>&emsp;&emsp;临键锁的主要目的，也是为了避免幻读。如果把事务的隔离级别降级为RC，临键锁则也会失效。</p>
+<h2 id="行锁的具体分类"><a href="#行锁的具体分类" class="headerlink" title="行锁的具体分类"></a>行锁的具体分类</h2><h4 id="记录锁-Record-Lock"><a href="#记录锁-Record-Lock" class="headerlink" title="记录锁(Record Lock)"></a>记录锁(Record Lock)</h4><p>&emsp;&emsp;记录锁(Record Lock)  是会去锁住索引记录的一行， 记录锁也叫 行锁。<br>&emsp;&emsp;例如：<code>SELECT * FROM `test` WHERE `id`=1 FOR UPDATE;</code><br>&emsp;&emsp;假如没有任何一个索引，那么InnoDB会锁住隐形创建的那个主键。注意：这里锁的是索引，不一定只是主键索引，还可能是二级普通索引。</p>
+<h4 id="间隙锁-Gap-Lock"><a href="#间隙锁-Gap-Lock" class="headerlink" title="间隙锁(Gap Lock)"></a>间隙锁(Gap Lock)</h4><p>&emsp;&emsp;顾名思义，它会封锁索引记录中的“间隔”，限制其他事务在“间隔”中插入数据。它锁定的是一个不包含索引本身的范围。<br>&emsp;&emsp;举例来说，假如emp表中只有101条记录，其empid的值分别是 1,2,…,100,101，<code>select * from emp where empid &gt; 100 for update;</code>是一个范围条件的检索，InnoDB不仅会对符合条件的empid值为101的记录加锁，也会对empid大于101（这些记录并不存在）的“间隙”加锁。</p>
+<h4 id="临键锁-Next-Key-Lock"><a href="#临键锁-Next-Key-Lock" class="headerlink" title="临键锁(Next-Key Lock)"></a>临键锁(Next-Key Lock)</h4><p>&emsp;&emsp;Next-Key Lock 可以说是记录锁(Record Lock)和间隙锁（Gap Lock）的组合，它的封锁范围，既包含索引记录，及这条记录前面间隙上的锁。说得更具体一点就是:临键锁会封锁索引记录本身，以及索引记录之前的区间，即它的锁区间是前开后闭，比如<code>(5,10]</code>。<br>&emsp;&emsp;临键锁的主要目的，也是为了避免幻读。如果把事务的隔离级别降级为RC，临键锁则也会失效。</p>
 <h3 id="不可重复读-No-Reaptable-Read-和幻读-Phantom-Problem"><a href="#不可重复读-No-Reaptable-Read-和幻读-Phantom-Problem" class="headerlink" title="不可重复读(No Reaptable Read)和幻读(Phantom Problem)"></a>不可重复读(No Reaptable Read)和幻读(Phantom Problem)</h3><p>&emsp;&emsp;不可重复读：修改。在同一个事务中，主要是说多次读取一条记录, 发现该记录中某些列值被修改过。<br>&emsp;&emsp;幻读: 增加或者删除。在同一个事务中，同一条完全相同的查询语句返回的结果集行数不同。</p>
 <p>&emsp;&emsp;多版本并发控制 MVCC（读）和 临键锁 Next-Key Lock（写）共同解决了幻读问题。<br>&emsp;&emsp;关于MVCC的原理，就是每份数据会有快照，事务中读取数据(简单的select xxx from，select xx from xx for update或者select xx from xxx in share mode不行)的时候，如果数据被锁住了，就读以前留下的快照数据。</p>
 <p>&emsp;&emsp;MVCC只在 Read Committed 和 Repeatable Read 下会开启。但是在这两种隔离级别下对于快照指定的数据定义不同。<br>&emsp;&emsp;在Read Committed下，MVCC读取的是被锁定数据的最新的一份数据。<br>&emsp;&emsp;在Repeatable Read下，MVCC读取的是事务刚开始时候的数据。</p>
@@ -415,7 +425,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%8E%B7%E5%8F%96InnoDB%E8%A1%8C%E9%94%81%E4%BA%89%E7%94%A8%E6%83%85%E5%86%B5"><span class="nav-number">1.</span> <span class="nav-text">获取InnoDB行锁争用情况</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#InnoDB%E7%9A%84%E8%A1%8C%E9%94%81%E6%A8%A1%E5%BC%8F%E5%8F%8A%E5%8A%A0%E9%94%81%E6%96%B9%E6%B3%95"><span class="nav-number">2.</span> <span class="nav-text">InnoDB的行锁模式及加锁方法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%94%81%E7%9A%84%E7%B1%BB%E5%9E%8B"><span class="nav-number">3.</span> <span class="nav-text">锁的类型</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%85%B1%E4%BA%AB-%E6%8E%92%E4%BB%96%E9%94%81"><span class="nav-number">3.1.</span> <span class="nav-text">共享&#x2F;排他锁</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%84%8F%E5%90%91%E9%94%81"><span class="nav-number">3.2.</span> <span class="nav-text">意向锁</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%B8%BB%E9%94%AE%E8%87%AA%E5%A2%9E%E9%94%81"><span class="nav-number">3.3.</span> <span class="nav-text">主键自增锁</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%A1%8C%E9%94%81%E7%9A%84%E5%85%B7%E4%BD%93%E5%88%86%E7%B1%BB"><span class="nav-number">4.</span> <span class="nav-text">行锁的具体分类</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%AE%B0%E5%BD%95%E9%94%81-Record-Lock"><span class="nav-number">4.1.</span> <span class="nav-text">记录锁(Record Lock)</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%97%B4%E9%9A%99%E9%94%81-Gap-Lock"><span class="nav-number">4.2.</span> <span class="nav-text">间隙锁(Gap Lock)</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%B8%B4%E9%94%AE%E9%94%81-Next-Key-Lock"><span class="nav-number">4.3.</span> <span class="nav-text">临键锁(Next-Key Lock)</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%8D%E5%8F%AF%E9%87%8D%E5%A4%8D%E8%AF%BB-No-Reaptable-Read-%E5%92%8C%E5%B9%BB%E8%AF%BB-Phantom-Problem"><span class="nav-number">5.</span> <span class="nav-text">不可重复读(No Reaptable Read)和幻读(Phantom Problem)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#InnoDB%E8%A1%8C%E9%94%81%E5%AE%9E%E7%8E%B0%E6%96%B9%E5%BC%8F"><span class="nav-number">6.</span> <span class="nav-text">InnoDB行锁实现方式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%97%B4%E9%9A%99%E9%94%81%EF%BC%88Next-Key%E9%94%81%EF%BC%89"><span class="nav-number">7.</span> <span class="nav-text">间隙锁（Next-Key锁）</span></a></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%8E%B7%E5%8F%96InnoDB%E8%A1%8C%E9%94%81%E4%BA%89%E7%94%A8%E6%83%85%E5%86%B5"><span class="nav-number">1.</span> <span class="nav-text">获取InnoDB行锁争用情况</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#InnoDB%E7%9A%84%E8%A1%8C%E9%94%81%E6%A8%A1%E5%BC%8F%E5%8F%8A%E5%8A%A0%E9%94%81%E6%96%B9%E6%B3%95"><span class="nav-number">2.</span> <span class="nav-text">InnoDB的行锁模式及加锁方法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%94%81%E7%9A%84%E7%B1%BB%E5%9E%8B"><span class="nav-number">3.</span> <span class="nav-text">锁的类型</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%85%B1%E4%BA%AB-%E6%8E%92%E4%BB%96%E9%94%81"><span class="nav-number">3.0.1.</span> <span class="nav-text">共享&#x2F;排他锁</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%84%8F%E5%90%91%E9%94%81"><span class="nav-number">3.0.2.</span> <span class="nav-text">意向锁</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%B8%BB%E9%94%AE%E8%87%AA%E5%A2%9E%E9%94%81"><span class="nav-number">3.0.3.</span> <span class="nav-text">主键自增锁</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%A1%8C%E9%94%81%E7%9A%84%E5%85%B7%E4%BD%93%E5%88%86%E7%B1%BB"><span class="nav-number">4.</span> <span class="nav-text">行锁的具体分类</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%AE%B0%E5%BD%95%E9%94%81-Record-Lock"><span class="nav-number">4.0.1.</span> <span class="nav-text">记录锁(Record Lock)</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%97%B4%E9%9A%99%E9%94%81-Gap-Lock"><span class="nav-number">4.0.2.</span> <span class="nav-text">间隙锁(Gap Lock)</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%B8%B4%E9%94%AE%E9%94%81-Next-Key-Lock"><span class="nav-number">4.0.3.</span> <span class="nav-text">临键锁(Next-Key Lock)</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%8D%E5%8F%AF%E9%87%8D%E5%A4%8D%E8%AF%BB-No-Reaptable-Read-%E5%92%8C%E5%B9%BB%E8%AF%BB-Phantom-Problem"><span class="nav-number">4.1.</span> <span class="nav-text">不可重复读(No Reaptable Read)和幻读(Phantom Problem)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#InnoDB%E8%A1%8C%E9%94%81%E5%AE%9E%E7%8E%B0%E6%96%B9%E5%BC%8F"><span class="nav-number">4.2.</span> <span class="nav-text">InnoDB行锁实现方式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%97%B4%E9%9A%99%E9%94%81%EF%BC%88Next-Key%E9%94%81%EF%BC%89"><span class="nav-number">4.3.</span> <span class="nav-text">间隙锁（Next-Key锁）</span></a></li></ol></li></ol></div>
       </div>
       <!--/noindex-->
 
@@ -429,7 +439,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">200</span>
+          <span class="site-state-item-count">210</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -471,7 +481,7 @@
 <div class="copyright">
   
   &copy; 
-  <span itemprop="copyrightYear">2024</span>
+  <span itemprop="copyrightYear">2025</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>

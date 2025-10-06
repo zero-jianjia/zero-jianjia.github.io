@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="转载自：https:&#x2F;&#x2F;blog.csdn.net&#x2F;bruce128&#x2F;article&#x2F;details&#x2F;134042861 到今年已经工作十一个年头了，把这些年自己出现在自己身上或者同事身上的问题记录下来。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="初级程序员常见问题">
+<meta property="og:url" content="http://example.com/2025/01/16/%E7%9B%AE%E5%BD%95%E5%BE%85%E5%AE%9A/%E5%88%9D%E7%BA%A7%E7%A8%8B%E5%BA%8F%E5%91%98%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="转载自：https:&#x2F;&#x2F;blog.csdn.net&#x2F;bruce128&#x2F;article&#x2F;details&#x2F;134042861 到今年已经工作十一个年头了，把这些年自己出现在自己身上或者同事身上的问题记录下来。">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2025-01-15T16:00:00.000Z">
+<meta property="article:modified_time" content="2025-10-06T08:16:33.981Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2025/01/16/%E7%9B%AE%E5%BD%95%E5%BE%85%E5%AE%9A/%E5%88%9D%E7%BA%A7%E7%A8%8B%E5%BA%8F%E5%91%98%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>初级程序员常见问题 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2025/01/16/%E7%9B%AE%E5%BD%95%E5%BE%85%E5%AE%9A/%E5%88%9D%E7%BA%A7%E7%A8%8B%E5%BA%8F%E5%91%98%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          初级程序员常见问题
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2025-01-16 00:00:00" itemprop="dateCreated datePublished" datetime="2025-01-16T00:00:00+08:00">2025-01-16</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%9B%AE%E5%BD%95%E5%BE%85%E5%AE%9A/" itemprop="url" rel="index"><span itemprop="name">目录待定</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>转载自：<a target="_blank" rel="noopener" href="https://blog.csdn.net/bruce128/article/details/134042861">https://blog.csdn.net/bruce128/article/details/134042861</a></p>
+<p>到今年已经工作十一个年头了，把这些年自己出现在自己身上或者同事身上的问题记录下来。</p>
+<span id="more"></span>
+
+<p><strong>手里有锤子，看神马都是钉子</strong><br>&emsp;&emsp;新人程序员很容易手段目的化，战术战略化。学了一门新技术后，不管具体的技术场景，哪里都想拿出来比划两下。掌握一门技术需要不少时间，导致主观情绪上有明显的偏好倾向，内心自然想急切的用上，人之常情。<br>&emsp;&emsp;曾经接手的一个业务，梳理业务流程的时候，发现多个业务会用MQ调MQ再调MQ，很困惑为何不用DUBBO这样的RPC。于是在该业务系统的9个工程里找rpc的配置，发现根本没有dubbo的配置。大抵开发同学把MQ当RPC用了。</p>
+<p>&emsp;&emsp;软件开发没有银弹，任何技术都有其适用的场景。数据库领域很多开发都擅长MySQL，曾经做一个新业务每天要写8000W条记录，如果我当时不做技术选型直接用自己擅长的MySQL，这个系统恐怕只能正常运行几个小时。技术工具的选择要考虑场景，不能因为手里有把锤子，看到啥都是钉子。最近接触了 “道法术器” 的做事思想，某个具体的技术仅仅是器这一层面的内容，想把事情做好还得跳出来思考。不关注工具层的东西容易务虚，但过于迷恋器层面的技术，容易练功走火入魔。纠结于“PHP是最好的技术”就属于这一现象。</p>
+<p><strong>代码写好了就够了吗</strong><br>&emsp;&emsp;毕业的第一份工作在京东。大促期间，每天都要人工巡检系统的多个功能点、机器负载、系统异常日志等等。我当时并不理解，我们把代码写好了，考虑了各种边界case，通过了严苛的测试，不就好了吗。读大学的时候，老师们十分强调代码的鲁棒性，刚毕业的时候的认知是代码写好了就可以了。后来巡检异常系统日志的时候，发现自己的代码导致的生产问题。如果不是每天的生产巡检，那得等到用户投诉才能意识到问题。自此之后，养成了新功能上线后，定时巡检系统异常的习惯。</p>
+<p>&emsp;&emsp;测试人员执行的测试用例，只是真实世界的一个子集。我们的代码虽然能通过测试，并不能保证测试用例子集在真实世界全集中的补集里正常work。除了写好代码，还需要良好的巡检、监控意识。</p>
+<p><strong>离代码很近，离用户很远</strong><br>&emsp;&emsp;在钉钉审批团队的时候，每周三全组一起解决用户反馈的问题。有些问题需要加用户好友，甚至需要打电话联系用户了解情况。用户提的问题多的时候，需要花上整个下午处理问题。刚去审批团队的时候，对这个例行工作比较抱怨，直到我很得意的一个性能优化导致的一个issue才改变我的观点。<br>&emsp;&emsp;审批团队有8台server是专门处理Excel下载和pdf下载的，每天的下载量并不大，小几十万。8台机器高峰时刻的cpu负载能高到80%，我很不解，为啥这么耗性能。用arthas定位到了问题——每次渲染会加载3个十几MB的字体文件。不改一行代码，就删了一个字体文件，优化之后，cpu水位下降了34%。于是乎洋洋得意地在内网ATA社区发了篇贴子炫耀，得到了一些技术大佬的点赞。几周后，我接到了用户的一个issue，原本的纸张没法打印全以前的报销单了。我意识到了是我删了一个字体文件导致了报销单表格变宽了。用户不会因为我为公司省了一点电感谢我，反而因为功能出了问题，选择用脚投票。</p>
+<p>&emsp;&emsp;很多工程师往往会沉溺于技术的世界无法自拔，着迷于高性能、技术流的东西，不考虑用户的痛点，往往容易做出反人类的东西。最终的结果是公司流失用户、流失订单。技术要跳出技术的视野，多从用户的角度出发，多解决用户的痛点，让用户用产品用地更爽。而不是抱着自认为牛逼的技术孤芳自赏。技术是创造价值的必要条件之一，而非充分条件。脱离用户、脱离群众、脱离业务的技术，注定是空中楼阁。<br>&emsp;&emsp;微软有句管理名言：“eat your own dog food!” （吃自家的狗粮）,提高产品在内部员工中的使用比例。产品好不好用，不需要培训，哪里不好用，用一下立马就能感受出来。员工要用自己开发出来的产品，并把不好的点反馈给产品经理，群策群力一起改进。开发人员使用自己开发的产品，才能构建用户视角，收获来自真实世界的反馈。</p>
+<p><strong>闭门造车，不学习竞品</strong><br>&emsp;&emsp;曾经负责一个金融业务的SaaS化项目，负责加签验签功能的同事给出的技术方案：前端传来的json串经过spring mvc转成的对象后我们用FastJSON框架json化，然后进行验签。这个方案评审时被毙掉了，因为不知道接入方是用什么工具转成json的，调用方和我们的系统json化出来的字符串一旦不一样，就验签失败。我们内部讨论了好几天，想了好几种在JSON化这个方向的方案。有一天我想到，加签验签这种基础的工具，支付宝微信支付应该早就有解决了方案了吧。于是搜索支付宝、微信支付和美团支付的接口文档，发现他们技术方案能完美的解决我们苦苦思索好几天的问题。柳暗花明又一村，直接抄作业就行了。<br>&emsp;&emsp;阳光底下无新事，大公司早就把路走出来了。大公司摸着石头过河，我们摸着大公司过河。学习先行者的经验，能少走很多弯路，减少一些不必要的试错成本。</p>
+<p><strong>缺乏数据度量意识</strong><br>&emsp;&emsp;做技术优化的任务，是否能带来业务质量的提升？具体能提升多少？能否用数字衡量。阿里西溪园区的一个电梯口贴过一副对联“No data no bb” “You can you up”，言辞虽戏谑，但是表达出了对数据的态度。<br>&emsp;&emsp;曾经的团队有个系统是负责封装全公司几十个外部供应商的接口，一年有几千万的调用量。这个系统经常出现外部接口调用不通的问题，在大部门公开复盘过几次生产故障。为了解决这个问题，引入了多渠道路由机制，譬如个人三要素验证功能，如果cfca提供的个人三要素接口失败了，就调公安提供的个人三要素接口，再调天威的，直到某个接口成功或者全部失败。多渠道路由技术方案评审的时候，我提出，能不能出一份数据，做完这个技术优化后，能为接口成功率提升多少个百分点，每天能拯救多少个本来会调用失败的case。产品经理同意了我的观点，但是负责这个系统的毕业两年的owner当时质疑：“要花好几天做这功能就为了出一个数据？”。无奈只好作罢。第一期给少量接口做了多渠道路由功能，上线之后并不如人意，依然是每天好几个告警。我感觉不对劲，根据多次生产环境调用不通的排查经验，断定主要原因是供应商上线新机器未通知我们，或者内部网络策略的问题。于是参考DUBBO failover的思想，借助Spring Retry，把几十个访问外部接口的HTTP调用全部都加上了retry。花了2天时间。这个功能上线后，生产环境外部调用失败告警从每天几次降低到了一周一两次。做完这件事后，团队的产品和这个系统owner依然在大力推动多渠道路由的优化，并且推动上游系统改用多渠道路由功能。多渠道路由的二期、三期一步一步的推进。<br>&emsp;&emsp;团队在错误的路上越走越远，怎么办？对了，打日志，简单的统计多渠道路由功能被使用了多少次，用数据说话！于是在多渠道功能被使用到的时候，我输出了一行日志。上线后，我人肉用关键字搜索这行日志的行数。统计了一个多月，0次！！！我跟这个系统的年轻owner和产品同步了多渠道路由的使用数据后，投入了3个多人月还要继续投入的多渠道路由功能才戛然而止。<br>&emsp;&emsp;及时用数据反馈自己的优化工作，到底是正优化、负优化还是无用功。如果是负优化或者无用功，就得立刻调转船头了。那么如何评判是负优化或者无用功呢？DATA！用数字指标衡量。语言可以花里胡哨，但死数字不说慌。数据度量在精益创业里有着十分重要的地位。</p>
+<p><strong>缺少业务sense</strong><br>&emsp;&emsp;业务视角不应该是产品的事吗？跟我一程序员有什么关系？程序员不就是把代码写好就行了吗？<br>&emsp;&emsp;缺少业务sense，是否能完全理解产品讲的需求，并还原产品需求本质，做需求的时候能让动作不变形？理解了需求的本质，有的情况下，技术开发同学可以提出更优的解决方案，直达需求本质。</p>
+<p><strong>没有全局视角</strong><br>&emsp;&emsp;不了解业务或者技术整体情况，解决问题只能用局部最优解。</p>
+<p>悟已往之不谏，知来者之可追，实迷途而未远，觉今是而昨非。技术人的成长就是不断的发现过去的做法不完善，然后持续改进之。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/11/17/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/MySQL/%E5%85%AD%E4%B8%AA%E6%A1%88%E4%BE%8B%E6%90%9E%E6%87%82%E9%97%B4%E9%9A%99%E9%94%81/" rel="prev" title="六个案例搞懂间隙锁">
+      <i class="fa fa-chevron-left"></i> 六个案例搞懂间隙锁
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">210</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">31</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

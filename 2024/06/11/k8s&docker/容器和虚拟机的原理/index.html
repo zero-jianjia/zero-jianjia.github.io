@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="[toc] 容器容器的工作原理主要依赖于操作系统层面的资源隔离和限制技术。 与传统的虚拟机不同，容器不需要运行完整的操作系统，而是直接在宿主机的操作系统上运行。容器共享宿主机的内核，但在文件系统、进程、网络和其他资源方面实现了隔离。以下是容器工作原理的关键技术： 命名空间（Namespaces）namespaces是Linux内核提供的一种资源隔离机制，它可以将系统资源（如进程、文件系统、网络等）">
+<meta property="og:type" content="article">
+<meta property="og:title" content="虚拟机（VM）的工作原理">
+<meta property="og:url" content="http://example.com/2024/06/11/k8s&docker/%E5%AE%B9%E5%99%A8%E5%92%8C%E8%99%9A%E6%8B%9F%E6%9C%BA%E7%9A%84%E5%8E%9F%E7%90%86/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="[toc] 容器容器的工作原理主要依赖于操作系统层面的资源隔离和限制技术。 与传统的虚拟机不同，容器不需要运行完整的操作系统，而是直接在宿主机的操作系统上运行。容器共享宿主机的内核，但在文件系统、进程、网络和其他资源方面实现了隔离。以下是容器工作原理的关键技术： 命名空间（Namespaces）namespaces是Linux内核提供的一种资源隔离机制，它可以将系统资源（如进程、文件系统、网络等）">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202510061547420.png">
+<meta property="article:published_time" content="2024-06-11T01:00:00.000Z">
+<meta property="article:modified_time" content="2025-10-06T08:08:07.585Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202510061547420.png">
+
+<link rel="canonical" href="http://example.com/2024/06/11/k8s&docker/%E5%AE%B9%E5%99%A8%E5%92%8C%E8%99%9A%E6%8B%9F%E6%9C%BA%E7%9A%84%E5%8E%9F%E7%90%86/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>虚拟机（VM）的工作原理 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/06/11/k8s&docker/%E5%AE%B9%E5%99%A8%E5%92%8C%E8%99%9A%E6%8B%9F%E6%9C%BA%E7%9A%84%E5%8E%9F%E7%90%86/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          虚拟机（VM）的工作原理
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-06-11 09:00:00" itemprop="dateCreated datePublished" datetime="2024-06-11T09:00:00+08:00">2024-06-11</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/k8s-docker/" itemprop="url" rel="index"><span itemprop="name">k8s&docker</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>[toc]</p>
+<h2 id="容器"><a href="#容器" class="headerlink" title="容器"></a>容器</h2><p>容器的工作原理主要依赖于操作系统层面的资源隔离和限制技术。</p>
+<p>与传统的虚拟机不同，容器不需要运行完整的操作系统，而是直接在宿主机的操作系统上运行。容器共享宿主机的内核，但在文件系统、进程、网络和其他资源方面实现了隔离。以下是容器工作原理的关键技术：</p>
+<h3 id="命名空间（Namespaces）"><a href="#命名空间（Namespaces）" class="headerlink" title="命名空间（Namespaces）"></a>命名空间（Namespaces）</h3><p><code>namespaces</code>是Linux内核提供的一种资源隔离机制，它可以将系统资源（如进程、文件系统、网络等）划分为多个独立的命名空间。容器内进程拥有独立视图：</p>
+<ul>
+<li>PID命名空间隔离进程ID，网络命名空间提供独立网络栈。‌</li>
+<li>其他类型包括Mount（文件系统挂载点）、IPC（进程通信）、UTS（主机名）和User（用户ID）命名空间。‌</li>
+</ul>
+<p>每个容器运行在自己的名字空间中，互不干扰。</p>
+<span id="more"></span>
+
+<h3 id="控制组（cgroups）"><a href="#控制组（cgroups）" class="headerlink" title="控制组（cgroups）"></a>控制组（cgroups）</h3><p>控制组是Linux内核提供的一种资源限制和管理机制，它可以为进程分配和限制CPU、内存、磁盘I&#x2F;O等资源。</p>
+<p>通过控制组，容器可以实现CPU、内存、磁盘I&#x2F;O等资源的分配和隔离，避免争抢资源。  </p>
+<h3 id="联合文件系统（Union-File-System）"><a href="#联合文件系统（Union-File-System）" class="headerlink" title="联合文件系统（Union File System）"></a>联合文件系统（Union File System）</h3><p>联合文件系统是一种分层、轻量级的文件系统，它允许将多个文件系统层叠在一起，形成一个统一的视图。</p>
+<p>容器镜像使用联合文件系统来存储和管理文件，实现了分层存储和版本控制。当容器启动时，它会创建一个新的可写层，用于存储运行时的数据。这样，容器之间可以共享相同的基础镜像，减少了存储空间的占用。  </p>
+<hr>
+<p>Linux 早就支持 2.6.x 的版本就已经支持 <code>namespace</code> 隔离了，使用 <code>namespace</code> 可以将两个进程完全隔离。</p>
+<p>仅仅将资源隔离还不够，还需要限制对资源的使用，比如 CPU、内存、磁盘、带宽这些也得做限制；这点也可以使用 <code>cgroups</code> 进行配置。它可以限制某个进程的资源，比如宿主机是 4 核 CPU，8G 内存，为了保护其他容器，必须给这个容器配置使用上限：1核 CPU，2G内存。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202510061547420.png" alt="image.png"></p>
+<p>这张图就很清晰的表示了 <code>namespace</code> 和 <code>cgroups</code> 在容器技术中的作用，简单来说就是：</p>
+<ul>
+<li>namespace 负责隔离</li>
+<li>cgroups 负责限制</li>
+</ul>
+<p>容器是一种轻量级的虚拟化技术，它在单个操作系统上运行多个隔离的实例。与虚拟机不同，容器不模拟硬件，而是共享宿主机的操作系统内核。容器通过Linux内核的namespaces和cgroups等特性实现隔离。namespaces提供了一种隔离资源（如进程ID、网络接口等）的方法，而cgroups则用于限制和监控资源使用。容器内运行的应用程序直接与宿主机的内核交互，而不是通过Hypervisor。</p>
+<hr>
+<hr>
+<h2 id="虚拟机（VM）"><a href="#虚拟机（VM）" class="headerlink" title="虚拟机（VM）"></a>虚拟机（VM）</h2><p>虚拟机是通过虚拟化技术在物理服务器上创建的完整计算机系统。它模拟了底层硬件，运行完整的操作系统（OS）和应用程序。虚拟机通过Hypervisor（也称为虚拟机监控程序）与物理硬件交互，Hypervisor负责管理硬件资源并将其分配给各个虚拟机。虚拟机可以被视为一个完整的计算机系统，拥有自己的操作系统、应用程序和用户空间。</p>
+<p>虚拟机通常需要更多的资源，因为每个虚拟机都需要运行自己的操作系统，这包括内核、系统库和驱动程序。此外，虚拟机还需要为其操作系统和应用程序分配内存和存储空间。这导致虚拟机的启动和运行相对较慢，并且占用更多的磁盘空间。</p>
+<p>虚拟机的性能受到虚拟化开销的影响，尤其是在I&#x2F;O操作和网络通信方面。虚拟机需要通过Hypervisor与物理硬件交互，这会增加额外的延迟。此外，虚拟机的资源分配通常是静态的，不易动态调整。</p>
+<p>虚拟机提供了较强的隔离性，因为每个虚拟机都运行在自己的操作系统上。这有助于防止不同虚拟机之间的资源冲突和安全威胁。虚拟机可以通过网络隔离、存储加密等技术增强安全性。<br>容器的安全性通常低于虚拟机，因为它们共享宿主机的操作系统内核。容器之间的隔离依赖于namespaces和cgroups等内核特性，但这些隔离机制可能被绕过。然而，容器可以通过用户名称空间、安全策略和运行时沙箱等技术提高安全性。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/06/11/k8s&docker/Kubernetes%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/" rel="prev" title="Kubernetes快速入门">
+      <i class="fa fa-chevron-left"></i> Kubernetes快速入门
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/06/11/k8s&docker/%E6%8E%A7%E5%88%B6%E5%99%A8/" rel="next" title="控制器">
+      控制器 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%B9%E5%99%A8"><span class="nav-number">1.</span> <span class="nav-text">容器</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%91%BD%E5%90%8D%E7%A9%BA%E9%97%B4%EF%BC%88Namespaces%EF%BC%89"><span class="nav-number">1.1.</span> <span class="nav-text">命名空间（Namespaces）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8E%A7%E5%88%B6%E7%BB%84%EF%BC%88cgroups%EF%BC%89"><span class="nav-number">1.2.</span> <span class="nav-text">控制组（cgroups）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%81%94%E5%90%88%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F%EF%BC%88Union-File-System%EF%BC%89"><span class="nav-number">1.3.</span> <span class="nav-text">联合文件系统（Union File System）</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%99%9A%E6%8B%9F%E6%9C%BA%EF%BC%88VM%EF%BC%89"><span class="nav-number">2.</span> <span class="nav-text">虚拟机（VM）</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">210</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">31</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

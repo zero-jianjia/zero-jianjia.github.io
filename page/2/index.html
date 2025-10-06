@@ -187,6 +187,638 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/08/16/%E7%9B%AE%E5%BD%95%E5%BE%85%E5%AE%9A/%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/08/16/%E7%9B%AE%E5%BD%95%E5%BE%85%E5%AE%9A/%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1/" class="post-title-link" itemprop="url">负载均衡</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-08-16 00:00:00" itemprop="dateCreated datePublished" datetime="2024-08-16T00:00:00+08:00">2024-08-16</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%9B%AE%E5%BD%95%E5%BE%85%E5%AE%9A/" itemprop="url" rel="index"><span itemprop="name">目录待定</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>[toc]</p>
+<h2 id="什么是负载均衡技术"><a href="#什么是负载均衡技术" class="headerlink" title="什么是负载均衡技术"></a>什么是负载均衡技术</h2><p>&emsp;&emsp;负载均衡技术其原理是通过运行在前面的负载均衡服务器，根据执行的负载均衡算法，将流量均衡地分配到后端服务器上，从而提高整个系统的扩展能力，实现服务的并行扩展，同时，负载均衡技术还可以起到对外网屏蔽内网服务器，从而提高系统的可用性。</p>
+<p>&emsp;&emsp;负载均衡根据类型划分，主要划分为三种类型：</p>
+<ul>
+<li>第一种类型为DNS负载均衡（软硬结合的方式），主要是使用DNS解析出IP的方式，来进行业务流量的分发，并发无上限；</li>
+<li>第二种类型为硬件负载均衡，例如那些贵的离谱的硬件设备，F5，A10，并发百万级别；</li>
+<li>第三种类型为软件负载均衡，就是我们常见的负载均衡软件，例如nginx，lvs，并发几万到百万级别</li>
+</ul>
+<p>&emsp;&emsp;</p>
+<h3 id="DNS-负载均衡"><a href="#DNS-负载均衡" class="headerlink" title="DNS 负载均衡"></a>DNS 负载均衡</h3><p>DNS 是最简单也是最常见的负载均衡方式，一般用来实现地理级别的均衡。例如，北方的用户访问北京的机房，南方的用户访问深圳的机房。DNS 负载均衡的本质是 DNS 解析同一个域名可以返回不同的 IP 地址。例如，同样是 <a target="_blank" rel="noopener" href="http://www.baidu.com,/">www.baidu.com，</a> 北方用户解析后获取的地址是 61.135.165.224（这是北京机房的 IP），南方用户解析后获取的地址是 14.215.177.38（这是深圳机房的 IP）。</p>
+<p>下面是 DNS 负载均衡的简单示意图：<br><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171145191.png" alt="在这里插入图片描述" style="zoom: 33%;" /><br>DNS 负载均衡实现简单、成本低，但也存在粒度太粗、负载均衡算法少等缺点。仔细分析一下优缺点，其优点有：</p>
+<ul>
+<li>简单、成本低：负载均衡工作交给 DNS 服务器处理，无须自己开发或者维护负载均衡设备。</li>
+<li>就近访问，提升访问速度：DNS 解析时可以根据请求来源 IP，解析成距离用户最近的服务器地址，可以加快访问速度，改善性能。</li>
+</ul>
+<p>缺点有：</p>
+<ul>
+<li>更新不及时：DNS 缓存的时间比较长，修改 DNS 配置后，由于缓存的原因，还是有很多用户会继续访问修改前的 IP，这样的访问会失败，达不到负载均衡的目的，并且也影响用户正常使用业务。</li>
+<li>扩展性差：DNS 负载均衡的控制权在域名商那里，无法根据业务特点针对其做更多的定制化功能和扩展特性。</li>
+<li>分配策略比较简单：DNS 负载均衡支持的算法少；不能区分服务器的差异（不能根据系统与服务的状态来判断负载）；也无法感知后端服务器的状态。</li>
+</ul>
+<p>针对 DNS 负载均衡的一些缺点，对于时延和故障敏感的业务，有一些公司自己实现了 HTTP-DNS 的功能，即使用 HTTP 协议实现一个私有的 DNS 系统。这样的方案和通用的 DNS 优缺点正好相反。</p>
+<h3 id="硬件负载均衡"><a href="#硬件负载均衡" class="headerlink" title="硬件负载均衡"></a>硬件负载均衡</h3><p>硬件负载均衡是通过单独的硬件设备来实现负载均衡功能，这类设备和路由器、交换机类似，可以理解为一个用于负载均衡的基础网络设备。目前业界典型的硬件负载均衡设备有两款：F5 和 A10。这类设备性能强劲、功能强大，但价格都不便宜，一般只有“土豪”公司才会考虑使用此类设备。普通业务量级的公司一是负担不起，二是业务量没那么大，用这些设备也是浪费。</p>
+<p>硬件负载均衡的优点是：</p>
+<ul>
+<li>功能强大：全面支持各层级的负载均衡，支持全面的负载均衡算法，支持全局负载均衡。</li>
+<li>性能强大：对比一下，软件负载均衡支持到 10 万级并发已经很厉害了，硬件负载均衡可以支持 100 万以上的并发。</li>
+<li>稳定性高：商用硬件负载均衡，经过了良好的严格测试，经过大规模使用，稳定性高。</li>
+<li>支持安全防护：硬件均衡设备除具备负载均衡功能外，还具备防火墙、防 DDoS 攻击等安全功能。</li>
+</ul>
+<p>硬件负载均衡的缺点是：</p>
+<ul>
+<li>价格昂贵：最普通的一台 F5 就是一台“马 6”，好一点的就是“Q7”了。</li>
+<li>扩展能力差：硬件设备，可以根据业务进行配置，但无法进行扩展和定制。</li>
+</ul>
+<h3 id="软件负载均衡"><a href="#软件负载均衡" class="headerlink" title="软件负载均衡"></a>软件负载均衡</h3><p>软件负载均衡通过负载均衡软件来实现负载均衡功能，软件负载均衡服务一般分为两种：四层负载均衡 和 七层负载均衡。四层和七层指的是负载均衡服务运行的位置，分别对应ISO网络协议中的传输层和网络层。在实际应用中，四层负载均衡一般就是位于层的TCP协议（或者SSL协议）的负载均衡，而七层负载均衡就是HTTP协议（或者HTTPS）协议的负载均衡。</p>
+<p>常见的有 Nginx 和 LVS，其中 Nginx 是软件的 7 层负载均衡，LVS 是 Linux 内核的 4 层负载均衡。4 层和 7 层的区别就在于<strong>协议</strong>和<strong>灵活性</strong>，Nginx 支持 HTTP、E-mail 协议；而 LVS 是 4 层负载均衡，和协议无关，几乎所有应用都可以做，例如，聊天、数据库等。</p>
+<p>软件和硬件的最主要区别就在于性能，硬件负载均衡性能远远高于软件负载均衡性能。Nginx 的性能是万级，一般的 Linux 服务器上装一个 Nginx 大概能到 5 万 &#x2F; 秒；LVS 的性能是十万级，据说可达到 80 万 &#x2F; 秒；而 F5 性能是百万级，从 200 万 &#x2F; 秒到 800 万 &#x2F; 秒都有（数据来源网络，仅供参考，如需采用请根据实际业务场景进行性能测试）。当然，软件负载均衡的最大优势是便宜。</p>
+<p>除了使用开源的系统进行负载均衡，如果业务比较特殊，也可能基于开源系统进行定制（例如，Nginx 插件），甚至进行自研。</p>
+<p>软件负载均衡的优点：</p>
+<ul>
+<li>简单：无论是部署还是维护都比较简单。</li>
+<li>便宜：只要买个 Linux 服务器，装上软件即可。</li>
+<li>灵活：4 层和 7 层负载均衡可以根据业务进行选择；也可以根据业务进行比较方便的扩展，例如，可以通过 Nginx 的插件来实现业务的定制化功能。</li>
+</ul>
+<p>其实下面的缺点都是和硬件负载均衡相比的，并不是说软件负载均衡没法用。</p>
+<ul>
+<li>性能一般：一个 Nginx 大约能支撑 5 万并发。</li>
+<li>功能没有硬件负载均衡那么强大。</li>
+<li>一般不具备防火墙和防 DDoS 攻击等安全功能。</li>
+</ul>
+<h2 id="负载均衡典型架构"><a href="#负载均衡典型架构" class="headerlink" title="负载均衡典型架构"></a>负载均衡典型架构</h2><p>前面我们介绍了 3 种常见的负载均衡机制：DNS 负载均衡、硬件负载均衡、软件负载均衡，每种方式都有一些优缺点，但并不意味着在实际应用中只能基于它们的优缺点进行非此即彼的选择，反而是基于它们的优缺点进行组合使用。具体来说，组合的<strong>基本原则</strong>为：</p>
+<ul>
+<li>DNS 负载均衡用于实现地理级别的负载均衡；</li>
+<li>硬件负载均衡用于实现集群级别的负载均衡；</li>
+<li>软件负载均衡用于实现机器级别的负载均衡。</li>
+</ul>
+<p>以一个假想的实例来说明一下这种组合方式，如下图所示。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171145655.png" alt="在这里插入图片描述"></p>
+<p>整个系统的负载均衡分为三层。</p>
+<ul>
+<li>地理级别负载均衡：<a target="_blank" rel="noopener" href="http://www.xxx.com/">www.xxx.com</a> 部署在北京、广州、上海三个机房，当用户访问时，DNS 会根据用户的地理位置来决定返回哪个机房的 IP，图中返回了广州机房的 IP 地址，这样用户就访问到广州机房了。</li>
+<li>集群级别负载均衡：广州机房的负载均衡用的是 F5 设备，F5 收到用户请求后，进行集群级别的负载均衡，将用户请求发给 3 个本地集群中的一个，假设 F5 将用户请求发给了“广州集群 2”。</li>
+<li>机器级别的负载均衡：广州集群 2 的负载均衡用的是 Nginx，Nginx 收到用户请求后，将用户请求发送给集群里面的某台服务器，服务器处理用户的业务请求并返回业务响应。</li>
+</ul>
+<p>需要注意的是，上图只是一个示例，一般在大型业务场景下才会这样用，如果业务量没这么大，则没有必要严格照搬这套架构。例如，一个大学的论坛，完全可以不需要 DNS 负载均衡，也不需要 F5 设备，只需要用 Nginx 作为一个简单的负载均衡就足够了。</p>
+<h2 id="负载均衡算法"><a href="#负载均衡算法" class="headerlink" title="负载均衡算法"></a>负载均衡算法</h2><h3 id="1-轮询"><a href="#1-轮询" class="headerlink" title="1. 轮询"></a>1. 轮询</h3><p>负载均衡系统接收到请求后，按照顺序轮流分配给服务器。</p>
+<p>这种方式非常简单，只管按顺序分配，至于服务器当前负载情况、硬件能力等都不关心，只要服务器还能工作，就可以分配，除非服务器挂了。</p>
+<h3 id="2-加权轮询"><a href="#2-加权轮询" class="headerlink" title="2. 加权轮询"></a>2. 加权轮询</h3><p>是轮询方式的一种改进，轮询方式是无差别分配，但实际服务器的处理能力是有差异的，所以需要区别对待。</p>
+<p>为服务器设置权值，权值高的就多分配点。</p>
+<h3 id="3-负载最低优先"><a href="#3-负载最低优先" class="headerlink" title="3. 负载最低优先"></a>3. 负载最低优先</h3><p>将任务分配给当前负载最低的服务器。</p>
+<p>例如 LVS 可以根据“连接数”判断服务器状态，NGINX 可以根据“HTTP请求数”来判断。</p>
+<p>这种方式比轮询高级很多，可以感知服务器的状态了，但其复杂度也大大提高了，要收集统计服务器的负载信息。</p>
+<h3 id="4-性能最优"><a href="#4-性能最优" class="headerlink" title="4. 性能最优"></a>4. 性能最优</h3><p>优先将任务分配给处理速度最快的服务器，来达到最快响应客户端的目的。</p>
+<p>此方式也是感知服务器的状态，标准是<strong>响应时间</strong>。</p>
+<p>需要收集分析服务器的响应时间，这个工作本身消耗也不小，所以采用<strong>采样</strong>的方式，不统计所有任务的响应时间，统计一个周期（例如 10秒&#x2F;1分钟&#x2F;5分钟）内的状态。</p>
+<p>优缺点与 <em>负载最低优先</em> 相同。</p>
+<h3 id="5-Hash"><a href="#5-Hash" class="headerlink" title="5. Hash"></a>5. Hash</h3><p>对请求中的关键信息（如IP）进行hash计算，hash值相同的请求分配到同一台服务器，例如业务中希望同一用户的请求都由同一台服务器来处理。</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/08/03/MQ/%E8%A7%A3%E8%AF%BBRocketMQ%205.0%E5%85%A8%E6%96%B0%E7%9A%84%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E8%AE%A1/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/08/03/MQ/%E8%A7%A3%E8%AF%BBRocketMQ%205.0%E5%85%A8%E6%96%B0%E7%9A%84%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E8%AE%A1/" class="post-title-link" itemprop="url">解读RocketMQ 5.0全新的高可用设计</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-08-03 00:00:00" itemprop="dateCreated datePublished" datetime="2024-08-03T00:00:00+08:00">2024-08-03</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/MQ/" itemprop="url" rel="index"><span itemprop="name">MQ</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>[toc]</p>
+<h1 id="高可用架构演进背景"><a href="#高可用架构演进背景" class="headerlink" title="高可用架构演进背景"></a>高可用架构演进背景</h1><p>​	在分布式系统中不可避免的会遇到网络故障，机器宕机，磁盘损坏等问题，为了向用户不中断且正确的提供服务，要求系统有一定的冗余与容错能力。RocketMQ 在日志，统计分析，在线交易，金融交易等丰富的生产场景中发挥着至关重要的作用，而不同环境对基础设施的成本与可靠性提出了不同的诉求。</p>
+<p>​	在 RocketMQ v4 版本中有两种主流高可用设计，分别是 主备模式的无切换架构 和 基于 Raft 的多副本架构（图中左侧和右侧所示）。</p>
+<p>​	生产实践中我们发现，两副本的冷备模式下备节点资源利用率低，主宕机时特殊类型消息存在可用性问题；而 Raft 高度串行化，基于多数派的确认机制在扩展只读副本时不够灵活，无法很好的支持两机房对等部署，异地多中心等复杂场景。RocketMQ v5 版本融合了上述方案的优势，提出 DLedger Controller 作为管控节点（中间部分所示），将选举逻辑插件化并优化了数据复制的实现。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408031322339.png" alt="在这里插入图片描述"></p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/08/03/MQ/%E8%A7%A3%E8%AF%BBRocketMQ%205.0%E5%85%A8%E6%96%B0%E7%9A%84%E9%AB%98%E5%8F%AF%E7%94%A8%E8%AE%BE%E8%AE%A1/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/08/03/MQ/Apache%20RocketMQ%E5%9C%A8%E9%98%BF%E9%87%8C%E4%BA%91%E5%A4%A7%E8%A7%84%E6%A8%A1%E5%95%86%E4%B8%9A%E5%8C%96%E5%AE%9E%E8%B7%B5%E4%B9%8B%E8%B7%AF/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/08/03/MQ/Apache%20RocketMQ%E5%9C%A8%E9%98%BF%E9%87%8C%E4%BA%91%E5%A4%A7%E8%A7%84%E6%A8%A1%E5%95%86%E4%B8%9A%E5%8C%96%E5%AE%9E%E8%B7%B5%E4%B9%8B%E8%B7%AF/" class="post-title-link" itemprop="url">Apache RocketMQ在阿里云大规模商业化实践之路</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-08-03 00:00:00" itemprop="dateCreated datePublished" datetime="2024-08-03T00:00:00+08:00">2024-08-03</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/MQ/" itemprop="url" rel="index"><span itemprop="name">MQ</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>[toc]</p>
+<h1 id="阿里云消息队列-RocketMQ-商业化历程"><a href="#阿里云消息队列-RocketMQ-商业化历程" class="headerlink" title="阿里云消息队列 RocketMQ 商业化历程"></a>阿里云消息队列 RocketMQ 商业化历程</h1><p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408031433010.png" alt="在这里插入图片描述"></p>
+<p>RocketMQ 诞生于 2012 年，诞生即开源。2012～2015 年，RocketMQ 一直在通过内部电商业务打磨自身服务能力,并在 2015 年于阿里云上线公测。2016 年，阿里云 RocketMQ 完成商业化，同时被捐赠给 Apache 基金会，同年获得了年度受欢迎中国开源软件荣誉。</p>
+<p>在 Apache 孵化期间，Apache RocketMQ 经历了快速发展，2017 年即毕业成为了 Apache 顶级项目。同年，Apache RocketMQ TLP RocketMQ 4.0 正式发布。此后，RocketMQ 4.0 经历了长足发展，期间阿里云商业和开源相辅相成、齐头并进，直到今天，共同迈入 RocketMQ 5.0 时代。</p>
+<p>RocketMQ 5.0 发布后，阿里云商业会持续采取 OpenCore 的发展模式，秉承上游优先的社区发展原则，与社区一起将 RocketMQ 打造为一个超融合的数据处理平台。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/08/03/MQ/Apache%20RocketMQ%E5%9C%A8%E9%98%BF%E9%87%8C%E4%BA%91%E5%A4%A7%E8%A7%84%E6%A8%A1%E5%95%86%E4%B8%9A%E5%8C%96%E5%AE%9E%E8%B7%B5%E4%B9%8B%E8%B7%AF/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/08/03/MQ/%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81%E4%B8%8D%E4%B8%A2%E6%B6%88%E6%81%AF/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/08/03/MQ/%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81%E4%B8%8D%E4%B8%A2%E6%B6%88%E6%81%AF/" class="post-title-link" itemprop="url">如何保证不丢消息</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-08-03 00:00:00" itemprop="dateCreated datePublished" datetime="2024-08-03T00:00:00+08:00">2024-08-03</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/MQ/" itemprop="url" rel="index"><span itemprop="name">MQ</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="一、消息丢失的原因有哪些"><a href="#一、消息丢失的原因有哪些" class="headerlink" title="一、消息丢失的原因有哪些"></a>一、消息丢失的原因有哪些</h2><h3 id="1、消息生产阶段"><a href="#1、消息生产阶段" class="headerlink" title="1、消息生产阶段"></a>1、消息生产阶段</h3><ul>
+<li>生产者配置错误：生产者在发送消息时，配置错误的主体、分区或者消息的过期时间，造成消息无法正确发送到MQ中。</li>
+<li>网络故障：生产者与MQ集群之间网络故障。</li>
+</ul>
+<h3 id="2、消息存储阶段"><a href="#2、消息存储阶段" class="headerlink" title="2、消息存储阶段"></a>2、消息存储阶段</h3><ul>
+<li>磁盘故障：以Kafka举例，如果磁盘出现故障，Kafka中的消息无法落盘，可能导致消息的丢失。</li>
+<li>同步策略：消息未同步到follow节点，leader节点就挂了。</li>
+</ul>
+<h3 id="3、消息消费阶段"><a href="#3、消息消费阶段" class="headerlink" title="3、消息消费阶段"></a>3、消息消费阶段</h3><ul>
+<li>消费者处理失败：在处理消费逻辑时，由于程序bug等原因，造成系统异常，错误应答从而丢失消息。</li>
+<li>消费者提交偏移量错误：当消费者消费完消息之后，提交错误的偏移量造成消息的重复消费或者消息丢失。</li>
+</ul>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/08/03/MQ/%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81%E4%B8%8D%E4%B8%A2%E6%B6%88%E6%81%AF/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/07/13/Dubbo/dubbo%E6%B3%9B%E5%8C%96%E8%B0%83%E7%94%A8%E4%BD%BF%E7%94%A8%E5%8F%8A%E5%8E%9F%E7%90%86/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/07/13/Dubbo/dubbo%E6%B3%9B%E5%8C%96%E8%B0%83%E7%94%A8%E4%BD%BF%E7%94%A8%E5%8F%8A%E5%8E%9F%E7%90%86/" class="post-title-link" itemprop="url">dubbo泛化调用使用及原理</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-07-13 00:00:00" itemprop="dateCreated datePublished" datetime="2024-07-13T00:00:00+08:00">2024-07-13</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Dubbo/" itemprop="url" rel="index"><span itemprop="name">Dubbo</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>[toc]</p>
+<h2 id="什么是泛化调用"><a href="#什么是泛化调用" class="headerlink" title="什么是泛化调用"></a>什么是泛化调用</h2><p>通常我们想调用别人的dubbo服务时，我们需要在项目中引入对应的jar包。而泛化调用的作用是，我们无需依赖相关jar包，也能调用到该服务。这个特性一般使用在网关类项目中，在业务开发中基本不会使用。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/07/13/Dubbo/dubbo%E6%B3%9B%E5%8C%96%E8%B0%83%E7%94%A8%E4%BD%BF%E7%94%A8%E5%8F%8A%E5%8E%9F%E7%90%86/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/07/06/AI/AIGC/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/07/06/AI/AIGC/" class="post-title-link" itemprop="url">AIGC</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-07-06 00:00:00" itemprop="dateCreated datePublished" datetime="2024-07-06T00:00:00+08:00">2024-07-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/AI/" itemprop="url" rel="index"><span itemprop="name">AI</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>[toc]</p>
+<h2 id="一、AIGC是什么？"><a href="#一、AIGC是什么？" class="headerlink" title="一、AIGC是什么？"></a>一、AIGC是什么？</h2><p>AIGC是一种新的人工智能技术，它的全称是Artificial Intelligence Generative Content，即人工智能生成内容。</p>
+<p>AIGC技术的核心思想是利用人工智能算法生成具有一定创意和质量的内容。通过训练模型和大量数据的学习，AIGC可以根据输入的条件或指导，生成与之相关的内容。例如，通过输入关键词、描述或样本，AIGC可以生成与之相匹配的文章、图像、音频等。</p>
+<h2 id="二、AIGC的4个主要特征"><a href="#二、AIGC的4个主要特征" class="headerlink" title="二、AIGC的4个主要特征"></a>二、AIGC的4个主要特征</h2><p>现阶段国内AIGC多以单模型应用的形式出现，主要分为文本生成、图像生成、视频生成、音频生成，其中文本生成成为其他内容生成的基础。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407141114694.jpeg" alt="img"></p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/07/06/AI/AIGC/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/07/06/Java/Java%E6%8F%90%E9%AB%98/Java%20Parser%E4%BB%8B%E7%BB%8D/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/07/06/Java/Java%E6%8F%90%E9%AB%98/Java%20Parser%E4%BB%8B%E7%BB%8D/" class="post-title-link" itemprop="url">Java Parser介绍</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-07-06 00:00:00" itemprop="dateCreated datePublished" datetime="2024-07-06T00:00:00+08:00">2024-07-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E6%8F%90%E9%AB%98/" itemprop="url" rel="index"><span itemprop="name">Java提高</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>[toc]</p>
+<h1 id="Java-Parser基本信息"><a href="#Java-Parser基本信息" class="headerlink" title="Java Parser基本信息"></a>Java Parser基本信息</h1><p>JavaParser是一个Java库，用于将Java源代码解析为抽象语法树（AST），在AST基础上进行类型推断<strong>分析</strong>，支持修改AST从而生成新的Java文件内容（<strong>解析</strong>、<strong>修改</strong>和<strong>生成</strong> Java 代码）。官网：<a target="_blank" rel="noopener" href="https://javaparser.org/">https://javaparser.org</a></p>
+<p>通过使用JavaParser，你可以执行以下任务：</p>
+<ul>
+<li>分析Java源代码并获取详细信息。</li>
+<li>修改现有的Java代码，并生成新的Java源代码。</li>
+<li>自动化代码转换和重构任务。</li>
+<li>构建静态代码分析工具。</li>
+</ul>
+<p>JavaParser的特点</p>
+<ul>
+<li>基于ANTLR 4的高性能解析器。ANTLR 4是一个流行的词法分析器和语法分析器生成器，用于构建语言、工具和服务。</li>
+<li>完全符合Java语法规则。JavaParser遵循最新的Java语言规范，支持Java 8至17的所有版本。</li>
+<li>简洁易用的API。JavaParser提供了清晰、直观的API，使您可以轻松地在Java代码上工作。</li>
+<li>广泛的生态系统。JavaParser与其他流行的技术（如Junit、Mockito和Checkstyle）兼容，拥有丰富的生态系统。</li>
+<li>开源免费。JavaParser是根据Apache 2.0许可证发布的，可以自由使用和扩展。</li>
+</ul>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/07/06/Java/Java%E6%8F%90%E9%AB%98/Java%20Parser%E4%BB%8B%E7%BB%8D/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
     <link itemprop="mainEntityOfPage" href="http://example.com/2024/07/06/Java/Java%E6%8F%90%E9%AB%98/javapoet%20%E6%96%B9%E4%BE%BF%E5%BF%AB%E6%8D%B7%E5%9C%B0%E7%94%9F%E6%88%90.class%E6%96%87%E4%BB%B6/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -488,587 +1120,10 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/07/06/Spring/%E5%AE%9E%E7%94%A8%EF%BC%9A%E4%BC%98%E9%9B%85%E8%AE%BE%E8%AE%A1%E6%8E%A5%E5%8F%A3%E7%89%88%E6%9C%AC%E5%8F%B7/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/07/06/Spring/%E5%AE%9E%E7%94%A8%EF%BC%9A%E4%BC%98%E9%9B%85%E8%AE%BE%E8%AE%A1%E6%8E%A5%E5%8F%A3%E7%89%88%E6%9C%AC%E5%8F%B7/" class="post-title-link" itemprop="url">实用：优雅设计接口版本号</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-07-06 00:00:00" itemprop="dateCreated datePublished" datetime="2024-07-06T00:00:00+08:00">2024-07-06</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>转载自：<a target="_blank" rel="noopener" href="https://blog.mariojd.cn/how-to-design-spring-boot-api-version-number-elegantly.html">https://blog.mariojd.cn/how-to-design-spring-boot-api-version-number-elegantly.html</a></p>
-<p>&emsp;&emsp;<br>&emsp;&emsp;一般来说，系统上线以后，需求仍会发生变动，功能也会迭代更新。可能是接口参数发生变更，也有可能是业务逻辑需要调整，如果直接在原来的接口上进行修改，必然会影响原有服务的正常运行。<br>&emsp;&emsp;常见的解决方案，是在接口路径中加入版本号用于区分，此外还可以在参数甚至 header 里带上版本号。这里以在请求路径中带上版本号为例，如：<code>http://IP:PORT/api/v1/test</code> ，v1 即代表的是版本号。当然了，可以像这样，直接写死在<code> @RequestMapping(&quot;api/v1/test&quot;)</code>属性中，不过下面提供了更为优雅的解决方案。</p>
-<h2 id="1-自定义版本号标记注解"><a href="#1-自定义版本号标记注解" class="headerlink" title="1.自定义版本号标记注解"></a>1.自定义版本号标记注解</h2><p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408262235808.png" alt="实用：优雅设计接口版本号"></p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/07/06/Spring/%E5%AE%9E%E7%94%A8%EF%BC%9A%E4%BC%98%E9%9B%85%E8%AE%BE%E8%AE%A1%E6%8E%A5%E5%8F%A3%E7%89%88%E6%9C%AC%E5%8F%B7/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/07/06/Spring/%E6%B5%85%E6%9E%90AOP%E6%BA%90%E7%A0%81/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/07/06/Spring/%E6%B5%85%E6%9E%90AOP%E6%BA%90%E7%A0%81/" class="post-title-link" itemprop="url">浅析AOP源码</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-07-06 00:00:00" itemprop="dateCreated datePublished" datetime="2024-07-06T00:00:00+08:00">2024-07-06</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>&emsp;&emsp;AOP（Aspect-Oriented Programming）面向切面的编程，在平时的开发过程中，AOP其实用到的地方一般有:</p>
-<blockquote>
-<p>①用来做日记的处理<br>②方法的调用统计<br>③业务层面的读写分离（例如自定义的Annotation+AOP可以实现切换数据源）<br>④自定义权限拦截器</p>
-</blockquote>
-<p>&emsp;&emsp;在Spring框架中，AOP则发挥了不少功效，例如spring的事务。<br>&emsp;&emsp;AOP具体的介绍移步：<a target="_blank" rel="noopener" href="https://blog.csdn.net/zero__007/article/details/46765191">https://blog.csdn.net/zero__007/article/details/46765191</a></p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/07/06/Spring/%E6%B5%85%E6%9E%90AOP%E6%BA%90%E7%A0%81/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/07/06/Spring/%E6%B5%85%E6%9E%90AOP%E6%BA%90%E7%A0%81%EF%BC%88%E4%BA%8C%EF%BC%89/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/07/06/Spring/%E6%B5%85%E6%9E%90AOP%E6%BA%90%E7%A0%81%EF%BC%88%E4%BA%8C%EF%BC%89/" class="post-title-link" itemprop="url">浅析AOP源码（二）</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-07-06 00:00:00" itemprop="dateCreated datePublished" datetime="2024-07-06T00:00:00+08:00">2024-07-06</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>转载自：<a target="_blank" rel="noopener" href="https://blog.csdn.net/luanlouis/article/details/51155821">https://blog.csdn.net/luanlouis/article/details/51155821</a></p>
-<p>&emsp;&emsp;</p>
-<h3 id="1、Spring内部创建代理对象的过程"><a href="#1、Spring内部创建代理对象的过程" class="headerlink" title="1、Spring内部创建代理对象的过程"></a>1、Spring内部创建代理对象的过程</h3><p>&emsp;&emsp;在Spring的底层，如果配置了AOP，Spring会为每一个Bean创建一个对应的ProxyFactoryBean的FactoryBean来创建某个对象的代理对象。<br>&emsp;&emsp;假定有一个接口TicketService及其实现类RailwayStation，打算创建一个代理类，在执行TicketService的方法时的各个阶段，插入对应的业务代码。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">TicketService</span> &#123;</span><br><span class="line">    <span class="comment">//售票</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">sellTicket</span><span class="params">()</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//问询</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">inquire</span><span class="params">()</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//退票</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">withdraw</span><span class="params">()</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/07/06/Spring/%E6%B5%85%E6%9E%90AOP%E6%BA%90%E7%A0%81%EF%BC%88%E4%BA%8C%EF%BC%89/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/07/02/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5&%E9%94%81&volatile/ObjectMonitor%E5%AF%B9%E8%B1%A1/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/07/02/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5&%E9%94%81&volatile/ObjectMonitor%E5%AF%B9%E8%B1%A1/" class="post-title-link" itemprop="url">ObjectMonitor对象</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-07-02 00:00:00" itemprop="dateCreated datePublished" datetime="2024-07-02T00:00:00+08:00">2024-07-02</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/" itemprop="url" rel="index"><span itemprop="name">Java进阶</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5-%E9%94%81-volatile/" itemprop="url" rel="index"><span itemprop="name">同步&锁&volatile</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><strong>内置锁ObjectMonitor类</strong><br>Monitor可以理解为一个同步工具或一种同步机制，通常被描述为一个对象。每一个Java对象就有一把看不见的锁，称为内部锁或者Monitor锁。</p>
-<p>通常所说的对象的内置锁，是对象头Mark Word中的重量级锁指针指向的monitor对象，每个对象都存在着一个 Monitor对象与之关联。执行 monitorenter 指令就是线程试图去获取 Monitor 的所有权，抢到了就是成功获取锁了；执行 monitorexit 指令则是释放了Monitor的所有权。</p>
-<p>该对象是在HotSpot底层C++语言编写的(openjdk里面看)，简单看一下代码：</p>
-<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//结构体如下</span></span><br><span class="line">ObjectMonitor::<span class="built_in">ObjectMonitor</span>() &#123;  </span><br><span class="line">  _header       = <span class="literal">NULL</span>;  </span><br><span class="line">  _count       = <span class="number">0</span>;  </span><br><span class="line">  _waiters      = <span class="number">0</span>,  </span><br><span class="line">  _recursions   = <span class="number">0</span>;       <span class="comment">//线程的重入次数</span></span><br><span class="line">  _object       = <span class="literal">NULL</span>;  </span><br><span class="line">  _owner        = <span class="literal">NULL</span>;    <span class="comment">//标识拥有该monitor的线程</span></span><br><span class="line">  _WaitSet      = <span class="literal">NULL</span>;    <span class="comment">//等待线程组成的双向循环链表，_WaitSet是第一个节点</span></span><br><span class="line">  _WaitSetLock  = <span class="number">0</span> ;  </span><br><span class="line">  _Responsible  = <span class="literal">NULL</span> ;  </span><br><span class="line">  _succ         = <span class="literal">NULL</span> ;  </span><br><span class="line">  _cxq          = <span class="literal">NULL</span> ;    <span class="comment">//多线程竞争锁进入时的单向链表</span></span><br><span class="line">  FreeNext      = <span class="literal">NULL</span> ;  </span><br><span class="line">  _EntryList    = <span class="literal">NULL</span> ;    <span class="comment">//_owner从该双向循环链表中唤醒线程结点，_EntryList是第一个节点</span></span><br><span class="line">  _SpinFreq     = <span class="number">0</span> ;  </span><br><span class="line">  _SpinClock    = <span class="number">0</span> ;  </span><br><span class="line">  OwnerIsThread = <span class="number">0</span> ;  </span><br><span class="line">&#125;  </span><br></pre></td></tr></table></figure>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/07/02/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5&%E9%94%81&volatile/ObjectMonitor%E5%AF%B9%E8%B1%A1/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/07/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/ZGC%E7%9A%84%E6%8E%A2%E7%B4%A2%E4%B8%8E%E5%AE%9E%E8%B7%B5/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/07/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/ZGC%E7%9A%84%E6%8E%A2%E7%B4%A2%E4%B8%8E%E5%AE%9E%E8%B7%B5/" class="post-title-link" itemprop="url">ZGC的探索和实践</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-07-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-07-01T00:00:00+08:00">2024-07-01</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/JVM/" itemprop="url" rel="index"><span itemprop="name">JVM</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/JVM/GC%E7%9B%B8%E5%85%B3/" itemprop="url" rel="index"><span itemprop="name">GC相关</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>[toc]</p>
-<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>ZGC（The Z Garbage Collector）是JDK 11中推出的一款低延迟垃圾回收器，它的设计目标包括：</p>
-<ul>
-<li><p>停顿时间不超过10ms；</p>
-</li>
-<li><p>停顿时间不会随着堆的大小，或者活跃对象的大小而增加；</p>
-</li>
-<li><p>支持8MB~4TB级别的堆（未来支持16TB）。</p>
-</li>
-</ul>
-<p>从设计目标来看，我们知道ZGC适用于大内存低延迟服务的内存管理和回收。本文主要介绍ZGC在低延时场景中的应用和卓越表现，文章内容主要分为四部分：</p>
-<ul>
-<li><p>GC之痛：介绍实际业务中遇到的GC痛点，并分析CMS收集器和G1收集器停顿时间瓶颈；</p>
-</li>
-<li><p>ZGC原理：分析ZGC停顿时间比G1或CMS更短的本质原因，以及背后的技术原理；</p>
-</li>
-<li><p>ZGC调优实践：重点分享对ZGC调优的理解，并分析若干个实际调优案例；</p>
-</li>
-<li><p>升级ZGC效果：展示在生产环境应用ZGC取得的效果。</p>
-</li>
-</ul>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/07/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/ZGC%E7%9A%84%E6%8E%A2%E7%B4%A2%E4%B8%8E%E5%AE%9E%E8%B7%B5/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/06/12/k8s&docker/%E8%AF%A6%E8%A7%A3Pod%E5%8F%8A%E5%AE%B9%E5%99%A8%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/06/12/k8s&docker/%E8%AF%A6%E8%A7%A3Pod%E5%8F%8A%E5%AE%B9%E5%99%A8%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" class="post-title-link" itemprop="url">详解 Pod 及容器设计模式</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-06-12 00:00:00" itemprop="dateCreated datePublished" datetime="2024-06-12T00:00:00+08:00">2024-06-12</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/k8s-docker/" itemprop="url" rel="index"><span itemprop="name">k8s&docker</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>[toc]</p>
-<h1 id="一、为什么需要-Pod"><a href="#一、为什么需要-Pod" class="headerlink" title="一、为什么需要 Pod"></a>一、为什么需要 Pod</h1><h2 id="容器的基本概念"><a href="#容器的基本概念" class="headerlink" title="容器的基本概念"></a>容器的基本概念</h2><p>Pod 是 Kubernetes 项目里面一个非常重要的概念，也是非常重要的一个原子调度单位，但是为什么我们会需要这样一个概念呢？在使用容器 Docker 的时候，也没有这个说法。其实，如果想要理解 Pod，首先要理解容器，所以来回顾一下容器的概念：</p>
-<p><strong>容器的本质实际上是一个进程，是一个视图被隔离，资源受限的进程。</strong></p>
-<p>容器里面 PID&#x3D;1 的进程就是应用本身，这意味着管理虚拟机等于管理基础设施，因为我们是在管理机器，但管理容器却等于直接管理应用本身。这也是之前说过的不可变基础设施的一个最佳体现，这个时候，你的应用就等于你的基础设施，它一定是不可变的。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/06/12/k8s&docker/%E8%AF%A6%E8%A7%A3Pod%E5%8F%8A%E5%AE%B9%E5%99%A8%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/06/11/k8s&docker/%E6%8E%A7%E5%88%B6%E5%99%A8/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/06/11/k8s&docker/%E6%8E%A7%E5%88%B6%E5%99%A8/" class="post-title-link" itemprop="url">控制器</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-06-11 09:00:00" itemprop="dateCreated datePublished" datetime="2024-06-11T09:00:00+08:00">2024-06-11</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/k8s-docker/" itemprop="url" rel="index"><span itemprop="name">k8s&docker</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>[toc]</p>
-<h2 id="控制器类型"><a href="#控制器类型" class="headerlink" title="控制器类型"></a>控制器类型</h2><ul>
-<li>ReplicationController 和 ReplicaSet</li>
-<li>Deployment</li>
-<li>DaemonSet</li>
-<li>StateFulSet</li>
-<li>Job&#x2F;CronJob</li>
-<li>Horizontal Pod Autoscaling</li>
-</ul>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/06/11/k8s&docker/%E6%8E%A7%E5%88%B6%E5%99%A8/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="page-number current">2</span><a class="page-number" href="/page/3/">3</a><span class="space">&hellip;</span><a class="page-number" href="/page/20/">20</a><a class="extend next" rel="next" href="/page/3/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="page-number current">2</span><a class="page-number" href="/page/3/">3</a><span class="space">&hellip;</span><a class="page-number" href="/page/21/">21</a><a class="extend next" rel="next" href="/page/3/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -1134,7 +1189,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">200</span>
+          <span class="site-state-item-count">210</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -1176,7 +1231,7 @@
 <div class="copyright">
   
   &copy; 
-  <span itemprop="copyrightYear">2024</span>
+  <span itemprop="copyrightYear">2025</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>
