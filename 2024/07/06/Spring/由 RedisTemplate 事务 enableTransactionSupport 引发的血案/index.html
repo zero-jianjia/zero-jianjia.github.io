@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="转载自：https:&#x2F;&#x2F;carlzone.blog.csdn.net&#x2F;article&#x2F;details&#x2F;108629864 在最近的项目当中因为使用了类似字典表的数据，所以使用的 Spring Farmework 当中的 Cache 抽象，通过 Redis 来做为缓存。因为原有项目当中配置了 Redis，而且项目是基于 Spring Boot 构建的，并没有去除 Redis 的自动依赖(RedisA">
+<meta property="og:type" content="article">
+<meta property="og:title" content="由RedisTemplate事务enableTransactionSupport引发的血案">
+<meta property="og:url" content="http://example.com/2024/07/06/Spring/%E7%94%B1%20RedisTemplate%20%E4%BA%8B%E5%8A%A1%20enableTransactionSupport%20%E5%BC%95%E5%8F%91%E7%9A%84%E8%A1%80%E6%A1%88/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="转载自：https:&#x2F;&#x2F;carlzone.blog.csdn.net&#x2F;article&#x2F;details&#x2F;108629864 在最近的项目当中因为使用了类似字典表的数据，所以使用的 Spring Farmework 当中的 Cache 抽象，通过 Redis 来做为缓存。因为原有项目当中配置了 Redis，而且项目是基于 Spring Boot 构建的，并没有去除 Redis 的自动依赖(RedisA">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2024-07-05T16:00:00.000Z">
+<meta property="article:modified_time" content="2025-10-25T04:16:36.359Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2024/07/06/Spring/%E7%94%B1%20RedisTemplate%20%E4%BA%8B%E5%8A%A1%20enableTransactionSupport%20%E5%BC%95%E5%8F%91%E7%9A%84%E8%A1%80%E6%A1%88/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>由RedisTemplate事务enableTransactionSupport引发的血案 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/07/06/Spring/%E7%94%B1%20RedisTemplate%20%E4%BA%8B%E5%8A%A1%20enableTransactionSupport%20%E5%BC%95%E5%8F%91%E7%9A%84%E8%A1%80%E6%A1%88/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          由RedisTemplate事务enableTransactionSupport引发的血案
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-07-06 00:00:00" itemprop="dateCreated datePublished" datetime="2024-07-06T00:00:00+08:00">2024-07-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>转载自：<a target="_blank" rel="noopener" href="https://carlzone.blog.csdn.net/article/details/108629864">https://carlzone.blog.csdn.net/article/details/108629864</a></p>
+<p>在最近的项目当中因为使用了类似字典表的数据，所以使用的 Spring Farmework 当中的 Cache 抽象，通过 Redis 来做为缓存。<br>因为原有项目当中配置了 Redis，而且项目是基于 Spring Boot 构建的，并没有去除 Redis 的自动依赖(RedisAutoConfiguration)。导致有些 Redis 的有些类是基于项目中自己配置的 RedisTemplate，而有些又是引用的 Spring Boot 中 Redis 的自动配置生成的 RedisTemplate。所以就把 Spring Boot 中的 Redis 自动配置去除了。</p>
+<span id="more"></span>
+
+<p>去除 Spring Boot Redis 自动配置</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">@SpringBootApplication(exclude = &#123;RedisAutoConfiguration.class&#125;)</span><br></pre></td></tr></table></figure>
+<p>上午进行项目发布，在下午的时候运维就找到说上午发布的项目 Redis 连接数一直在添加。而且服务当中也在报无法获取到 Redis 连接。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">redis.clients.jedis.exceptions.JedisException: Could not get a resource from the pool  </span><br></pre></td></tr></table></figure>
+<p>很明显就是 Redis 连接无法获取，并且设置的 Redis 的最大连接数是 1000，所以 Redis 的连接数一直在增加。当在网上搜索 Redis 的连接没有被释放的时候搜索到了 RedisTemplate 设置了支持事务(enableTransactionSupport) 为 true，那么这个 Redis 请求必须在 JDBC 的事务当中，要么就不会释放连接。<br>果然手动配置的 RedisTemplate 设置了支持事务(默认为 false，不支持)。</p>
+<p>所以一直没有产生这种情况的原因是手动配置 Redis 配置文件并没有生效，使用的是 Spring Boot 的 Redis 的自动依赖。自动依赖并没有配置这个值为 true(默认为 false)，所以连接就会释放。RedisTemplate 使用 Redis 连接池释放连接的 2 种情况是：</p>
+<ul>
+<li>RedisTemplate 不支持事务，当使用完连接之后就会释放连接到 Pool 当中</li>
+<li>RedisTemplate 支持事务，并且必须和 JDBC 在一个事务当中，标注了 <code>@Transactional</code>注解</li>
+</ul>
+<hr>
+<hr>
+<p>下面我们就通过源码来分析，RedisTemplate通过 opsForXXX 支持 Redis 中的各种数据操作，比如： opsForValue 操作 String 类型、opsForSet 操作 Set 类型 等待。其实它最终会调用到：RedisTemplate#execute。·</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line">public &lt;T&gt; T execute(RedisCallback&lt;T&gt; action, boolean exposeConnection, boolean pipeline) &#123;</span><br><span class="line"></span><br><span class="line">	Assert.isTrue(initialized, &quot;template not initialized; call afterPropertiesSet() before using it&quot;);</span><br><span class="line">	Assert.notNull(action, &quot;Callback object must not be null&quot;);</span><br><span class="line"></span><br><span class="line">	RedisConnectionFactory factory = getRequiredConnectionFactory();</span><br><span class="line">	RedisConnection conn = null;</span><br><span class="line">	try &#123;</span><br><span class="line"></span><br><span class="line">		if (enableTransactionSupport) &#123;</span><br><span class="line">			// only bind resources in case of potential transaction synchronization</span><br><span class="line">			conn = RedisConnectionUtils.bindConnection(factory, enableTransactionSupport);</span><br><span class="line">		&#125; else &#123;</span><br><span class="line">			conn = RedisConnectionUtils.getConnection(factory);</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		boolean existingConnection = TransactionSynchronizationManager.hasResource(factory);</span><br><span class="line"></span><br><span class="line">		RedisConnection connToUse = preProcessConnection(conn, existingConnection);</span><br><span class="line"></span><br><span class="line">		boolean pipelineStatus = connToUse.isPipelined();</span><br><span class="line">		if (pipeline &amp;&amp; !pipelineStatus) &#123;</span><br><span class="line">			connToUse.openPipeline();</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		RedisConnection connToExpose = (exposeConnection ? connToUse : createRedisConnectionProxy(connToUse));</span><br><span class="line">		T result = action.doInRedis(connToExpose);</span><br><span class="line"></span><br><span class="line">		// close pipeline</span><br><span class="line">		if (pipeline &amp;&amp; !pipelineStatus) &#123;</span><br><span class="line">			connToUse.closePipeline();</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		// TODO: any other connection processing?</span><br><span class="line">		return postProcessResult(result, connToUse, existingConnection);</span><br><span class="line">	&#125; finally &#123;</span><br><span class="line">		RedisConnectionUtils.releaseConnection(conn, factory);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上面代码的执行逻辑为：</p>
+<ul>
+<li>获取 Redis 的连接工厂 RedisConnectionFactory</li>
+<li>通过 boolean 类型值 enableTransactionSupport判断是否支持事务，如果支持事务通过方法RedisConnectionUtils.bindConnection获取并绑定 RedisConnectionHolder 到本地线程，如果不支持事务就通过方法 RedisConnectionUtils#getConnection 获取RedisConnectionHolder。</li>
+<li>调用 RedisTemplate 的前置方法 RedisTemplate#preProcessConnection</li>
+<li>判断 RedisTemplate 是否使用了 pipeline，如果使用了调用 RedisConnection#openPipeline</li>
+<li>如果 exposeConnection 直接使用创建的 RedisConnection，否则创建代理对象 CloseSuppressingInvocationHandler</li>
+<li>调用回调方法 RedisCallback#doInRedis 执行 Redis 命令</li>
+<li>如果是 pipeline 就调用 RedisConnection#closePipeline关闭 pipeline。</li>
+<li>最后在 finally 方法中调用 RedisConnectionUtils.releaseConnection 释放连接<br>RedisConnectionUtils#releaseConnection<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">public static void releaseConnection(@Nullable RedisConnection conn, RedisConnectionFactory factory) &#123;</span><br><span class="line"></span><br><span class="line">	if (conn == null) &#123;</span><br><span class="line">		return;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	RedisConnectionHolder connHolder = (RedisConnectionHolder) TransactionSynchronizationManager.getResource(factory);</span><br><span class="line"></span><br><span class="line">	if (connHolder != null &amp;&amp; connHolder.isTransactionSyncronisationActive()) &#123;</span><br><span class="line">		if (log.isDebugEnabled()) &#123;</span><br><span class="line">			log.debug(&quot;Redis Connection will be closed when transaction finished.&quot;);</span><br><span class="line">		&#125;</span><br><span class="line">		return;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	// release transactional/read-only and non-transactional/non-bound connections.</span><br><span class="line">	// transactional connections for read-only transactions get no synchronizer registered</span><br><span class="line">	if (isConnectionTransactional(conn, factory) &amp;&amp; TransactionSynchronizationManager.isCurrentTransactionReadOnly()) &#123;</span><br><span class="line">		unbindConnection(factory);</span><br><span class="line">	&#125; else if (!isConnectionTransactional(conn, factory)) &#123;</span><br><span class="line">		if (log.isDebugEnabled()) &#123;</span><br><span class="line">			log.debug(&quot;Closing Redis Connection&quot;);</span><br><span class="line">		&#125;</span><br><span class="line">		conn.close();</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<p>上面的代码逻辑如下：</p>
+<ul>
+<li>TransactionSynchronizationManager#getResource 获取 RedisConnectionHolder</li>
+<li>如果 RedisConnectionHolder 不为空并在事务处理当中直接返回</li>
+<li>如果传入的 RedisConnection 在事务当中，并且事务为只读就释放连接</li>
+<li>如果传入的 RedisConnection不在事务当中，就调用 RedisConnection#close 释放连接</li>
+</ul>
+<p>可以看到如果 Redis 里面没有事务的时候就会直接调用 RedisConnection#close 把连接释放掉。当配置 RedisTemplate 的时候我看网上很多就是说在上面的第三步释放连接，这个说法是错误的。我把事务的条件都满足了都不会进行到第三步。这个问题困扰了我很久。</p>
+<p>后面我自己 debug 解决了这个问题，答案就是在绑定并获取连接的时候会添加一个事务完成的回调方法，在这个回调方法当中释放 Redis 连接。</p>
+<p>在 RedisTemplate#execute 中，如果设置了 enableTransactionSupport 为 true，就会通过 RedisConnectionUtils#bindConnection 方法获取并绑定 Redis 连接。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line">public static RedisConnection doGetConnection(RedisConnectionFactory factory, boolean allowCreate, boolean bind,</span><br><span class="line">		boolean enableTransactionSupport) &#123;</span><br><span class="line"></span><br><span class="line">	Assert.notNull(factory, &quot;No RedisConnectionFactory specified&quot;);</span><br><span class="line"></span><br><span class="line">	RedisConnectionHolder connHolder = (RedisConnectionHolder) TransactionSynchronizationManager.getResource(factory);</span><br><span class="line"></span><br><span class="line">	if (connHolder != null) &#123;</span><br><span class="line">		if (enableTransactionSupport) &#123;</span><br><span class="line">			potentiallyRegisterTransactionSynchronisation(connHolder, factory);</span><br><span class="line">		&#125;</span><br><span class="line">		return connHolder.getConnection();</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	if (!allowCreate) &#123;</span><br><span class="line">		throw new IllegalArgumentException(&quot;No connection found and allowCreate = false&quot;);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	if (log.isDebugEnabled()) &#123;</span><br><span class="line">		log.debug(&quot;Opening RedisConnection&quot;);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	RedisConnection conn = factory.getConnection();</span><br><span class="line"></span><br><span class="line">	if (bind) &#123;</span><br><span class="line"></span><br><span class="line">		RedisConnection connectionToBind = conn;</span><br><span class="line">		if (enableTransactionSupport &amp;&amp; isActualNonReadonlyTransactionActive()) &#123;</span><br><span class="line">			connectionToBind = createConnectionProxy(conn, factory);</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		connHolder = new RedisConnectionHolder(connectionToBind);</span><br><span class="line"></span><br><span class="line">		TransactionSynchronizationManager.bindResource(factory, connHolder);</span><br><span class="line">		if (enableTransactionSupport) &#123;</span><br><span class="line">			potentiallyRegisterTransactionSynchronisation(connHolder, factory);</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		return connHolder.getConnection();</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	return conn;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>最终会调用到方法 RedisConnectionUtils#potentiallyRegisterTransactionSynchronisation：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">private static void potentiallyRegisterTransactionSynchronisation(RedisConnectionHolder connHolder,</span><br><span class="line">		final RedisConnectionFactory factory) &#123;</span><br><span class="line"></span><br><span class="line">	if (isActualNonReadonlyTransactionActive()) &#123;</span><br><span class="line"></span><br><span class="line">		if (!connHolder.isTransactionSyncronisationActive()) &#123;</span><br><span class="line">			connHolder.setTransactionSyncronisationActive(true);</span><br><span class="line"></span><br><span class="line">			RedisConnection conn = connHolder.getConnection();</span><br><span class="line">			conn.multi();</span><br><span class="line"></span><br><span class="line">			TransactionSynchronizationManager</span><br><span class="line">					.registerSynchronization(new RedisTransactionSynchronizer(connHolder, conn, factory));</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上面的代码逻辑如下：</p>
+<ul>
+<li>判断当前方法是否在一个数据库 JDBC 事务当中</li>
+<li>判断当前 Redis 连接是否新开启一个事务</li>
+<li>调用 RedisConnection#multi标记一个 Redis 事务块的开始</li>
+<li>注册添加一个事务回调类 RedisTransactionSynchronizer，它实现了TransactionSynchronization#afterCompletion 当数据库事务完成的时候会调用这个回调方法<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">TransactionSynchronization#afterCompletion</span><br><span class="line"></span><br><span class="line">	@Override</span><br><span class="line">	public void afterCompletion(int status) &#123;</span><br><span class="line">	</span><br><span class="line">		try &#123;</span><br><span class="line">			switch (status) &#123;</span><br><span class="line">	</span><br><span class="line">				case TransactionSynchronization.STATUS_COMMITTED:</span><br><span class="line">					connection.exec();</span><br><span class="line">					break;</span><br><span class="line">	</span><br><span class="line">				case TransactionSynchronization.STATUS_ROLLED_BACK:</span><br><span class="line">				case TransactionSynchronization.STATUS_UNKNOWN:</span><br><span class="line">				default:</span><br><span class="line">					connection.discard();</span><br><span class="line">			&#125;</span><br><span class="line">		&#125; finally &#123;</span><br><span class="line">	</span><br><span class="line">			if (log.isDebugEnabled()) &#123;</span><br><span class="line">				log.debug(&quot;Closing bound connection after transaction completed with &quot; + status);</span><br><span class="line">			&#125;</span><br><span class="line">	</span><br><span class="line">			connHolder.setTransactionSyncronisationActive(false);</span><br><span class="line">			connection.close();</span><br><span class="line">			TransactionSynchronizationManager.unbindResource(factory);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<p>当事务完成之后会调用 RedisConnection#exec()，用于执行所有事务块内的命令。<br>调用 RedisConnection#close 释放 Redis 连接<br>调用 TransactionSynchronizationManager.unbindResource 解绑 ThreadLocal中的 Redis 连接<br>下面就是我写的一个支持事务的 RedisTemplate，它必须和数据 JDBC 事务一起使用。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line">Redis 相关的配置：</span><br><span class="line"></span><br><span class="line">@Configuration</span><br><span class="line">public class RedisConfig &#123;</span><br><span class="line"></span><br><span class="line">    @Bean(name = &quot;redisConnectionFactory&quot;)</span><br><span class="line">    public RedisConnectionFactory redisConnectionFactory() &#123;</span><br><span class="line">        JedisConnectionFactory factory = new JedisConnectionFactory(generatePoolConfig());</span><br><span class="line">        factory.setHostName(&quot;localhost&quot;);</span><br><span class="line">        factory.setPort(6379);</span><br><span class="line">        factory.setUsePool(true);</span><br><span class="line">        factory.setConvertPipelineAndTxResults(true);</span><br><span class="line">        factory.afterPropertiesSet();</span><br><span class="line">        return factory;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    @Bean(name = &quot;redisTemplate&quot;)</span><br><span class="line">    public StringRedisTemplate redisTemplate(RedisConnectionFactory redisConnectionFactory) &#123;</span><br><span class="line">        StringRedisTemplate template = new StringRedisTemplate();</span><br><span class="line">        StringRedisSerializer stringRedisSerializer = new StringRedisSerializer();</span><br><span class="line">        template.setEnableTransactionSupport(true);</span><br><span class="line">        template.setKeySerializer(stringRedisSerializer);</span><br><span class="line">        template.setHashKeySerializer(stringRedisSerializer);</span><br><span class="line">        template.setValueSerializer(stringRedisSerializer);</span><br><span class="line">        template.setDefaultSerializer(stringRedisSerializer);</span><br><span class="line">        template.setConnectionFactory(redisConnectionFactory);</span><br><span class="line">        return template;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    private JedisPoolConfig generatePoolConfig() &#123;</span><br><span class="line">        JedisPoolConfig poolConfig = new JedisPoolConfig();</span><br><span class="line">        poolConfig.setMaxTotal(1000);</span><br><span class="line">        poolConfig.setTestOnBorrow(true);</span><br><span class="line">        return poolConfig;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>JDBC 与 Redis 事务使用：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">@Service(&quot;userService&quot;)</span><br><span class="line">public class UserServiceImpl implements UserService &#123;</span><br><span class="line"></span><br><span class="line">    @Resource(name = &quot;redisTemplate&quot;)</span><br><span class="line">    private RedisTemplate&lt;String, String&gt; redisTemplate;</span><br><span class="line">    </span><br><span class="line">    @Resource</span><br><span class="line">    private JdbcTemplate jdbcTemplate;</span><br><span class="line">    </span><br><span class="line">    @Override</span><br><span class="line">    @Transactional</span><br><span class="line">    public void hello() &#123;</span><br><span class="line">        jdbcTemplate.execute(&quot;select 1&quot;);</span><br><span class="line">        redisTemplate.opsForValue().get(&quot;test&quot;);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>必须满足以下几个条件：</p>
+<ul>
+<li>RedisTemplate设置 enableTransactionSupport 为 true，使用 Spring Redis 操作支付事务</li>
+<li>在方法上面添加 @Transactional ，并且配置 @EnableTransactionManagement 支持数据库事务</li>
+<li>使用数据连接操作，在这里面我使用的是最简单的 jdbcTemplate.execute(“select 1”) 执行数据库 ping 操作</li>
+<li>使用支持事务的 RedisTemplate 进行 Redis 命令操作</li>
+</ul>
+<p>满足上面的 4 点条件才会释放 Spring RedisTemplate支持事务操作并且释放 Redis 连接，不然就不会释放 Redis 操作。平常情况下不需要使用 RedisTemplate 的事务，直接使用默认值(不支持事务即可)</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/07/02/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5&%E9%94%81&volatile/ObjectMonitor%E5%AF%B9%E8%B1%A1/" rel="prev" title="ObjectMonitor对象">
+      <i class="fa fa-chevron-left"></i> ObjectMonitor对象
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/07/06/Spring/%E6%B5%85%E6%9E%90AOP%E6%BA%90%E7%A0%81%EF%BC%88%E4%BA%8C%EF%BC%89/" rel="next" title="浅析AOP源码（二）">
+      浅析AOP源码（二） <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">224</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">31</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

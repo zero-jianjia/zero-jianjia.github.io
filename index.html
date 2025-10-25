@@ -187,6 +187,90 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2025/06/06/AI/MCP%20%E4%BC%A0%E8%BE%93%E6%9C%BA%E5%88%B6%20Stdio%E3%80%81SSE%20%E4%B8%8E%20Streamable%20HTTP%20%E7%9A%84%E6%A0%B8%E5%BF%83%E5%8C%BA%E5%88%AB/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2025/06/06/AI/MCP%20%E4%BC%A0%E8%BE%93%E6%9C%BA%E5%88%B6%20Stdio%E3%80%81SSE%20%E4%B8%8E%20Streamable%20HTTP%20%E7%9A%84%E6%A0%B8%E5%BF%83%E5%8C%BA%E5%88%AB/" class="post-title-link" itemprop="url">MCP传输机制Stdio、SSE与StreamableHTTP的核心区别</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2025-06-06 00:00:00" itemprop="dateCreated datePublished" datetime="2025-06-06T00:00:00+08:00">2025-06-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/AI/" itemprop="url" rel="index"><span itemprop="name">AI</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><p>在人工智能与大型语言模型（LLM）快速发展的今天，如何让模型安全高效地访问外部数据和服务成为关键挑战。MCP（Model Context Protocol） 协议应运而生，它通过标准化的通信机制，为AI模型与外部资源架起桥梁。MCP 协议使用 JSON-RPC 来编码消息，JSON-RPC 消息必须使用 UTF-8 编码。MCP协议目前定义了三种传输机制用于客户端-服务器通信：</p>
+<ul>
+<li><p>stdio：通过标准输入和标准输出进行通信</p>
+</li>
+<li><p>SSE：通过 HTTP 进行通信，支持流式传输。（协议版本 2024-11-05 开始支持，即将废弃）</p>
+</li>
+<li><p>Streamble HTTP：通过 HTTP 进行通信，支持流式传输。（协议版本 2025-03-26 开始支持，用于替代 SSE）</p>
+</li>
+</ul>
+<p>MCP 协议要求客户端应尽可能支持 stdio。MCP 协议的传输机制是可插拔的，也就是说，客户端和服务器不局限于 MCP 协议标准定义的这几种传输机制，也可以通过自定义的传输机制来实现通信。</p>
+<p>Streamable HTTP是MCP协议推荐的下一代传输机制，基于标准HTTP实现动态流式升级，支持无状态服务和云原生部署。相比SSE，它无需专用端点，兼容CDN&#x2F;API网关，灵活切换流式响应（如长文本生成进度推送），适合分布式系统与弹性扩展场景。官方计划逐步淘汰SSE，推荐优先采用Streamable HTTP以实现高效、可扩展的远程通信。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2025/06/06/AI/MCP%20%E4%BC%A0%E8%BE%93%E6%9C%BA%E5%88%B6%20Stdio%E3%80%81SSE%20%E4%B8%8E%20Streamable%20HTTP%20%E7%9A%84%E6%A0%B8%E5%BF%83%E5%8C%BA%E5%88%AB/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
     <link itemprop="mainEntityOfPage" href="http://example.com/2025/01/16/%E7%9B%AE%E5%BD%95%E5%BE%85%E5%AE%9A/%E5%88%9D%E7%BA%A7%E7%A8%8B%E5%BA%8F%E5%91%98%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -351,6 +435,88 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/11/17/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/MySQL/%E4%B8%80%E6%AC%A1%E5%BD%BB%E5%BA%95%E8%A7%A3%E5%86%B3%E5%9B%A0%E6%95%B0%E6%8D%AE%E5%BA%93%E5%85%A8%E8%A1%A8%E6%89%AB%E6%8F%8F%E5%BC%95%E5%8F%91%E7%B3%BB%E7%BB%9F%E5%8D%A1%E9%A1%BF%E9%97%AE%E9%A2%98%E7%9A%84%E5%AE%9E%E8%B7%B5/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/11/17/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/MySQL/%E4%B8%80%E6%AC%A1%E5%BD%BB%E5%BA%95%E8%A7%A3%E5%86%B3%E5%9B%A0%E6%95%B0%E6%8D%AE%E5%BA%93%E5%85%A8%E8%A1%A8%E6%89%AB%E6%8F%8F%E5%BC%95%E5%8F%91%E7%B3%BB%E7%BB%9F%E5%8D%A1%E9%A1%BF%E9%97%AE%E9%A2%98%E7%9A%84%E5%AE%9E%E8%B7%B5/" class="post-title-link" itemprop="url">一次彻底解决因数据库全表扫描引发系统卡顿问题的实践</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-11-17 00:00:00" itemprop="dateCreated datePublished" datetime="2024-11-17T00:00:00+08:00">2024-11-17</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93-%E7%BC%93%E5%AD%98/" itemprop="url" rel="index"><span itemprop="name">数据库&缓存</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93-%E7%BC%93%E5%AD%98/MySQL/" itemprop="url" rel="index"><span itemprop="name">MySQL</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>转载自：<a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s?__biz=MzU1OTgyMDc3Mg==&mid=2247485037&idx=1&sn=7d71b552adda07e6bb38d9aca72aece9&chksm=fc103ce6cb67b5f01817f2850415eec829442d077b3fdddb4a316ec23ace6efa6af768548918&token=949133520&lang=zh_CN&scene=21#wechat_redirect">https://mp.weixin.qq.com/s?__biz=MzU1OTgyMDc3Mg==&amp;mid=2247485037&amp;idx=1&amp;sn=7d71b552adda07e6bb38d9aca72aece9&amp;chksm=fc103ce6cb67b5f01817f2850415eec829442d077b3fdddb4a316ec23ace6efa6af768548918&amp;token=949133520&amp;lang=zh_CN&amp;scene=21#wechat_redirect</a></p>
+<h3 id="问题所在"><a href="#问题所在" class="headerlink" title="问题所在"></a>问题所在</h3><p>相信大家都遇到过因为数据库全表扫描生成大对象，然后系统疯狂 GC，引发系统卡顿的问题。能看到这样的 GC 日志：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">2021-11-20T01:28:52.240+0800: 108542.888: [GC pause (G1 Humongous Allocation) (young) (initial-mark), 0.1276229 secs]</span><br></pre></td></tr></table></figure>
+
+<p>然后就是常规操作，<code>jmap</code> 下，MAT 看看内存，看到底是哪条 SQL 搞的鬼。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/11/17/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/MySQL/%E4%B8%80%E6%AC%A1%E5%BD%BB%E5%BA%95%E8%A7%A3%E5%86%B3%E5%9B%A0%E6%95%B0%E6%8D%AE%E5%BA%93%E5%85%A8%E8%A1%A8%E6%89%AB%E6%8F%8F%E5%BC%95%E5%8F%91%E7%B3%BB%E7%BB%9F%E5%8D%A1%E9%A1%BF%E9%97%AE%E9%A2%98%E7%9A%84%E5%AE%9E%E8%B7%B5/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
     <link itemprop="mainEntityOfPage" href="http://example.com/2024/11/10/MQ/%E8%A7%A3%E6%9E%90RocketMQ%E4%B8%AD%E7%9A%84NameServer/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -489,6 +655,92 @@
           <!--noindex-->
             <div class="post-button">
               <a class="btn" href="/2024/11/09/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/Redis/Redis%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2%EF%BC%8C%E9%94%81%E5%A4%B1%E6%95%88%20%E6%80%8E%E4%B9%88%E5%8A%9E%EF%BC%9F/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/10/05/Linux%E7%9B%B8%E5%85%B3/Tcp%E5%8D%8A%E8%BF%9E%E6%8E%A5%E9%98%9F%E5%88%97%E5%92%8C%E5%85%A8%E8%BF%9E%E6%8E%A5%E9%98%9F%E5%88%97/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/10/05/Linux%E7%9B%B8%E5%85%B3/Tcp%E5%8D%8A%E8%BF%9E%E6%8E%A5%E9%98%9F%E5%88%97%E5%92%8C%E5%85%A8%E8%BF%9E%E6%8E%A5%E9%98%9F%E5%88%97/" class="post-title-link" itemprop="url">Tcp半连接队列和全连接队列</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-10-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-10-05T00:00:00+08:00">2024-10-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Linux%E7%9B%B8%E5%85%B3/" itemprop="url" rel="index"><span itemprop="name">Linux相关</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>[toc]</p>
+<h2 id="什么是TCP半连接队列和全连接队列？"><a href="#什么是TCP半连接队列和全连接队列？" class="headerlink" title="什么是TCP半连接队列和全连接队列？"></a>什么是TCP半连接队列和全连接队列？</h2><p>在TCP进行三次握手时，Liunx会为其维护两个队列：</p>
+<ul>
+<li>syns queue，半连接队列；</li>
+<li>accpet queue，全连接队列；</li>
+</ul>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202510251051646.png" alt="img"></p>
+<ol>
+<li><p>在client端发送SYN给server后，server端变成SYN_RCVD状态，<strong>内核会把该连接存储到半连接队列</strong>，并向客户端响应 SYN+ACK；</p>
+</li>
+<li><p>server端收到client端的ACK后，如果全连接队列没有满，<strong>内核会把连接从半连接队列移除，然后创建新的完全的 socket 连接，并将其添加到 accept 队列，等待进程调用 accept 函数时把连接取出来</strong>。</p>
+</li>
+</ol>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/10/05/Linux%E7%9B%B8%E5%85%B3/Tcp%E5%8D%8A%E8%BF%9E%E6%8E%A5%E9%98%9F%E5%88%97%E5%92%8C%E5%85%A8%E8%BF%9E%E6%8E%A5%E9%98%9F%E5%88%97/#more" rel="contents">
                 Read more &raquo;
               </a>
             </div>
@@ -936,251 +1188,10 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/08/25/Spring/spring%20boot/Mybatis%E5%9C%A8SpringBoot%E4%B8%AD%E6%98%AF%E5%A6%82%E4%BD%95%E8%A2%AB%E5%8A%A0%E8%BD%BD%E6%89%A7%E8%A1%8C/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/08/25/Spring/spring%20boot/Mybatis%E5%9C%A8SpringBoot%E4%B8%AD%E6%98%AF%E5%A6%82%E4%BD%95%E8%A2%AB%E5%8A%A0%E8%BD%BD%E6%89%A7%E8%A1%8C/" class="post-title-link" itemprop="url">Mybatis在SpringBoot中是如何被加载执行</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-08-25 00:00:00" itemprop="dateCreated datePublished" datetime="2024-08-25T00:00:00+08:00">2024-08-25</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Spring/Spring-Boot/" itemprop="url" rel="index"><span itemprop="name">Spring Boot</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>首先依赖于springboot的自动装配<code>@EnableAutoConfiguration</code>注解，这个注解最终帮助我们读取mybatis-spring-boot-autoconfigure-x.x.x.jar中的META-INF\spring.factories配置类：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">org.springframework.boot.autoconfigure.EnableAutoConfiguration=\</span><br><span class="line">org.mybatis.spring.boot.autoconfigure.MybatisLanguageDriverAutoConfiguration,\</span><br><span class="line">org.mybatis.spring.boot.autoconfigure.MybatisAutoConfiguration</span><br></pre></td></tr></table></figure>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/08/25/Spring/spring%20boot/Mybatis%E5%9C%A8SpringBoot%E4%B8%AD%E6%98%AF%E5%A6%82%E4%BD%95%E8%A2%AB%E5%8A%A0%E8%BD%BD%E6%89%A7%E8%A1%8C/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/08/25/Spring/spring%20boot/Springboot%E6%89%A9%E5%B1%95%E7%82%B9/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/08/25/Spring/spring%20boot/Springboot%E6%89%A9%E5%B1%95%E7%82%B9/" class="post-title-link" itemprop="url">Springboot扩展点</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-08-25 00:00:00" itemprop="dateCreated datePublished" datetime="2024-08-25T00:00:00+08:00">2024-08-25</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Spring/Spring-Boot/" itemprop="url" rel="index"><span itemprop="name">Spring Boot</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>[toc]</p>
-<h2 id="1-可扩展的接口启动调用顺序图"><a href="#1-可扩展的接口启动调用顺序图" class="headerlink" title="1.可扩展的接口启动调用顺序图"></a>1.可扩展的接口启动调用顺序图</h2><p>spring容器中Bean的生命周期内可扩展的点的调用顺序:</p>
-<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408262229339.jpeg" alt="img"></p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/08/25/Spring/spring%20boot/Springboot%E6%89%A9%E5%B1%95%E7%82%B9/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/08/18/Java/JVM/JVM%E7%BA%BF%E4%B8%8A%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/08/18/Java/JVM/JVM%E7%BA%BF%E4%B8%8A%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/" class="post-title-link" itemprop="url">JVM线上故障排查</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-08-18 00:00:00" itemprop="dateCreated datePublished" datetime="2024-08-18T00:00:00+08:00">2024-08-18</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/JVM/" itemprop="url" rel="index"><span itemprop="name">JVM</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>[toc]</p>
-<h1 id="CPU"><a href="#CPU" class="headerlink" title="CPU"></a>CPU</h1><p>一般来讲我们首先会排查cpu方面的问题。cpu异常往往还是比较好定位的。原因包括业务逻辑问题(死循环)、频繁gc以及上下文切换过多。而最常见的往往是业务逻辑(或者框架逻辑)导致的，可以使用jstack来分析对应的堆栈情况。</p>
-<h2 id="使用jstack分析cpu问题"><a href="#使用jstack分析cpu问题" class="headerlink" title="使用jstack分析cpu问题"></a>使用jstack分析cpu问题</h2><p>先找到cpu使用率比较高的一些线程，接着直接在jstack中找到相应的堆栈信息。</p>
-<p>当然更常见的是我们对整个jstack文件进行分析，通常我们会比较关注WAITING和TIMED_WAITING的部分，BLOCKED就不用说了。可以使用命令<code>cat jstack.log | grep &quot;java.lang.Thread.State&quot; | sort -nr | uniq -c</code>来对jstack的状态有一个整体的把握，如果WAITING之类的特别多，那么多半是有问题啦。</p>
-<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408181047360.png" alt="img"></p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/08/18/Java/JVM/JVM%E7%BA%BF%E4%B8%8A%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
-    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><span class="space">&hellip;</span><a class="page-number" href="/page/21/">21</a><a class="extend next" rel="next" href="/page/2/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><span class="space">&hellip;</span><a class="page-number" href="/page/23/">23</a><a class="extend next" rel="next" href="/page/2/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -1246,7 +1257,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">210</span>
+          <span class="site-state-item-count">224</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>

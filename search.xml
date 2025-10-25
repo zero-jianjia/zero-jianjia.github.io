@@ -14714,4 +14714,1037 @@
         <category>Redis</category>
       </categories>
   </entry>
+  <entry>
+    <title>IO多路复用之select、poll、epoll详解</title>
+    <url>/2024/04/01/Linux%E7%9B%B8%E5%85%B3/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8%E4%B9%8Bselect%E3%80%81poll%E3%80%81epoll%E8%AF%A6%E8%A7%A3/</url>
+    <content><![CDATA[<p>转载自：<a href="https://blog.csdn.net/zhousenshan/article/details/78660017">https://blog.csdn.net/zhousenshan/article/details/78660017</a></p>
+<p>&emsp;&emsp;<br>&emsp;&emsp;目前支持I&#x2F;O多路复用的系统调用有 select，poll，epoll，I&#x2F;O多路复用就是通过一种机制，一个进程可以监视多个描述符，一旦某个描述符就绪（一般是读就绪或者写就绪），能够通知程序进行相应的读写操作。<br>&emsp;&emsp;但select，poll，epoll本质上都是同步I&#x2F;O，因为它们都需要在读写事件就绪后自己负责进行读写，也就是说这个读写过程是阻塞的，而异步I&#x2F;O则无需自己负责进行读写，异步I&#x2F;O的实现会负责把数据从内核拷贝到用户空间。</p>
+<h3 id="1、select"><a href="#1、select" class="headerlink" title="1、select"></a>1、select</h3><p>&emsp;&emsp;基本原理：select 函数监视的文件描述符分3类，分别是writefds、readfds、和exceptfds。调用后select函数会阻塞，直到有描述符就绪（有数据 可读、可写、except）或者超时，函数返回。当select函数返回后，可以通过遍历fdset，来找到就绪的描述符。<br><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407141111611.png" width=50% hight=50%><br>&emsp;&emsp;select本质上是通过设置或者检查存放fd标志位的数据结构来进行下一步处理。这样所带来的缺点是：<br>&emsp;&emsp;1、select最大的缺陷就是 单个进程所打开的fd是有一定限制的，它由FD_SETSIZE设置，默认值是1024。具体数目可以<code>cat /proc/sys/fs/file-max</code>察看。32位机默认是1024个。64位机默认是2048。<br>&emsp;&emsp;2、对socket进行扫描时是线性扫描，即采用轮询的方法，效率较低。当套接字比较多的时候，每次select()都要通过遍历 FD_SETSIZE 个Socket来完成调度，不管Socket是否活跃，都遍历一遍，这会浪费很多CPU时间。如果能给套接字注册某个回调函数，当它们活跃时，自动完成相关操作，那就避免了轮询，这正是epoll与kqueue做的。<br>&emsp;&emsp;3、需要维护一个用来存放大量fd的数据结构，这样会使得用户空间和内核空间在传递该结构时复制开销大。</p>
+<span id="more"></span>
+
+<h3 id="2、poll"><a href="#2、poll" class="headerlink" title="2、poll"></a>2、poll</h3><p>&emsp;&emsp;poll本质上和select没有区别，它将用户传入的数组拷贝到内核空间，然后查询每个fd对应的设备状态，如果设备就绪则在设备等待队列中加入一项并继续遍历，如果遍历完所有fd后没有发现就绪设备，则挂起当前进程，直到设备就绪或者主动超时，被唤醒后它又要再次遍历fd。这个过程经历了多次无谓的遍历。<br>&emsp;&emsp;它没有最大连接数的限制，原因是它是基于链表来存储的，但是同样有一个缺点：<br>&emsp;&emsp;1）大量的fd的数组被整体复制于用户态和内核地址空间之间，而不管这样的复制是不是有意义。<br>&emsp;&emsp;2）poll还有一个特点是“水平触发”，如果报告了fd后，没有被处理，那么下次poll时会再次报告该fd。</p>
+<p>&emsp;&emsp;注意：select和poll都需要在返回后，通过遍历文件描述符来获取已经就绪的socket。事实上，同时连接的大量客户端在一时刻可能只有很少的处于就绪状态，因此随着监视的描述符数量的增长，其效率也会线性下降。</p>
+<h3 id="3、epoll"><a href="#3、epoll" class="headerlink" title="3、epoll"></a>3、epoll</h3><p>&emsp;&emsp;epoll是在2.6内核中提出的，是之前的select和poll的增强版本。相对于select和poll来说，epoll更加灵活，没有描述符限制。epoll使用一个文件描述符管理多个描述符，将用户关系的文件描述符的事件存放到内核的一个事件表中，这样在用户空间和内核空间的copy只需一次。</p>
+<p>&emsp;&emsp;epoll支持 水平触发 和 边缘触发 ，最大的特点在于边缘触发，它只告诉进程哪些fd刚刚变为就绪态，并且只会通知一次。还有一个特点是，epoll使用“事件”的就绪通知方式，通过epoll_ctl注册fd，一旦该fd就绪，内核就会采用类似callback的回调机制来激活该fd，epoll_wait便可以收到通知。</p>
+<p>epoll的优点：<br>&emsp;&emsp;1、没有最大并发连接的限制，能打开的FD的上限远大于1024（1G的内存上能监听约10万个端口）。<br>&emsp;&emsp;2、效率提升，不是轮询的方式，不会随着fd数目的增加效率下降。只有活跃可用的fd才会调用callback函数；即epoll最大的优点就在于它只管“活跃”的连接，而跟连接总数无关，因此在实际的网络环境中，epoll的效率就会远远高于select和poll。<br>&emsp;&emsp;3、内存拷贝，利用mmap()文件映射内存加速与内核空间的消息传递；即epoll使用mmap减少复制开销。</p>
+<p>&emsp;&emsp;<br>&emsp;&emsp;epoll对文件描述符的操作有两种模式：LT（level trigger）和ET（edge trigger）。LT模式是默认模式，LT模式与ET模式的区别如下：<br>&emsp;&emsp;LT模式：缺省的工作方式，并且同时支持block和no-block socket。当epoll_wait检测到文件描述符事件发生并将此事件通知应用程序，应用程序可以不立即处理该事件。下次调用epoll_wait时，会再次响应应用程序并通知此事件。<br>&emsp;&emsp;ET模式：高速工作方式，只支持no-block socket。当epoll_wait检测到描述符事件发生（从未就绪变为就绪时）并将此事件通知应用程序，应用程序必须立即处理该事件。如果不处理，下次调用epoll_wait时，不会再次响应应用程序并通知此事件。ET模式在很大程度上减少了epoll事件被重复触发的次数，因此效率要比LT模式高。epoll工作在ET模式的时候，必须使用非阻塞套接口，以避免由于一个文件句柄的阻塞读&#x2F;阻塞写操作把处理多个文件描述符的任务饿死。</p>
+<p>&emsp;&emsp;</p>
+<hr>
+<p>&emsp;&emsp;<br><strong>select、poll、epoll区别</strong><br>1．支持一个进程所能打开的最大连接数<br>&emsp;&emsp;select：单个进程所能打开的最大连接数有FD_SETSIZE宏定义，其大小是32个整数的大小（在32位的机器上，大小就是32<em>32，同理64位机器上FD_SETSIZE为32</em>64），当然可以对进行修改，然后重新编译内核，但是性能可能会受到影响。<br>&emsp;&emsp;poll：poll本质上和select没有区别，但是它没有最大连接数的限制，原因是它是基于链表来存储的。<br>&emsp;&emsp;epoll:虽然连接数有上限，但是很大，1G内存的机器上可以打开10万左右的连接，2G内存的机器可以打开20万左右的连接。</p>
+<p>2、FD剧增后带来的IO效率问题<br>&emsp;&emsp;select：因为每次调用时都会对连接进行线性遍历，所以随着FD的增加会造成遍历速度慢的“线性下降性能问题”。<br>&emsp;&emsp;poll：同上。<br>&emsp;&emsp;epoll：因为epoll内核中实现是根据每个fd上的callback函数来实现的，只有活跃的socket才会主动调用callback，所以在活跃socket较少的情况下，使用epoll没有前面两者 的线性下降的性能问题，但是所有socket都很活跃的情况下，可能会有性能问题。</p>
+<p>3、消息传递方式<br>&emsp;&emsp;select：内核需要将消息传递到用户空间，都需要内核拷贝动作。<br>&emsp;&emsp;poll：同上。<br>&emsp;&emsp;epoll：epoll通过内核和用户空间共享一块内存来实现的。</p>
+<p>&emsp;&emsp;在select&#x2F;poll中，进程只有在调用一定的方法后，内核才对所有监视的文件描述符进行扫描，而epoll事先通过epoll_ctl()来注册一个文件描述符，一旦基于某个文件描述符就绪时，内核会采用类似callback的回调机制，迅速激活这个文件描述符，当进程调用epoll_wait()时便得到通知。(此处去掉了遍历文件描述符，而是通过监听回调的的机制。)<br>&emsp;&emsp;表面上看epoll的性能最好，但是在连接数少并且连接都十分活跃的情况下，select和poll的性能可能比epoll好，毕竟epoll的通知机制需要很多函数回调。但是当遇到大量的idle-connection，就会发现epoll的效率大大高于select&#x2F;poll。</p>
+]]></content>
+      <categories>
+        <category>Linux相关</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>TCP如何保证传输可靠性</title>
+    <url>/2024/04/06/Linux%E7%9B%B8%E5%85%B3/TCP%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81%E4%BC%A0%E8%BE%93%E5%8F%AF%E9%9D%A0%E6%80%A7/</url>
+    <content><![CDATA[<p>[toc]<br>TCP协议保证数据传输可靠性的方式主要有：</p>
+<p><strong>校验和</strong></p>
+<p>​    发送的数据包的二进制相加然后取反，<strong>目的是检测数据在传输过程中的任何变化</strong>。如果收到段的检验和有差错，TCP将丢弃这个报文段和不确认收到此报文段。 </p>
+<p><strong>确认应答+序列号</strong></p>
+<p>​    TCP给发送的<strong>每一个包进行编号</strong>，接收方<strong>对数据包进行排序</strong>，把有序数据传送给应用层。 </p>
+<p><strong>超时重传</strong></p>
+<p>​    当TCP<strong>发出一个段后，它启动一个定时器</strong>，<strong>等待目的端确认收到这个报文段</strong>。<strong>如果不能及时收到一个确认，将重发这个报文段</strong>。 </p>
+<p><strong>流量控制</strong></p>
+<p>​    <strong>TCP连接的每一方都有固定大小的缓冲空间</strong>，TCP的<strong>接收端只允许发送端发送接收端缓冲区能接纳的数据</strong>。当接收方来不及处理发送方的数据，能提示发送方降低发送的速率，防止包丢失。TCP使用的流量控制协议是可变大小的滑动窗口协议。</p>
+<p>​     <strong>接收方有即时窗口（滑动窗口），随ACK报文发送</strong></p>
+<p><strong>拥塞控制</strong></p>
+<p>​    当网络拥塞时，减少数据的发送。</p>
+<p>​     <strong>发送方有拥塞窗口，发送数据前比对接收方发过来的即使窗口，取小</strong></p>
+<p>​     <strong>慢启动、拥塞避免、拥塞发送、快速恢复</strong></p>
+<p>应用数据被分割成TCP认为最适合发送的数据块。 </p>
+<p>TCP的接收端会<strong>丢弃重复的数据</strong>。 </p>
+ <span id="more"></span>
+
+<h2 id="1、校验和"><a href="#1、校验和" class="headerlink" title="1、校验和"></a>1、校验和</h2><p>计算方式：在数据传输的过程中，将发送的数据段都当做一个16位的整数。将这些整数加起来。并且前面的进位不能丢弃，补在后面，最后取反，得到校验和。 </p>
+<p>发送方：<strong>在发送数据之前计算检验和，并进行校验和的填充</strong>。 </p>
+<p>接收方：<strong>收到数据后</strong>，对数据<strong>以同样的方式进行计算</strong>，求出校验和，与<strong>发送方的进行比对。</strong></p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408132254301.png" alt="img"><br> 注意：如果<strong>接收方比对校验和与发送方不一致，那么数据一定传输有误</strong>。但是如果接收方比对<strong>校验和</strong>与发送方<strong>一致，数据不一定传输成功</strong>。</p>
+<h2 id="2、确认应答与序列号"><a href="#2、确认应答与序列号" class="headerlink" title="2、确认应答与序列号"></a><strong>2、确认应答与序列号</strong></h2><p>序列号：TCP<strong>传输时将每个字节的数据都进行了编号</strong>，这就是序列号。 </p>
+<p>确认应答：TCP传输的过程中，每次<strong>接收方收到数据后，都会对传输方进行确认应答</strong>。也就是发送ACK报文。这个ACK报文当中带有对应的<strong>确认序列号</strong>，告诉发送方，接收到了哪些数据，下一次的数据从哪里发。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408132255961.png" alt="img"></p>
+<p>序列号的作用不仅仅是应答的作用，有了序列号能够<strong>将接收到的数据根据序列号排序</strong>，并且<strong>去掉重复序列号的数据</strong>。这也是TCP传输可靠性的保证之一。</p>
+<h2 id="3、超时重传"><a href="#3、超时重传" class="headerlink" title="3、超时重传"></a><strong>3、超时重传</strong></h2><p>在进行TCP传输时，由于确认应答与序列号机制，也就是说发送方发送一部分数据后，都会等待接收方发送的ACK报文，并解析ACK报文，判断数据是否传输成功。<strong>如果发送方发送完数据后，迟迟没有等到接收方的ACK报文，这该怎么办呢？</strong>而没有收到ACK报文的原因可能是什么呢？</p>
+<p>首先，<strong>发送方没有接收到响应的ACK报文原因可能有两点</strong>：</p>
+<p>a、数据在传输过程中由于网络原因等直接全体丢包，<strong>接收方没有接收到</strong>。</p>
+<p>b、接收方接收到了响应的数据，但是<strong>发送的ACK报文响应</strong>却由于网络原因<strong>丢包了</strong>。</p>
+<p>TCP在解决这个问题的时候引入了一个新的机制，叫做<strong>超时重传机制。</strong>简单理解就是发送方在发送完数据后等待一个时间，时间到达没有接收到ACK报文，那么对刚才发送的数据进行重新发送。<strong>如果是刚才第一个原因，接收方收到二次重发的数据后，便进行ACK应答。如果是第二个原因，接收方发现接收的数据已存在（判断存在的根据就是序列号，所以上面说序列号还有去除重复数据的作用），那么直接丢弃，仍旧发送ACK应答。</strong></p>
+<p>那么发送方发送完毕后<strong>等待的时间是多少呢？</strong>如果这个等待的时间过长，那么会影响TCP传输的整体效率，如果等待时间过短，又会导致频繁的发送重复的包。如何权衡？</p>
+<p>由于TCP传输时保证能够在任何环境下都有一个高性能的通信，因此这个最大超时时间（也就是等待的时间）是动态计算的。</p>
+<p><strong>注意：</strong></p>
+<p><strong>超时以500ms（0.5秒）为一个单位进行控制，每次判定超时重发的超时时间都是500ms的整数倍。</strong>重发一次后，仍未响应，那么等待2<em>500ms的时间后，再次重传。等待4</em>500ms的时间继续重传。以一个指数的形式增长。<strong>累计到一定的重传次数，TCP就认为网络或者对端出现异常，强制关闭连接。</strong></p>
+<h2 id="4、连接管理"><a href="#4、连接管理" class="headerlink" title="4、连接管理"></a><strong>4、连接管理</strong></h2><p>连接管理就是三次握手与四次挥手的过程，在前面详细讲过这个过程，这里不再赘述。保证可靠的连接，是保证可靠性的前提。</p>
+<h3 id="4-1-流量控制"><a href="#4-1-流量控制" class="headerlink" title="4.1 流量控制"></a><strong>4.1 流量控制</strong></h3><p>接收端在接收到数据后，对其进行处理。<strong>如果发送端的发送速度太快，导致接收端的结束缓冲区很快的填充满了。此时如果发送端仍旧发送数据，那么接下来发送的数据都会丢包</strong>，继而导致丢包的一系列连锁反应，超时重传呀什么的。而<strong>TCP根据接收端对数据的处理能力，决定发送端的发送速度，这个机制就是流量控制。</strong></p>
+<p><strong>在TCP协议的报头信息当中，有一个16位字段的窗口大小</strong>。在介绍这个窗口大小时我们知道，窗口大小的内容实际上是接收端接收数据缓冲区的剩余大小。这个数字越大，证明接收端接收缓冲区的剩余空间越大，网络的吞吐量越大。<strong>接收端会在确认应答发送ACK报文时，将自己的即时窗口大小填入，并跟随ACK报文一起发送过去。</strong>而<strong>发送方根据ACK报文里的窗口大小的值的改变进而改变自己的发送速度</strong>。如果接收到窗口大小的值为0，那么发送方将停止发送数据。并<strong>定期的向接收端发送窗口探测数据段，让接收端把窗口大小告诉发送端。</strong> </p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408132255002.png" alt="img"><br> 注：16位的窗口大小最大能表示65535个字节（64K)，但是TCP的窗口大小最大并不是64K。在TCP首部中40个字节的选项中还包含了一个窗口扩大因子M，实际的窗口大小就是16为窗口字段的值左移M位。每移一位，扩大两倍。</p>
+<h3 id="4-2-拥塞控制"><a href="#4-2-拥塞控制" class="headerlink" title="4.2 拥塞控制"></a><strong>4.2 拥塞控制</strong></h3><p>TCP传输的过程中，发送端开始发送数据的时候，<strong>如果刚开始就发送大量的数据，那么就可能造成一些问题。网络可能在开始的时候就很拥堵</strong>，如果给网络中在扔出大量数据，那么这个拥堵就会加剧。拥堵的加剧就会产生大量的丢包，就对大量的超时重传，严重影响传输。</p>
+<p>所以TCP引入了<strong>慢启动</strong>的机制，<strong>在开始发送数据时，先发送少量的数据探路。探清当前的网络状态如何，再决定多大的速度进行传输。</strong>这时候就引入一个叫做<strong>拥塞窗口</strong>的概念。<strong>发送刚开始定义拥塞窗口为 1，每次收到ACK应答，拥塞窗口加 1。在发送数据之前，首先将拥塞窗口与接收端反馈的窗口大小比对，取较小的值作为实际发送的窗口。</strong></p>
+<p>拥塞窗口的增长是指数级别的。<strong>慢启动的机制只是说明在开始的时候发送的少，发送的慢，但是增长的速度是非常快的。</strong>为了控制拥塞窗口的增长，不能使拥塞窗口单纯的加倍，<strong>设置一个拥塞窗口的阈值，当拥塞窗口大小超过阈值时，不能再按照指数来增长，而是线性的增长。</strong>在慢启动开始的时候，慢启动的阈值等于窗口的最大值，<strong>一旦造成网络拥塞，发生超时重传时</strong>，<strong>慢启动的阈值会为原来的一半</strong>（这里的原来指的是发生网络拥塞时拥塞窗口的大小），<strong>同时拥塞窗口重置为 1。</strong> </p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408132255394.png" alt="img"></p>
+<p>拥塞控制是TCP在传输时尽可能快的将数据传输，并且避免拥塞造成的一系列问题。是可靠性的保证，同时也是维护了传输的高效性。</p>
+<p><strong>拥塞控制主要是四个算法：1）慢启动，2）拥塞避免，3）拥塞发生，4）快速恢复。</strong></p>
+<p>拥塞避免</p>
+<p>当拥塞窗口 &gt;&#x3D; 阀值时，就会进入“拥塞避免算法”。</p>
+<p>这样就可以避免增长过快导致网络拥塞，慢慢的增加调整到网络的最佳值。是一个线性上升的算法。</p>
+<p>拥塞发生</p>
+<p>当发生超时重传后，阀值会变成拥塞窗口的一半</p>
+<p>快速恢复</p>
+<p>&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;</p>
+<p><strong>TCP滑动窗口</strong></p>
+<p>需要说明一下，<strong>如果你不了解TCP的滑动窗口这个事，你等于不了解TCP协议</strong>。我们都知道，TCP必需要解决的可靠传输以及包乱序（reordering）的问题，所以，TCP必需要知道网络实际的数据处理带宽或是数据处理速度，这样才不会引起网络拥塞，导致丢包。</p>
+<p>所以，TCP引入了一些技术和设计来做网络流控，Sliding Window是其中一个技术。 前面我们说过，<strong>TCP头里有一个字段叫Window，又叫Advertised-Window，这个字段是接收端告诉发送端自己还有多少缓冲区可以接收数据。</strong>于是发送端就可以根据这个接收端的处理能力来发送数据，而不会导致接收端处理不过来。 为了说明滑动窗口，我们需要先看一下TCP缓冲区的一些数据结构：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408132257618.jpeg" alt="img"></p>
+<p>上图中，我们可以看到：</p>
+<p>1、接收端LastByteRead指向了TCP缓冲区中读到的位置，NextByteExpected指向的地方是收到的连续包的最后一个位置，LastByteRcved指向的是收到的包的最后一个位置，我们可以看到中间有些数据还没有到达，所以有数据空白区。</p>
+<p>2、发送端的LastByteAcked指向了被接收端Ack过的位置（表示成功发送确认），LastByteSent表示发出去了，但还没有收到成功确认的Ack，LastByteWritten指向的是上层应用正在写的地方。</p>
+<p>于是：</p>
+<p>a、接收端在给发送端回ACK中会汇报自己的AdvertisedWindow &#x3D; MaxRcvBuffer – LastByteRcvd – 1;</p>
+<p>b、而发送方会根据这个窗口来控制发送数据的大小，以保证接收方可以处理。</p>
+<p>下面我们来看一下发送方的滑动窗口示意图：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408132258812.png" alt="img"><br> 上图中分成了四个部分，分别是：（其中那个<strong>黑模型就是滑动窗口</strong>)</p>
+<p><strong>#1已收到ack确认的数据。</strong></p>
+<p><strong>#2已发出但还没收到ack的。</strong></p>
+<p><strong>#3在窗口中还没有发出的（接收方还有空间）。</strong></p>
+<p><strong>#4窗口以外的数据（接收方没空间）</strong></p>
+<p><strong>注意：</strong></p>
+<p><strong>滑动窗口里是 已发出但未收到ACk、还未发出的 数据</strong></p>
+<p>下面是个滑动后的示意图（收到36的ack，并发出了46-51的字节）：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408132258011.png" alt="img"><br> 下面我们来看一个接受端控制发送端的图示：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408132258284.png" alt="img"></p>
+<p>&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;</p>
+<p><strong>问题：</strong></p>
+<p>TCP是以段为单位进行数据包的发送的。</p>
+<p>（1）<strong>在建立TCP连接的同时，也可以确定发送数据包的单位，称之为“最大消息长度”：MSS</strong>。最理想的情况是，最大消息长度MSS正好是IP层中不被分片处理的最大数据长度。</p>
+<p>（2）TCP在传送大量数据的时候，是以“段&#x3D;MSS的大小”将数据进行分割发送的，进行重发时也是以MSS为单位的。</p>
+<p>（3）最大消息长度——MSS是在三次握手的时候，在两端主机之间被计算得出的。两端主机在发出“建立TCP连接请求的SYN包”时，会在SYN包的TCP首部中写入MSS选项，告诉对方自己所能够适应的MSS的大小，然后发送端主机会在两者之间选择一个较小的MSS值投入使用。</p>
+<p><strong>TCP为什么引入接受缓存这个数据结构？</strong></p>
+<p>如果没有接受缓存的话，或者说只有一个缓存的话，为了保证接受的数据是按顺序传输的，所以<strong>如果位于x序号之后的序号分组先到达目的主机的运输层的话必然丢弃，这样的话将在重传上花费很大的开销</strong>，所以一般如果有过大的序号达到接收端，那么会按照序号缓存起来等待之前的序号分许到达，然后一并交付到应用进程。</p>
+<p><strong>TCP 粘包&#x2F;拆包的原因及解决方法</strong></p>
+<p><strong>TCP是以流的方式来处理数据，一个完整的包可能会被TCP拆分成多个包进行发送</strong>，<strong>也可能把小的封装成一个大的数据包发送。</strong></p>
+<p><strong>TCP粘包&#x2F;分包的原因：</strong></p>
+<p><strong>应用程序写入的字节大小大于套接字发送缓冲区的大小</strong>，会<strong>发生拆包</strong>现象，而<strong>应用程序写入数据小于套接字缓冲区大小，</strong>网卡<strong>将应用多次写入的数据发送到网络</strong>上，这将会发生粘包现象；</p>
+<p>进行MSS大小的TCP分段，当TCP报文长度-TCP头部长度&gt;MSS的时候将发生拆包</p>
+<p>以太网帧的payload（净荷）大于MTU（1500字节）进行ip分片。</p>
+<p><strong>解决方法</strong></p>
+<p>消息定长：FixedLengthFrameDecoder类</p>
+<p>包尾增加特殊字符分割：行分隔符类：LineBasedFrameDecoder或自定义分隔符类 ：DelimiterBasedFrameDecoder</p>
+<p>将消息分为消息头和消息体：LengthFieldBasedFrameDecoder类。分为有头部的拆包与粘包、长度字段在前且有头部的拆包与粘包、多扩展头部的拆包与粘包。</p>
+<p><strong>利用滑动窗口控制提高速度</strong></p>
+<p>（1）TCP是以一个段为单位进行数据的传输的，每发送一个段，就会等待对端主机的针对这个段的确认应答信号ACK，但这样的传输方式的缺点也很明显，就是：当数据包的往返时间越长，通信性能越低</p>
+<p>（2）为了解决这个问题，TCP引入了窗口这个概念，即使在往返时间比较长的情况下，它也能够控制网络性能的下降。</p>
+<p>确认应答包不再以每个段为单位进行确认了，而是以更大的单位进行确认，转发时间将会被大幅度的缩短。也就是说，发送端主机在发送了一个段之后，没必要一直等待对端主机的确认应答信号，而是继续发送。</p>
+<p>（3）窗口大小，指的就是无需等待接收端主机的确认应答信号而可以持续发送的数据的最大值，或者说段的最大值。滑动窗口控制的实现，使用了大量的缓冲区，通过对多个段的数据同时进行确认应答来实现高效传输。</p>
+<p>（4）发送数据中的高亮部分正是前面提到的窗口。在这个窗口内的数据即便没有收到确认应答也可以发送出去，此外发送端主机在等到对端主机的确认应答之前，必须在缓冲区中保留这部分数据，以便数据包的丢失而重发。</p>
+<p>（5）在滑动窗口以外的数据，包括尚未发送出去的数据，以及已经确认对端收到的数据，当发送端确认对端已经收到数据包之后，此数据包就可以从缓冲区中清除了。</p>
+<p>当收到确认应答信号过之后，会把滑动窗口的位置滑动到确认应答的序列号的位置，这样就可以顺序的将多个段同时发送以提高通信功能了。这就是滑动窗口控制。</p>
+]]></content>
+      <categories>
+        <category>目录待定</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>MCP传输机制Stdio、SSE与StreamableHTTP的核心区别</title>
+    <url>/2025/06/06/AI/MCP%20%E4%BC%A0%E8%BE%93%E6%9C%BA%E5%88%B6%20Stdio%E3%80%81SSE%20%E4%B8%8E%20Streamable%20HTTP%20%E7%9A%84%E6%A0%B8%E5%BF%83%E5%8C%BA%E5%88%AB/</url>
+    <content><![CDATA[<h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><p>在人工智能与大型语言模型（LLM）快速发展的今天，如何让模型安全高效地访问外部数据和服务成为关键挑战。MCP（Model Context Protocol） 协议应运而生，它通过标准化的通信机制，为AI模型与外部资源架起桥梁。MCP 协议使用 JSON-RPC 来编码消息，JSON-RPC 消息必须使用 UTF-8 编码。MCP协议目前定义了三种传输机制用于客户端-服务器通信：</p>
+<ul>
+<li><p>stdio：通过标准输入和标准输出进行通信</p>
+</li>
+<li><p>SSE：通过 HTTP 进行通信，支持流式传输。（协议版本 2024-11-05 开始支持，即将废弃）</p>
+</li>
+<li><p>Streamble HTTP：通过 HTTP 进行通信，支持流式传输。（协议版本 2025-03-26 开始支持，用于替代 SSE）</p>
+</li>
+</ul>
+<p>MCP 协议要求客户端应尽可能支持 stdio。MCP 协议的传输机制是可插拔的，也就是说，客户端和服务器不局限于 MCP 协议标准定义的这几种传输机制，也可以通过自定义的传输机制来实现通信。</p>
+<p>Streamable HTTP是MCP协议推荐的下一代传输机制，基于标准HTTP实现动态流式升级，支持无状态服务和云原生部署。相比SSE，它无需专用端点，兼容CDN&#x2F;API网关，灵活切换流式响应（如长文本生成进度推送），适合分布式系统与弹性扩展场景。官方计划逐步淘汰SSE，推荐优先采用Streamable HTTP以实现高效、可扩展的远程通信。</p>
+<span id="more"></span>
+
+<h2 id="stdio-传输"><a href="#stdio-传输" class="headerlink" title="stdio 传输"></a>stdio 传输</h2><p>stdio 即 standard input &amp; output（标准输入 &#x2F; 输出），主要用于本地进程通信。Stdio（标准输入&#x2F;输出）通过本地进程间通信实现，客户端以子进程形式启动服务器，双方通过stdin&#x2F;stdout交换JSON-RPC消息，每条消息以换行符分隔。</p>
+<p>适用场景：本地工具集成、隐私数据处理、快速原型开发。</p>
+<p>stdio通信流程：</p>
+<blockquote>
+<ol>
+<li>客户端以子进程的形式启动服务器;</li>
+<li>客户端往服务器的 stdin 写入消息;</li>
+<li>服务器从其标准输入（stdin）读取 JSON-RPC 消息，并将消息发送到其标准输出（stdout）,消息可能是单个 JSON-RPC 请求、通知、响应，或者包含多个请求、通知、响应的 JSON-RPC 批处理，消息由换行符分隔；</li>
+<li>客户端从服务器的 stdout 读取消息；</li>
+<li>客户端终止子进程，关闭服务器的 stdin；</li>
+<li>服务器关闭自身的 stdout；</li>
+</ol>
+</blockquote>
+<p>优缺点：</p>
+<table>
+<thead>
+<tr>
+<th>优势</th>
+<th>劣势</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>零网络依赖：无需配置网络环境，适合本地开发调试。<br />高安全性：数据仅在本地流转，避免远程泄露风险。<br />低延迟：直接通过内存或管道传输，性能高效。</td>
+<td>单进程限制：无法同时处理多客户端请求，扩展性差。<br />仅限本地：无法支持分布式或远程资源访问。<br />资源消耗大：进程通信的资源开销大，很难在本地运行非常多的服务。</td>
+</tr>
+</tbody></table>
+<h2 id="SSE-传输"><a href="#SSE-传输" class="headerlink" title="SSE 传输"></a>SSE 传输</h2><p>MCP 协议使用 SSE（Server-Sent Events） 传输来解决远程资源访问的问题。底层是基于HTTP长连接，通过类似 API 的方式，让 MCP 客户端直接访问远程资源。在 SSE 传输中，服务器作为一个独立进程运行，可以处理多个客户端连接。</p>
+<p>服务器必须提供两个端点：</p>
+<blockquote>
+<p>&#x2F;sse（GET请求）：建立长连接，用于客户端接收服务器推送的事件流。</p>
+<p>&#x2F;messages（POST请求）：供客户端向服务器发送消息。</p>
+</blockquote>
+<p>当客户端连接时，服务器必须发送一个包含客户端用于发送消息的 URL 的端点事件。所有后续客户端消息必须作为 HTTP POST 请求发送到该端点。服务器消息作为 SSE 消息事件发送，消息内容以 JSON 格式编码在事件数据中。</p>
+<p>SSE 通信流程：</p>
+<blockquote>
+<ol>
+<li>客户端向服务器的 &#x2F;sse 端点发送请求（一般是 GET 请求），建立 SSE 连接；</li>
+<li>服务器给客户端返回一个包含 sessionId 的事件消息；</li>
+<li>客户端给 &#x2F;messages 发送消息，携带sessionId；</li>
+<li>服务器给客户端响应消息已接收状态码；</li>
+<li>服务器给双方建立的 SSE 连接推送事件消息；</li>
+<li>客户端从 SSE 连接读取服务器发送的事件消息；</li>
+<li>客户端关闭 SSE 连接；</li>
+</ol>
+</blockquote>
+<p>优缺点：</p>
+<table>
+<thead>
+<tr>
+<th>优势</th>
+<th>劣势</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>支持远程资源访问，让 MCP 客户端可以直接访问远程服务，解决了 stdio 传输仅适用于本地资源的局限；<br />基于标准 HTTP 协议实现，兼容性好，便于与现有 Web 基础设施集成;<br />服务器可作为独立进程运行，支持处理多个客户端连接;<br />相比 WebSocket 实现简单，是普通 HTTP 的扩展，不需要协议升级;</td>
+<td>浏览器连接限制：每个浏览器和域名的最大打开连接数很低(6 个)，当用户打开多个标签页时会出现问题;<br />复杂的双通道响应机制：MCP 中的 SSE 实现要求服务器在接收客户端消息后，既要给当前请求响应，也要给之前建立的 SSE 连接发送响应消息;<br /> 需要大量会话管理：需要为每个 SSE 连接分配唯一标识(sessionId)来防止数据混淆，增加了实现复杂度</td>
+</tr>
+</tbody></table>
+<p>MCP 协议已经引入了新的 Streamable HTTP 传输机制(2025-03-26 版本)来替代 SSE，并计划废弃 SSE 传输。新的传输机制保留了 HTTP 的基础，但支持更灵活的连接方式，更适合现代云架构和无服务器环境。</p>
+<h2 id="Streamable-HTTP"><a href="#Streamable-HTTP" class="headerlink" title="Streamable HTTP"></a>Streamable HTTP</h2><p>Streamable HTTP 传输是 MCP 协议在 2025-03-26 版本中引入的新传输机制，用于替代之前的 SSE 传输。Streamable HTTP 是SSE的升级方案，完全基于标准HTTP协议，移除了专用SSE端点，所有消息通过**&#x2F;message**端点传输</p>
+<p>在 Streamable HTTP 传输中，服务器作为一个独立进程运行，可以处理多个客户端连接。此传输使用 HTTP POST 和 GET 请求，服务器可以选择使用服务器发送事件（SSE）来流式传输多个服务器消息。</p>
+<p>服务器必须提供一个同时支持 POST 和 GET 方法的单个 HTTP 端点。</p>
+<p>Streamable HTTP 通信流程：</p>
+<blockquote>
+<ol>
+<li>客户端给服务器的通信端点发消息;</li>
+<li>服务器给客户端响应消息;</li>
+<li>客户端根据服务器的响应类型，继续给服务器发消息;</li>
+<li>服务器继续响应客户端消息</li>
+</ol>
+</blockquote>
+<p>跟 SSE 传输不同的点在于，Streamable HTTP 传输中，客户端与服务器的消息交互，基本上是“一来一回”的（单通道响应）。而这个“一来一回”的消息交互，可能会有很多种组合类型。</p>
+<blockquote>
+<p>客户端发送 GET 请求给服务器，服务器返回 SSE 连接;</p>
+<p>客户端 POST JSON-RPC 编码的消息给服务器，服务器返回 JSON-RPC 编码的消息响应;</p>
+<p>客户端 POST JSON-RPC 编码的消息给服务器，服务器返回一个 SSE 连接;</p>
+<p>客户端给 SSE 连接发消息，服务器收到后给 SSE 连接响应消息;</p>
+<p>服务器响应的消息，可能包含状态标识：Mcp-Session-Id;</p>
+<p>客户端发消息时候需要带上状态标识：Mcp-Session-Id;</p>
+</blockquote>
+<p>Streamable HTTP 传输机制下，MCP 客户端与服务器通信的几个要点：</p>
+<ul>
+<li><p>客户端可以给服务器发送不包含请求体的 GET 请求，用于建立 SSE 连接，让服务器可以主动给客户端先发消息;</p>
+</li>
+<li><p>客户端给服务器发送 JSON-RPC 消息的情况，必须使用 POST 请求</p>
+</li>
+<li><p>服务器接到客户端的 GET 请求时，要么返回 Contet-Type: text&#x2F;event-stream 开启 SSE 连接，要么返回 HTTP 405 状态码，表示不支持 SSE 连接。</p>
+</li>
+<li><p>服务器接到客户端的 POST 请求时，从请求体里面读取 JSON-RPC 消息，如果是通知消息，就响应 HTTP 202 状态码，表示消息已收到。如果是非通知消息，服务器可以选择返回 Content-Type: text&#x2F;event-stream 开启 SSE 传输，或者返回 Content-Type: application&#x2F;json 同步响应一条 JSON-RPC 消息。</p>
+</li>
+</ul>
+<p>优缺点：</p>
+<table>
+<thead>
+<tr>
+<th>优势</th>
+<th>劣势</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>无状态支持：服务器可完全无状态运行，降低运维复杂度。<br />基础设施兼容：与CDN、API网关、负载均衡无缝集成。<br />灵活流式处理：支持按需切换为流式传输（如长文本生成进度推送）。</td>
+<td>实现复杂度：需处理会话ID和状态管理（可选）。<br /></td>
+</tr>
+</tbody></table>
+<p>整体对比</p>
+<table>
+<thead>
+<tr>
+<th>特性</th>
+<th>Stdio</th>
+<th>SEE</th>
+<th>Streamable HTTP</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>通信方式</strong></td>
+<td>本地进程管道</td>
+<td>HTTP长连接 + SSE</td>
+<td>标准HTTP + 动态流式升级</td>
+</tr>
+<tr>
+<td><strong>通信方向</strong></td>
+<td>双向同步</td>
+<td>单向（Server-&gt;Client）</td>
+<td>双向异步</td>
+</tr>
+<tr>
+<td><strong>适用场景</strong></td>
+<td>本地隐私数据处理</td>
+<td>实时远程通知（逐步淘汰）</td>
+<td>云原生、分布式系统</td>
+</tr>
+<tr>
+<td><strong>网络依赖</strong></td>
+<td>无</td>
+<td>必需</td>
+<td>必需</td>
+</tr>
+<tr>
+<td><strong>延迟</strong></td>
+<td>高（100-500ms）</td>
+<td>中（50-200ms）</td>
+<td>低（10-100ms）</td>
+</tr>
+<tr>
+<td><strong>多客户端支持</strong></td>
+<td>否</td>
+<td>是</td>
+<td>是</td>
+</tr>
+<tr>
+<td><strong>协议演进</strong></td>
+<td>长期支持</td>
+<td>即将废弃</td>
+<td>官方推荐替代方案</td>
+</tr>
+</tbody></table>
+]]></content>
+      <categories>
+        <category>AI</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>Linux网络IO模型</title>
+    <url>/2024/04/01/Linux%E7%9B%B8%E5%85%B3/Linux%E7%BD%91%E7%BB%9CIO%E6%A8%A1%E5%9E%8B/</url>
+    <content><![CDATA[<h2 id="基本概念"><a href="#基本概念" class="headerlink" title="基本概念"></a>基本概念</h2><h3 id="同步与异步"><a href="#同步与异步" class="headerlink" title="同步与异步"></a>同步与异步</h3><p>​    同步和异步关注的是消息通信机制。<br>​    所谓同步，就是在发出一个“调用”时，在没有得到结果之前，该“调用”就不返回。但是一旦调用返回，就得到返回值了。换句话说，就是由“调用者”主动等待这个“调用”的结果。<br>​    而异步则是相反，“调用”在发出之后，这个调用就直接返回了，所以没有返回结果。换句话说，当一个异步过程调用发出后，调用者不会立刻得到结果。而是在“调用”发出后，“被调用者”通过状态、通知来通知调用者，或通过回调函数处理这个调用。<br>​    举个通俗的例子：你打电话问书店老板有没有《分布式系统》这本书，如果是同步通信机制，书店老板会说，你稍等，”我查一下”，然后开始查啊查，等查好了（可能是5秒，也可能是一天）告诉你结果（返回结果）。而异步通信机制，书店老板直接告诉你我查一下啊，查好了打电话给你，然后直接挂电话了（不返回结果）。然后查好了，他会主动打电话给你。在这里老板通过“回电”这种方式来回调。</p>
+<h3 id="阻塞与非阻塞"><a href="#阻塞与非阻塞" class="headerlink" title="阻塞与非阻塞"></a>阻塞与非阻塞</h3><p>​    阻塞和非阻塞关注的是程序在等待调用结果（消息，返回值）时的状态。<br>​    阻塞调用是指调用结果返回之前，当前线程会被挂起。调用线程只有在得到结果之后才会返回。<br>​    非阻塞调用指在不能立刻得到结果之前，该调用不会阻塞当前线程。<br>​    还是上面的例子，你打电话问书店老板有没有《分布式系统》这本书，你如果是阻塞式调用，你会一直把自己“挂起”，直到得到这本书有没有的结果，如果是非阻塞式调用，你不管老板有没有告诉你，你自己先一边去玩了， 当然你也要偶尔过几分钟check一下老板有没有返回结果。在这里阻塞与非阻塞与是否同步异步无关。跟老板通过什么方式回答你结果无关。</p>
+ <span id="more"></span>
+
+<h2 id="Linux下的五种I-O模型"><a href="#Linux下的五种I-O模型" class="headerlink" title="Linux下的五种I&#x2F;O模型"></a>Linux下的五种I&#x2F;O模型</h2><p>​    1、阻塞I&#x2F;O（blocking I&#x2F;O）<br>​    2、非阻塞I&#x2F;O （nonblocking I&#x2F;O）<br>​    3、I&#x2F;O复用(select和poll) （I&#x2F;O multiplexing）<br>​    4、信号驱动I&#x2F;O （signal driven I&#x2F;O (SIGIO)）<br>​    5、异步I&#x2F;O （asynchronous I&#x2F;O (the POSIX aio_functions)）<br>​    前四种都是同步，只有最后一种才是异步IO。</p>
+<h3 id="阻塞I-O模型"><a href="#阻塞I-O模型" class="headerlink" title="阻塞I&#x2F;O模型"></a>阻塞I&#x2F;O模型</h3><p>​    默认情况下，所有套接字都是阻塞的。首先明确一下，一次IO包括两个过程：<br>   （1）等待内核把数据准备好；<br>   （2）把数据从内核空间copy到用户空间。<br>​    下面以阻塞套接字的recvfrom的的调用图来说明阻塞：<br> <img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202510251013311.jpeg" alt="img"><br>​    当用户进程调用了recvfrom这个系统调用，kernel就开始了IO的第一个阶段：准备数据。对于network io来说，很多时候数据在一开始还没有到达（比如，还没有收到一个完整的UDP包)，这个时候kernel就要等待足够的数据到来。而在用户进程这边，整个进程会被阻塞。当kernel一直等到数据准备好了，它就会将数据从kernel中拷贝到用户内存，然后kernel返回结果，用户进程才解除 block的状态，重新运行起来。<br>​    等待数据的那段过程，就是阻塞。</p>
+<h3 id="非阻塞I-O模型"><a href="#非阻塞I-O模型" class="headerlink" title="非阻塞I&#x2F;O模型"></a>非阻塞I&#x2F;O模型</h3><p>​    可以通过设置socket使其变为non-blocking。当对一个non-blocking socket执行读操作时，流程是这个样子：<br>   <img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202510251013144.jpeg" alt="img"><br>​    从图中可以看出，非阻塞IO通过进程反复调用IO函数（多次系统调用，并马上返回)；在数据拷贝的过程中，进程是阻塞的。<br>​     当把一个SOCKET接口设置为非阻塞就是告诉内核，当所请求的I&#x2F;O操作无法完成时，不要将进程睡眠，而是返回一个错误。这样我们的I&#x2F;O操作函数将不断的测试数据是否已经准备好，如果没有准备好，继续测试，直到数据准备好为止。在这个不断测试的过程中，会大量的占用CPU的时间。<br>​    所以，在非阻塞式IO中，用户进程其实是需要不断的主动询问kernel数据准备好了没有。</p>
+<h3 id="I-O多路复用模型"><a href="#I-O多路复用模型" class="headerlink" title="I&#x2F;O多路复用模型"></a>I&#x2F;O多路复用模型</h3><p>​    I&#x2F;O多路复用的函数也是阻塞的，但是其与以上两种还是有不同的，I&#x2F;O多路复用是阻塞在select、poll这样的系统调用之上，而没有阻塞在真正的I&#x2F;O系统调用如recvfrom之上。这两个函数可以同时对多个读操作，多个写操作的I&#x2F;O函数进行检测，直到有数据可读或可写时，才真正调用I&#x2F;O操作函数。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202510251015991.webp"></p>
+<p>​    多路复用模型的思想是，当用户进程发起IO请求的时候，将请求到的fd交给内核命令select或者poll去监控，select、poll会采用遍历的方式不断扫描持有的fd，当发现有fd已经就绪的时候，回调函数rollback，但是select、poll函数有两个缺点：<br>​    第一，不断遍历持有的fd，效率低下；<br>​    第二，由于操作系统限制，select、poll函数能管理的fd个数有限制，默认为1024个；<br>​    为此，Linux提供了另一个函数epoll，它采用一种事件驱动的方式来回调rollback函数，这种方式比顺序扫描fd的效率更高，另外，epoll可以管理的fd个数不受操作系统的内核限制，它的最大值只与内存大小有关。详细请参考：<a href="http://blog.csdn.net/zero__007/article/details/50672664">http://blog.csdn.net/zero__007/article/details/50672664</a></p>
+<h3 id="信号驱动I-O"><a href="#信号驱动I-O" class="headerlink" title="信号驱动I&#x2F;O"></a>信号驱动I&#x2F;O</h3><p>​    允许套接口进行信号驱动I&#x2F;O,并安装一个信号处理函数，进程继续运行并不阻塞。当数据准备好时，进程会收到一个SIGIO信号，可以在信号处理函数中调用I&#x2F;O操作函数处理数据。<br>​    信号驱动的IO模型，最开始不会先调用recvfrom函数，而是去调用sigaction函数，这个函数会生成并执行一个信号处理函数，并且马上返回，此时，应用进程可以继续进行工作，在这个阶段是非阻塞的，当请求的数据报准备就绪时，会生成一个SIGIO的信号通知应用进程调用recvfrom函数完成IO操作，这种模型可以让应用进程在内核准备数据的这段时间内可以继续工作，但是在数据报从内核向用户空间复制的这段时间仍然是阻塞的。<br><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202510251016572.webp"></p>
+<h3 id="异步I-O"><a href="#异步I-O" class="headerlink" title="异步I&#x2F;O"></a>异步I&#x2F;O</h3><p>​     异步I&#x2F;O模型是由应用程序告知内核需要进行那些操作，由内核来完成所有的操作（包括数据报的准备和向用户空间的复制等），内核完成所有操作之后，通知应用进程开始处理数据报。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202510251019315.jpeg" alt="a9c70a375c8095805b36ee3c39a0c314"></p>
+<p>​    如上图，用户进程发起read操作之后，立刻就可以开始去做其它的事。而另一方面，从kernel的角度，当它受到一个asynchronous read之后，首先它会立刻返回，所以不会对用户进程产生任何block。然后，kernel会等待数据准备完成，然后将数据拷贝到用户内存，当这一切都 完成之后，kernel会给用户进程发送一个signal，告诉它read操作完成了。<br>​    从工作流程上来看，信号驱动的IO模型和异步IO模型，差别在于通知应用进程的时机，信号驱动IO模型的时机是在IO的数据报准备就绪之后，将数据从内核复制到用户空间之前，而异步IO模型是在数据报复制到用户空间完成之后；这里的异步指的是内核进程和应用进程之间的异步；<br>​    从驱动方式上来看，信号驱动的IO模型的驱动载体是fd，即数据准备就绪之后触发，而异步IO模型的驱动载体是事件，即当整个操作完成之后触发。</p>
+<hr>
+<p> 那么blocking和non-blocking的区别在哪，synchronous IO和asynchronous IO的区别在哪？</p>
+<p>调用blocking IO会一直block住对应的进程直到操作完成，而non-blocking IO在kernel还在准备数据的情况下会立刻返回。</p>
+<p> 在说明synchronous IO和asynchronous IO的区别之前，需要先给出两者的定义。Stevens给出的定义（其实是POSIX的定义）是这样子的：</p>
+<p>  * A synchronous I&#x2F;O operation causes the requesting process to be blocked until that I&#x2F;O operation completes;</p>
+<p>  * An asynchronous I&#x2F;O operation does not cause the requesting process to be blocked;</p>
+<p>  两者的区别就在于synchronous IO做”IO operation”的时候会将process阻塞。按照这个定义，之前所述的blocking IO，non-blocking IO都属于synchronous IO。有人可能会说，non-blocking IO并没有被block啊。这里有个非常“狡猾”的地方，定义中所指的”IO operation”是指真实的IO操作，就是例子中的recvfrom这个系统调用。non-blocking IO在执行recvfrom这个系统调用的时候，如果kernel的数据没有准备好，这时候不会block进程。但是当kernel中数据准备好的时候，recvfrom会将数据从kernel拷贝到用户内存中，这个时候进程是被block了，在这段时间内进程是被block的。而asynchronous IO则不一样，当进程发起IO操作之后，就直接返回再也不理睬了，直到kernel发送一个信号，告诉进程说IO完成。在这整个过程中，进程完全没有被block。</p>
+]]></content>
+      <categories>
+        <category>Linux相关</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>Linux下查看及修改进程打开的文件句柄数量</title>
+    <url>/2024/04/01/Linux%E7%9B%B8%E5%85%B3/Linux%E4%B8%8B%E6%9F%A5%E7%9C%8B%E5%8F%8A%E4%BF%AE%E6%94%B9%E8%BF%9B%E7%A8%8B%E6%89%93%E5%BC%80%E7%9A%84%E6%96%87%E4%BB%B6%E5%8F%A5%E6%9F%84%E6%95%B0%E9%87%8F/</url>
+    <content><![CDATA[<p>转载自：<a href="http://blog.csdn.net/kobejayandy/article/details/47128349">http://blog.csdn.net/kobejayandy/article/details/47128349</a></p>
+<p>查看Linux系统默认的最大文件句柄数，系统默认是1024</p>
+<blockquote>
+<p>$ ulimit -n</p>
+</blockquote>
+<p>查看Linux系统某个进程打开的文件句柄数量</p>
+<blockquote>
+<p>$ lsof -n | grep 5950 -c</p>
+</blockquote>
+<p>修改Linux系统的最大文件句柄数限制的方法：</p>
+<p>1）$ulimit -n 65535 </p>
+<p>   针对当前session有效，用户退出或者系统重新后恢复默认值</p>
+<p>2）修改profile文件：在profile文件中添加：ulimit -n 65535 </p>
+<p>   只对单个用户有效</p>
+<p>3）修改文件：&#x2F;etc&#x2F;security&#x2F;limits.conf，在文件中添加：（立即生效-当前session中运行ulimit -a命令无法显示）</p>
+<p>soft nofile 32768 #限制单个进程最大文件句柄数（到达此限制时系统报警）</p>
+<p>hard nofile 65536 #限制单个进程最大文件句柄数（到达此限制时系统报错）</p>
+<p>4）修改文件：&#x2F;etc&#x2F;sysctl.conf。在文件中添加：</p>
+<p>  fs.file-max&#x3D;655350 #限制整个系统最大文件句柄数 </p>
+<p>  运行命令：&#x2F;sbin&#x2F;sysctl -p 使配置生效</p>
+]]></content>
+      <categories>
+        <category>Linux相关</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>Springboot处理CORS跨域请求的三种方法</title>
+    <url>/2024/03/20/Spring/Springboot%E5%A4%84%E7%90%86CORS%E8%B7%A8%E5%9F%9F%E8%AF%B7%E6%B1%82%E7%9A%84%E4%B8%89%E7%A7%8D%E6%96%B9%E6%B3%95/</url>
+    <content><![CDATA[<p>转载自：<a href="https://blog.csdn.net/qq_39390545/article/details/106615075">https://blog.csdn.net/qq_39390545/article/details/106615075</a></p>
+<hr>
+<p>Springboot跨域问题，是当前主流web开发人员都绕不开的难题。但我们首先要明确以下几点</p>
+<ul>
+<li>跨域只存在于浏览器端，不存在于安卓&#x2F;ios&#x2F;Node.js&#x2F;python&#x2F; java等其它环境</li>
+<li>跨域请求能发出去，服务端能收到请求并正常返回结果，只是结果被浏览器拦截了。</li>
+</ul>
+<p>之所以会跨域，是因为受到了同源策略的限制，同源策略要求源相同才能正常进行通信，即协议、域名、端口号都完全一致。</p>
+<p>浏览器出于安全的考虑，使用 XMLHttpRequest对象发起 HTTP请求时必须遵守同源策略，否则就是跨域的HTTP请求，默认情况下是被禁止的。换句话说，浏览器安全的基石是同源策略。<br>同源策略限制了从同一个源加载的文档或脚本如何与来自另一个源的资源进行交互。这是一个用于隔离潜在恶意文件的重要安全机制。</p>
+<hr>
+<p>先给出一个熟悉的报错信息：<br><img src="https://i-blog.csdnimg.cn/blog_migrate/36dcaa3c3a51042431ab3b82a2d26995.png" alt="Springboot处理CORS跨域请求的三种方法"><br>Access to XMLHttpRequest at ‘<a href="http://192.168.1.1:8080/app/easypoi/importExcelFile">http://192.168.1.1:8080/app/easypoi/importExcelFile</a>‘ from origin ‘<a href="http://localhost:8080/">http://localhost:8080</a>‘ has been blocked by CORS policy: No ‘Access-Control-Allow-Origin’ header is present on the requested resource.</p>
+<span id="more"></span>
+
+<h2 id="一、什么是CORS？"><a href="#一、什么是CORS？" class="headerlink" title="一、什么是CORS？"></a>一、什么是CORS？</h2><p>CORS是一个W3C标准，全称是”跨域资源共享”（Cross-origin resource sharing），允许浏览器向跨源服务器，发出XMLHttpRequest请求，从而克服了AJAX只能同源使用的限制。<br>它通过服务器增加一个特殊的Header[Access-Control-Allow-Origin]来告诉客户端跨域的限制，如果浏览器支持CORS、并且判断Origin通过的话，就会允许XMLHttpRequest发起跨域请求。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">CORS Header</span><br><span class="line">Access-Control-Allow-Origin: http://www.xxx.com</span><br><span class="line">Access-Control-Max-Age：86400</span><br><span class="line">Access-Control-Allow-Methods：GET, POST, OPTIONS, PUT, DELETE</span><br><span class="line">Access-Control-Allow-Headers: content-type</span><br><span class="line">Access-Control-Allow-Credentials: true</span><br></pre></td></tr></table></figure>
+<p>含义解释：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">CORS Header属性解释</span><br><span class="line">Access-Control-Allow-Origin 允许http://www.xxx.com域（自行设置，这里只做示例）发起跨域请求</span><br><span class="line">Access-Control-Max-Age 设置在86400秒不需要再发送预校验请求</span><br><span class="line">Access-Control-Allow-Methods 设置允许跨域请求的方法</span><br><span class="line">Access-Control-Allow-Headers 允许跨域请求包含content-type</span><br><span class="line">Access-Control-Allow-Credentials 设置允许Cookie</span><br></pre></td></tr></table></figure>
+
+
+<h2 id="二、SpringBoot跨域请求处理方式"><a href="#二、SpringBoot跨域请求处理方式" class="headerlink" title="二、SpringBoot跨域请求处理方式"></a>二、SpringBoot跨域请求处理方式</h2><h3 id="方法一、直接采用-CrossOrigin注解"><a href="#方法一、直接采用-CrossOrigin注解" class="headerlink" title="方法一、直接采用@CrossOrigin注解"></a>方法一、直接采用@CrossOrigin注解</h3><p>简单粗暴的方式，Controller层在需要跨域的类或者方法上加上该注解即可</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">@RestController</span><br><span class="line">@CrossOrigin</span><br><span class="line">@RequestMapping(&quot;/situation&quot;)</span><br><span class="line">public class SituationController extends PublicUtilController &#123;</span><br><span class="line">    @Autowired</span><br><span class="line">    private SituationService situationService;</span><br><span class="line">    </span><br><span class="line">    // log日志信息</span><br><span class="line">    private static Logger LOGGER = Logger.getLogger(SituationController.class);</span><br><span class="line">   </span><br><span class="line">    // ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>但每个Controller都得加，太麻烦了，怎么办呢，加在Controller公共父类（PublicUtilController）中，所有Controller继承即可。</p>
+<h3 id="方法二、处理跨域请求的Configuration"><a href="#方法二、处理跨域请求的Configuration" class="headerlink" title="方法二、处理跨域请求的Configuration"></a>方法二、处理跨域请求的Configuration</h3><p>增加一个配置类，CrossOriginConfig.java。继承WebMvcConfigurerAdapter或者实现WebMvcConfigurer接口，其他都不用管，项目启动时，会自动读取配置。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> org.springframework.context.annotation.Configuration;</span><br><span class="line"><span class="keyword">import</span> org.springframework.web.servlet.config.annotation.CorsRegistry;</span><br><span class="line"><span class="keyword">import</span> org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Configuration</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">CorsConfig</span> <span class="keyword">extends</span> <span class="title class_">WebMvcConfigurerAdapter</span> &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">addCorsMappings</span><span class="params">(CorsRegistry registry)</span> &#123;</span><br><span class="line">        registry.addMapping(<span class="string">&quot;/**&quot;</span>)</span><br><span class="line">                .allowedOrigins(<span class="string">&quot;*&quot;</span>)</span><br><span class="line">                .allowedMethods(<span class="string">&quot;GET&quot;</span>, <span class="string">&quot;HEAD&quot;</span>, <span class="string">&quot;POST&quot;</span>, <span class="string">&quot;PUT&quot;</span>, <span class="string">&quot;DELETE&quot;</span>, <span class="string">&quot;OPTIONS&quot;</span>)</span><br><span class="line">                .allowCredentials(<span class="literal">true</span>)</span><br><span class="line">                .maxAge(<span class="number">3600</span>)</span><br><span class="line">                .allowedHeaders(<span class="string">&quot;*&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="方法三、采用过滤器（filter）的方式"><a href="#方法三、采用过滤器（filter）的方式" class="headerlink" title="方法三、采用过滤器（filter）的方式"></a>方法三、采用过滤器（filter）的方式</h3><p>同方法二加配置类，增加一个CORSFilter 类，并实现Filter接口即可，其他都不用管，接口调用时，会过滤跨域的拦截。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">CORSFilter</span> <span class="keyword">implements</span> <span class="title class_">Filter</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">doFilter</span><span class="params">(ServletRequest request, ServletResponse response, FilterChain chain)</span></span><br><span class="line">        <span class="keyword">throws</span> IOException, ServletException &#123;</span><br><span class="line">        <span class="type">HttpServletResponse</span> <span class="variable">res</span> <span class="operator">=</span> (HttpServletResponse) response;</span><br><span class="line">        res.addHeader(<span class="string">&quot;Access-Control-Allow-Credentials&quot;</span>, <span class="string">&quot;true&quot;</span>);</span><br><span class="line">        res.addHeader(<span class="string">&quot;Access-Control-Allow-Origin&quot;</span>, <span class="string">&quot;*&quot;</span>);</span><br><span class="line">        res.addHeader(<span class="string">&quot;Access-Control-Allow-Methods&quot;</span>, <span class="string">&quot;GET, POST, DELETE, PUT&quot;</span>);</span><br><span class="line">        res.addHeader(<span class="string">&quot;Access-Control-Allow-Headers&quot;</span>, <span class="string">&quot;Content-Type,X-CAF-Authorization-Token,sessionToken,X-TOKEN&quot;</span>);</span><br><span class="line">        res.setHeader(<span class="string">&quot;Access-Control-Max-Age&quot;</span>, <span class="string">&quot;3600&quot;</span>);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (((HttpServletRequest) request).getMethod().equals(<span class="string">&quot;OPTIONS&quot;</span>)) &#123;</span><br><span class="line">            response.getWriter().println(<span class="string">&quot;ok&quot;</span>);</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        chain.doFilter(request, response);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">destroy</span><span class="params">()</span> &#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">init</span><span class="params">(FilterConfig filterConfig)</span> <span class="keyword">throws</span> ServletException &#123;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>]]></content>
+      <categories>
+        <category>Spring</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>由RedisTemplate事务enableTransactionSupport引发的血案</title>
+    <url>/2024/07/06/Spring/%E7%94%B1%20RedisTemplate%20%E4%BA%8B%E5%8A%A1%20enableTransactionSupport%20%E5%BC%95%E5%8F%91%E7%9A%84%E8%A1%80%E6%A1%88/</url>
+    <content><![CDATA[<p>转载自：<a href="https://carlzone.blog.csdn.net/article/details/108629864">https://carlzone.blog.csdn.net/article/details/108629864</a></p>
+<p>在最近的项目当中因为使用了类似字典表的数据，所以使用的 Spring Farmework 当中的 Cache 抽象，通过 Redis 来做为缓存。<br>因为原有项目当中配置了 Redis，而且项目是基于 Spring Boot 构建的，并没有去除 Redis 的自动依赖(RedisAutoConfiguration)。导致有些 Redis 的有些类是基于项目中自己配置的 RedisTemplate，而有些又是引用的 Spring Boot 中 Redis 的自动配置生成的 RedisTemplate。所以就把 Spring Boot 中的 Redis 自动配置去除了。</p>
+<span id="more"></span>
+
+<p>去除 Spring Boot Redis 自动配置</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">@SpringBootApplication(exclude = &#123;RedisAutoConfiguration.class&#125;)</span><br></pre></td></tr></table></figure>
+<p>上午进行项目发布，在下午的时候运维就找到说上午发布的项目 Redis 连接数一直在添加。而且服务当中也在报无法获取到 Redis 连接。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">redis.clients.jedis.exceptions.JedisException: Could not get a resource from the pool  </span><br></pre></td></tr></table></figure>
+<p>很明显就是 Redis 连接无法获取，并且设置的 Redis 的最大连接数是 1000，所以 Redis 的连接数一直在增加。当在网上搜索 Redis 的连接没有被释放的时候搜索到了 RedisTemplate 设置了支持事务(enableTransactionSupport) 为 true，那么这个 Redis 请求必须在 JDBC 的事务当中，要么就不会释放连接。<br>果然手动配置的 RedisTemplate 设置了支持事务(默认为 false，不支持)。</p>
+<p>所以一直没有产生这种情况的原因是手动配置 Redis 配置文件并没有生效，使用的是 Spring Boot 的 Redis 的自动依赖。自动依赖并没有配置这个值为 true(默认为 false)，所以连接就会释放。RedisTemplate 使用 Redis 连接池释放连接的 2 种情况是：</p>
+<ul>
+<li>RedisTemplate 不支持事务，当使用完连接之后就会释放连接到 Pool 当中</li>
+<li>RedisTemplate 支持事务，并且必须和 JDBC 在一个事务当中，标注了 <code>@Transactional</code>注解</li>
+</ul>
+<hr>
+<hr>
+<p>下面我们就通过源码来分析，RedisTemplate通过 opsForXXX 支持 Redis 中的各种数据操作，比如： opsForValue 操作 String 类型、opsForSet 操作 Set 类型 等待。其实它最终会调用到：RedisTemplate#execute。·</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">public &lt;T&gt; T execute(RedisCallback&lt;T&gt; action, boolean exposeConnection, boolean pipeline) &#123;</span><br><span class="line"></span><br><span class="line">	Assert.isTrue(initialized, &quot;template not initialized; call afterPropertiesSet() before using it&quot;);</span><br><span class="line">	Assert.notNull(action, &quot;Callback object must not be null&quot;);</span><br><span class="line"></span><br><span class="line">	RedisConnectionFactory factory = getRequiredConnectionFactory();</span><br><span class="line">	RedisConnection conn = null;</span><br><span class="line">	try &#123;</span><br><span class="line"></span><br><span class="line">		if (enableTransactionSupport) &#123;</span><br><span class="line">			// only bind resources in case of potential transaction synchronization</span><br><span class="line">			conn = RedisConnectionUtils.bindConnection(factory, enableTransactionSupport);</span><br><span class="line">		&#125; else &#123;</span><br><span class="line">			conn = RedisConnectionUtils.getConnection(factory);</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		boolean existingConnection = TransactionSynchronizationManager.hasResource(factory);</span><br><span class="line"></span><br><span class="line">		RedisConnection connToUse = preProcessConnection(conn, existingConnection);</span><br><span class="line"></span><br><span class="line">		boolean pipelineStatus = connToUse.isPipelined();</span><br><span class="line">		if (pipeline &amp;&amp; !pipelineStatus) &#123;</span><br><span class="line">			connToUse.openPipeline();</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		RedisConnection connToExpose = (exposeConnection ? connToUse : createRedisConnectionProxy(connToUse));</span><br><span class="line">		T result = action.doInRedis(connToExpose);</span><br><span class="line"></span><br><span class="line">		// close pipeline</span><br><span class="line">		if (pipeline &amp;&amp; !pipelineStatus) &#123;</span><br><span class="line">			connToUse.closePipeline();</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		// TODO: any other connection processing?</span><br><span class="line">		return postProcessResult(result, connToUse, existingConnection);</span><br><span class="line">	&#125; finally &#123;</span><br><span class="line">		RedisConnectionUtils.releaseConnection(conn, factory);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上面代码的执行逻辑为：</p>
+<ul>
+<li>获取 Redis 的连接工厂 RedisConnectionFactory</li>
+<li>通过 boolean 类型值 enableTransactionSupport判断是否支持事务，如果支持事务通过方法RedisConnectionUtils.bindConnection获取并绑定 RedisConnectionHolder 到本地线程，如果不支持事务就通过方法 RedisConnectionUtils#getConnection 获取RedisConnectionHolder。</li>
+<li>调用 RedisTemplate 的前置方法 RedisTemplate#preProcessConnection</li>
+<li>判断 RedisTemplate 是否使用了 pipeline，如果使用了调用 RedisConnection#openPipeline</li>
+<li>如果 exposeConnection 直接使用创建的 RedisConnection，否则创建代理对象 CloseSuppressingInvocationHandler</li>
+<li>调用回调方法 RedisCallback#doInRedis 执行 Redis 命令</li>
+<li>如果是 pipeline 就调用 RedisConnection#closePipeline关闭 pipeline。</li>
+<li>最后在 finally 方法中调用 RedisConnectionUtils.releaseConnection 释放连接<br>RedisConnectionUtils#releaseConnection<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">public static void releaseConnection(@Nullable RedisConnection conn, RedisConnectionFactory factory) &#123;</span><br><span class="line"></span><br><span class="line">	if (conn == null) &#123;</span><br><span class="line">		return;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	RedisConnectionHolder connHolder = (RedisConnectionHolder) TransactionSynchronizationManager.getResource(factory);</span><br><span class="line"></span><br><span class="line">	if (connHolder != null &amp;&amp; connHolder.isTransactionSyncronisationActive()) &#123;</span><br><span class="line">		if (log.isDebugEnabled()) &#123;</span><br><span class="line">			log.debug(&quot;Redis Connection will be closed when transaction finished.&quot;);</span><br><span class="line">		&#125;</span><br><span class="line">		return;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	// release transactional/read-only and non-transactional/non-bound connections.</span><br><span class="line">	// transactional connections for read-only transactions get no synchronizer registered</span><br><span class="line">	if (isConnectionTransactional(conn, factory) &amp;&amp; TransactionSynchronizationManager.isCurrentTransactionReadOnly()) &#123;</span><br><span class="line">		unbindConnection(factory);</span><br><span class="line">	&#125; else if (!isConnectionTransactional(conn, factory)) &#123;</span><br><span class="line">		if (log.isDebugEnabled()) &#123;</span><br><span class="line">			log.debug(&quot;Closing Redis Connection&quot;);</span><br><span class="line">		&#125;</span><br><span class="line">		conn.close();</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<p>上面的代码逻辑如下：</p>
+<ul>
+<li>TransactionSynchronizationManager#getResource 获取 RedisConnectionHolder</li>
+<li>如果 RedisConnectionHolder 不为空并在事务处理当中直接返回</li>
+<li>如果传入的 RedisConnection 在事务当中，并且事务为只读就释放连接</li>
+<li>如果传入的 RedisConnection不在事务当中，就调用 RedisConnection#close 释放连接</li>
+</ul>
+<p>可以看到如果 Redis 里面没有事务的时候就会直接调用 RedisConnection#close 把连接释放掉。当配置 RedisTemplate 的时候我看网上很多就是说在上面的第三步释放连接，这个说法是错误的。我把事务的条件都满足了都不会进行到第三步。这个问题困扰了我很久。</p>
+<p>后面我自己 debug 解决了这个问题，答案就是在绑定并获取连接的时候会添加一个事务完成的回调方法，在这个回调方法当中释放 Redis 连接。</p>
+<p>在 RedisTemplate#execute 中，如果设置了 enableTransactionSupport 为 true，就会通过 RedisConnectionUtils#bindConnection 方法获取并绑定 Redis 连接。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">public static RedisConnection doGetConnection(RedisConnectionFactory factory, boolean allowCreate, boolean bind,</span><br><span class="line">		boolean enableTransactionSupport) &#123;</span><br><span class="line"></span><br><span class="line">	Assert.notNull(factory, &quot;No RedisConnectionFactory specified&quot;);</span><br><span class="line"></span><br><span class="line">	RedisConnectionHolder connHolder = (RedisConnectionHolder) TransactionSynchronizationManager.getResource(factory);</span><br><span class="line"></span><br><span class="line">	if (connHolder != null) &#123;</span><br><span class="line">		if (enableTransactionSupport) &#123;</span><br><span class="line">			potentiallyRegisterTransactionSynchronisation(connHolder, factory);</span><br><span class="line">		&#125;</span><br><span class="line">		return connHolder.getConnection();</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	if (!allowCreate) &#123;</span><br><span class="line">		throw new IllegalArgumentException(&quot;No connection found and allowCreate = false&quot;);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	if (log.isDebugEnabled()) &#123;</span><br><span class="line">		log.debug(&quot;Opening RedisConnection&quot;);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	RedisConnection conn = factory.getConnection();</span><br><span class="line"></span><br><span class="line">	if (bind) &#123;</span><br><span class="line"></span><br><span class="line">		RedisConnection connectionToBind = conn;</span><br><span class="line">		if (enableTransactionSupport &amp;&amp; isActualNonReadonlyTransactionActive()) &#123;</span><br><span class="line">			connectionToBind = createConnectionProxy(conn, factory);</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		connHolder = new RedisConnectionHolder(connectionToBind);</span><br><span class="line"></span><br><span class="line">		TransactionSynchronizationManager.bindResource(factory, connHolder);</span><br><span class="line">		if (enableTransactionSupport) &#123;</span><br><span class="line">			potentiallyRegisterTransactionSynchronisation(connHolder, factory);</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		return connHolder.getConnection();</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	return conn;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>最终会调用到方法 RedisConnectionUtils#potentiallyRegisterTransactionSynchronisation：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">private static void potentiallyRegisterTransactionSynchronisation(RedisConnectionHolder connHolder,</span><br><span class="line">		final RedisConnectionFactory factory) &#123;</span><br><span class="line"></span><br><span class="line">	if (isActualNonReadonlyTransactionActive()) &#123;</span><br><span class="line"></span><br><span class="line">		if (!connHolder.isTransactionSyncronisationActive()) &#123;</span><br><span class="line">			connHolder.setTransactionSyncronisationActive(true);</span><br><span class="line"></span><br><span class="line">			RedisConnection conn = connHolder.getConnection();</span><br><span class="line">			conn.multi();</span><br><span class="line"></span><br><span class="line">			TransactionSynchronizationManager</span><br><span class="line">					.registerSynchronization(new RedisTransactionSynchronizer(connHolder, conn, factory));</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上面的代码逻辑如下：</p>
+<ul>
+<li>判断当前方法是否在一个数据库 JDBC 事务当中</li>
+<li>判断当前 Redis 连接是否新开启一个事务</li>
+<li>调用 RedisConnection#multi标记一个 Redis 事务块的开始</li>
+<li>注册添加一个事务回调类 RedisTransactionSynchronizer，它实现了TransactionSynchronization#afterCompletion 当数据库事务完成的时候会调用这个回调方法<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">TransactionSynchronization#afterCompletion</span><br><span class="line"></span><br><span class="line">	@Override</span><br><span class="line">	public void afterCompletion(int status) &#123;</span><br><span class="line">	</span><br><span class="line">		try &#123;</span><br><span class="line">			switch (status) &#123;</span><br><span class="line">	</span><br><span class="line">				case TransactionSynchronization.STATUS_COMMITTED:</span><br><span class="line">					connection.exec();</span><br><span class="line">					break;</span><br><span class="line">	</span><br><span class="line">				case TransactionSynchronization.STATUS_ROLLED_BACK:</span><br><span class="line">				case TransactionSynchronization.STATUS_UNKNOWN:</span><br><span class="line">				default:</span><br><span class="line">					connection.discard();</span><br><span class="line">			&#125;</span><br><span class="line">		&#125; finally &#123;</span><br><span class="line">	</span><br><span class="line">			if (log.isDebugEnabled()) &#123;</span><br><span class="line">				log.debug(&quot;Closing bound connection after transaction completed with &quot; + status);</span><br><span class="line">			&#125;</span><br><span class="line">	</span><br><span class="line">			connHolder.setTransactionSyncronisationActive(false);</span><br><span class="line">			connection.close();</span><br><span class="line">			TransactionSynchronizationManager.unbindResource(factory);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<p>当事务完成之后会调用 RedisConnection#exec()，用于执行所有事务块内的命令。<br>调用 RedisConnection#close 释放 Redis 连接<br>调用 TransactionSynchronizationManager.unbindResource 解绑 ThreadLocal中的 Redis 连接<br>下面就是我写的一个支持事务的 RedisTemplate，它必须和数据 JDBC 事务一起使用。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Redis 相关的配置：</span><br><span class="line"></span><br><span class="line">@Configuration</span><br><span class="line">public class RedisConfig &#123;</span><br><span class="line"></span><br><span class="line">    @Bean(name = &quot;redisConnectionFactory&quot;)</span><br><span class="line">    public RedisConnectionFactory redisConnectionFactory() &#123;</span><br><span class="line">        JedisConnectionFactory factory = new JedisConnectionFactory(generatePoolConfig());</span><br><span class="line">        factory.setHostName(&quot;localhost&quot;);</span><br><span class="line">        factory.setPort(6379);</span><br><span class="line">        factory.setUsePool(true);</span><br><span class="line">        factory.setConvertPipelineAndTxResults(true);</span><br><span class="line">        factory.afterPropertiesSet();</span><br><span class="line">        return factory;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    @Bean(name = &quot;redisTemplate&quot;)</span><br><span class="line">    public StringRedisTemplate redisTemplate(RedisConnectionFactory redisConnectionFactory) &#123;</span><br><span class="line">        StringRedisTemplate template = new StringRedisTemplate();</span><br><span class="line">        StringRedisSerializer stringRedisSerializer = new StringRedisSerializer();</span><br><span class="line">        template.setEnableTransactionSupport(true);</span><br><span class="line">        template.setKeySerializer(stringRedisSerializer);</span><br><span class="line">        template.setHashKeySerializer(stringRedisSerializer);</span><br><span class="line">        template.setValueSerializer(stringRedisSerializer);</span><br><span class="line">        template.setDefaultSerializer(stringRedisSerializer);</span><br><span class="line">        template.setConnectionFactory(redisConnectionFactory);</span><br><span class="line">        return template;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    private JedisPoolConfig generatePoolConfig() &#123;</span><br><span class="line">        JedisPoolConfig poolConfig = new JedisPoolConfig();</span><br><span class="line">        poolConfig.setMaxTotal(1000);</span><br><span class="line">        poolConfig.setTestOnBorrow(true);</span><br><span class="line">        return poolConfig;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>JDBC 与 Redis 事务使用：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">@Service(&quot;userService&quot;)</span><br><span class="line">public class UserServiceImpl implements UserService &#123;</span><br><span class="line"></span><br><span class="line">    @Resource(name = &quot;redisTemplate&quot;)</span><br><span class="line">    private RedisTemplate&lt;String, String&gt; redisTemplate;</span><br><span class="line">    </span><br><span class="line">    @Resource</span><br><span class="line">    private JdbcTemplate jdbcTemplate;</span><br><span class="line">    </span><br><span class="line">    @Override</span><br><span class="line">    @Transactional</span><br><span class="line">    public void hello() &#123;</span><br><span class="line">        jdbcTemplate.execute(&quot;select 1&quot;);</span><br><span class="line">        redisTemplate.opsForValue().get(&quot;test&quot;);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>必须满足以下几个条件：</p>
+<ul>
+<li>RedisTemplate设置 enableTransactionSupport 为 true，使用 Spring Redis 操作支付事务</li>
+<li>在方法上面添加 @Transactional ，并且配置 @EnableTransactionManagement 支持数据库事务</li>
+<li>使用数据连接操作，在这里面我使用的是最简单的 jdbcTemplate.execute(“select 1”) 执行数据库 ping 操作</li>
+<li>使用支持事务的 RedisTemplate 进行 Redis 命令操作</li>
+</ul>
+<p>满足上面的 4 点条件才会释放 Spring RedisTemplate支持事务操作并且释放 Redis 连接，不然就不会释放 Redis 操作。平常情况下不需要使用 RedisTemplate 的事务，直接使用默认值(不支持事务即可)</p>
+]]></content>
+      <categories>
+        <category>Spring</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>查看MySQL每个表占用的空间</title>
+    <url>/2015/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&amp;%E7%BC%93%E5%AD%98/MySQL/%E6%9F%A5%E7%9C%8BMySQL%E6%AF%8F%E4%B8%AA%E8%A1%A8%E5%8D%A0%E7%94%A8%E7%9A%84%E7%A9%BA%E9%97%B4/</url>
+    <content><![CDATA[<p>查询MySQL数据库中每个表占用的空间、表记录的行数的话，可以打开MySQL的 information_schema 数据库。在该库中有一个 TABLES 表，这个表主要字段分别是：</p>
+<blockquote>
+<p>TABLE_SCHEMA : 数据库名<br>TABLE_NAME：表名<br>ENGINE：所使用的存储引擎<br>TABLES_ROWS：记录数<br>DATA_LENGTH：数据大小<br>INDEX_LENGTH：索引大小<br>其他字段请参考MySQL的手册。</p>
+</blockquote>
+<p>示例：<br>1、进去指定schema 数据库：</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line">use information_schema;</span><br></pre></td></tr></table></figure>
+
+<p>2、查询所有数据的大小 :</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">select</span> concat(round(<span class="built_in">sum</span>(DATA_LENGTH<span class="operator">/</span><span class="number">1024</span><span class="operator">/</span><span class="number">1024</span>), <span class="number">2</span>), <span class="string">&#x27;MB&#x27;</span>) <span class="keyword">as</span> data </span><br><span class="line"><span class="keyword">from</span> TABLES;</span><br></pre></td></tr></table></figure>
+
+<p>3、查看指定数据库实例的大小:</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">select</span> concat(round(<span class="built_in">sum</span>(DATA_LENGTH<span class="operator">/</span><span class="number">1024</span><span class="operator">/</span><span class="number">1024</span>), <span class="number">2</span>), <span class="string">&#x27;MB&#x27;</span>) <span class="keyword">as</span> data </span><br><span class="line"><span class="keyword">from</span> TABLES </span><br><span class="line"><span class="keyword">where</span> table_schema<span class="operator">=</span><span class="string">&#x27;db_name&#x27;</span>;</span><br></pre></td></tr></table></figure>
+
+
+<p>4、查看指定数据库的表的大小: </p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">select</span> concat(round(<span class="built_in">sum</span>(DATA_LENGTH<span class="operator">/</span><span class="number">1024</span><span class="operator">/</span><span class="number">1024</span>),<span class="number">2</span>),<span class="string">&#x27;MB&#x27;</span>) <span class="keyword">as</span> data </span><br><span class="line"><span class="keyword">from</span> TABLES </span><br><span class="line"><span class="keyword">where</span> table_schema<span class="operator">=</span><span class="string">&#x27;db_name&#x27;</span> <span class="keyword">and</span> table_name<span class="operator">=</span><span class="string">&#x27;tb_name&#x27;</span>;</span><br></pre></td></tr></table></figure>
+
+]]></content>
+      <categories>
+        <category>数据库&amp;缓存</category>
+        <category>MySQL</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>Tcp半连接队列和全连接队列</title>
+    <url>/2024/10/05/Linux%E7%9B%B8%E5%85%B3/Tcp%E5%8D%8A%E8%BF%9E%E6%8E%A5%E9%98%9F%E5%88%97%E5%92%8C%E5%85%A8%E8%BF%9E%E6%8E%A5%E9%98%9F%E5%88%97/</url>
+    <content><![CDATA[<p>[toc]</p>
+<h2 id="什么是TCP半连接队列和全连接队列？"><a href="#什么是TCP半连接队列和全连接队列？" class="headerlink" title="什么是TCP半连接队列和全连接队列？"></a>什么是TCP半连接队列和全连接队列？</h2><p>在TCP进行三次握手时，Liunx会为其维护两个队列：</p>
+<ul>
+<li>syns queue，半连接队列；</li>
+<li>accpet queue，全连接队列；</li>
+</ul>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202510251051646.png" alt="img"></p>
+<ol>
+<li><p>在client端发送SYN给server后，server端变成SYN_RCVD状态，<strong>内核会把该连接存储到半连接队列</strong>，并向客户端响应 SYN+ACK；</p>
+</li>
+<li><p>server端收到client端的ACK后，如果全连接队列没有满，<strong>内核会把连接从半连接队列移除，然后创建新的完全的 socket 连接，并将其添加到 accept 队列，等待进程调用 accept 函数时把连接取出来</strong>。</p>
+</li>
+</ol>
+ <span id="more"></span>
+
+
+
+<h2 id="为什么要存在半连接队列"><a href="#为什么要存在半连接队列" class="headerlink" title="为什么要存在半连接队列"></a>为什么要存在半连接队列</h2><p>因为根据TCP协议的特点，会存在半连接这样的网络攻击存在，叫做syn攻击,syn flood泛洪，</p>
+<blockquote>
+<p>即不停的发SYN包，而从不回应SYN_ACK。</p>
+</blockquote>
+<p>如果发一个SYN包就让Kernel建立一个消耗极大的socket，那么很容易就内存耗尽。</p>
+<p>只需要一直对服务端发送syn包，但是不回ack回应包，这样就会使得服务端有大量请求处于syn_recv状态，这就是所谓的syn flood泛洪，syn攻击，DDos攻击.</p>
+<p><strong>半连接队列, 是解决 syn flood洪泛的 一个关键措施。</strong></p>
+<p>所以内核在三次握手成功之前，只分配一个占用内存极小的request_sock，以防止这种攻击的现象，再配合syn_cookie机制，尽量抵御这种半连接攻击的风险。</p>
+<h3 id="如何抵御syn攻击"><a href="#如何抵御syn攻击" class="headerlink" title="如何抵御syn攻击"></a>如何抵御syn攻击</h3><p><strong>开启tcp_syncookies功能</strong></p>
+<p>开启tcp_syncookies ， 服务端根本不创建 request_sock对象，也不建立sock连接。</p>
+<p>如果启用了syncookies，服务端将客户端SYN报文中的一些信息保存在了序号中，就不需要保留此连接的request_sock结构了，在发送完SYN+ACK报文之后，将已经申请的资源释放，降低DDos攻击时的资源消耗。</p>
+<p>syncookies在接收到客户端的syn报文时，计算出一个cookies值，放到syn+ack报文中发出。cookies值通过调用secure_tcp_syn_cookie函数，根据报文中的源&#x2F;目的IP地址，TCP源&#x2F;目的端口号，TCP序号和MSS索引值，计算出来；当客户端返回ack报文时，取出该值验证，成功则建立连接。</p>
+<p>如下proc文件tcp_syncookies默认值为1，表明在套接口的SYN backlog队列溢出时，将开启SYNCOOKIES功能，抵御SYN泛洪攻击。如果tcp_syncookies设置为2，将会无条件的开启SYNCOOKIES功能。</p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">$ <span class="built_in">cat</span> /proc/sys/net/ipv4/tcp_syncookies</span><br><span class="line">1</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>增大全连接队列</strong><br>由于全连接队列里面保存的是占用内存很大的普通socket，所以Kernel给其加了一个最大长度的限制。相关的三个参数</p>
+<ul>
+<li><p>1 - listen系统调用中传进去的backlog</p>
+</li>
+<li><p>2 - &#x2F;proc&#x2F;sys&#x2F;inet&#x2F;ipv4&#x2F;tcp_max_syn_backlog</p>
+</li>
+<li><p>3 - &#x2F;proc&#x2F;sys&#x2F;net&#x2F;core&#x2F;somaxconn</p>
+</li>
+</ul>
+<p>所以不能只增大tcp_max_syn_backlog, 还需要一同增大somaconn和backlog，也就是增大全连接队列</p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">$ <span class="built_in">cat</span> /proc/sys/net/ipv4/tcp_max_syn_backlog</span><br><span class="line">256</span><br><span class="line"></span><br><span class="line">$ <span class="built_in">cat</span> /proc/sys/net/core/somaxconn</span><br><span class="line">128</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>减少syn+ack报文的重传次数</strong></p>
+<p>因为我们在收到syn攻击时，服务端会重传syn+ack报文到最大次数，才会断开连接。</p>
+<p>针对syn攻击的场景，我们可以减少ack+syn报文的重传次数，使处于syn_recv状态的它们更快断开连接</p>
+<p>修改重传次数: <code>/proc/sys/net/ipv4/tcp_synack_retries</code></p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">$ <span class="built_in">cat</span> /proc/sys/net/ipv4/tcp_synack_retries</span><br><span class="line">5</span><br></pre></td></tr></table></figure>
+
+<p>Linux下默认会进行5次重发SYN-ACK包，重试的间隔时间从1s开始，下次的重试间隔时间是前一次的双倍，5次的重试时间间隔为1s, 2s, 4s, 8s, 16s，总共31s，第5次发出后还要等32s都知道第5次也超时了，所以，总共需要 1s + 2s + 4s+ 8s+ 16s + 32s &#x3D; 63s，TCP才会把断开这个连接。</p>
+<p>由于，SYN超时需要63秒，那么就给攻击者一个攻击服务器的机会，攻击者在短时间内发送大量的SYN包给Server(俗称 SYN flood 攻击)。</p>
+<h2 id="全连接队列、半连接队列、backlog-限制设置"><a href="#全连接队列、半连接队列、backlog-限制设置" class="headerlink" title="全连接队列、半连接队列、backlog 限制设置"></a>全连接队列、半连接队列、backlog 限制设置</h2><blockquote>
+<ol>
+<li>&#x2F;proc&#x2F;sys&#x2F;inet&#x2F;ipv4&#x2F;tcp_max_syn_backlog</li>
+<li>&#x2F;proc&#x2F;sys&#x2F;net&#x2F;core&#x2F;somaxconn</li>
+<li>backlog</li>
+</ol>
+</blockquote>
+<p><strong>backlog</strong><br>listen 的 backlog 参数。netty里边，默认设置了 200</p>
+<p><strong>全连接队列的最大值</strong><br>全连接队列的最大值是 <code>min(somaxconn, backlog)</code>；默认情况下， min(128, 200)&#x3D;128</p>
+<p><strong>somaxconn</strong><br>somaxconn它用于限制 tcp 的全连接队列和半连接队列的长度。</p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">$ <span class="built_in">cat</span> /proc/sys/net/core/somaxconn</span><br><span class="line">128</span><br></pre></td></tr></table></figure>
+
+<p>该内核参数默认值一般是128（定义了系统中每一个端口最大的监听队列的长度），</p>
+<h3 id="如何增大全连接队列呢？"><a href="#如何增大全连接队列呢？" class="headerlink" title="如何增大全连接队列呢？"></a>如何增大全连接队列呢？</h3><p>当全连接队列溢出后，我们需要增大全连接队列的长度，以提高请求容量；</p>
+<p>TCP 全连接队列的最大值取决于 somaxconn 和 backlog 之间的最小值，也就是 <code>min(somaxconn, backlog)</code>；</p>
+<p>所以我们需要提高这两个参数的大小才能拿增大全连接队列。</p>
+<h3 id="如何增大半连接队列呢？"><a href="#如何增大半连接队列呢？" class="headerlink" title="如何增大半连接队列呢？"></a>如何增大半连接队列呢？</h3><p>半连接队列的最大值 与 tcp_max_syn_backlog 配置项 关系最为紧密的。但要想增大半连接队列，不能只单纯增大 tcp_max_syn_backlog 的值，还需一同增大 somaxconn 和 backlog，也就是增大全连接队列。否则，只单纯增大 tcp_max_syn_backlog 是无效的。</p>
+<p>在 Linux 2.6.32 内核版本，它们之间的关系，总体可以概况为：</p>
+<blockquote>
+<p>当 tcp_max_syn_backlog &gt; accept_queue大小时， 半连接队列最大值 max_qlen_log &#x3D; accept_queue大小 * 2;<br>当 tcp_max_syn_backlog&lt; accept_queue大小 时， 半连接队列最大值 max_qlen_log &#x3D; tcp_max_syn_backlog * 2;</p>
+</blockquote>
+<p>其中，<strong>accept_queue大小 &#x3D; min(somaxconn, backlog)</strong></p>
+<h2 id="全连接队列溢出"><a href="#全连接队列溢出" class="headerlink" title="全连接队列溢出"></a>全连接队列溢出</h2><p>当服务端的全连接队列过小时，容易发生全连接队列溢出。发生全连接队列溢出，后续的请求就会被丢弃。</p>
+<p>Linux有个参数，可以指定TCP全连接队列满了，会使用什么策略来回应客户端。</p>
+<ul>
+<li><p>可以丢弃客户端的ack报文，当然， 只是liunx的默认行为，</p>
+</li>
+<li><p>可以向客户端发送RST报文，终止连接，告诉客户端连接失败</p>
+</li>
+</ul>
+<p>可以查看<code>/proc/sys/net/ipv4/tcp_abort_on_overflow</code>了解配置，tcp_abort_on_overflow共有两个值分别是0和1</p>
+<blockquote>
+<p>0：如果全连接队列满了，那么 server 扔掉 client 发过来的 ack ；</p>
+<p>1：如果全连接队列满了，server 发送一个 RST 包给 client，表示废掉这个握手过程和这个连接，终止这个握手连接;</p>
+</blockquote>
+<p>如果设置tcp_abort_on_overflow为0的话，此时服务端全连接队列满了，客户端发送过来的ack报文，服务端丢弃。而此时客户端还会继续重传，如果此时服务端的全连接队列有空闲，那么就会接受重传的ack包，这样就能直接建立连接了。<strong>通常情况下设置为0更好，可以提高效率。</strong></p>
+<p>而设置tcp_abort_on_overflow为1的话，还需要重新连接；但 <strong>设置为 1排查问题比较方便</strong>；如果要想知道客户端连接不上服务端，是不是服务端 TCP 全连接队列满的原因，那么可以把 tcp_abort_on_overflow 设置为 1，这时如果在客户端异常中可以看到很多 <code>connection reset by peer</code> 的错误，那么就可以证明是由于服务端 TCP 全连接队列溢出的问题。</p>
+<p><strong>连接队列溢出会导致无法与服务器建立新连接 或者 客户端出现大量 connection reset by peer 错误。</strong></p>
+<h2 id="如果TCP连接队列溢出，有哪些指标可以看呢？"><a href="#如果TCP连接队列溢出，有哪些指标可以看呢？" class="headerlink" title="如果TCP连接队列溢出，有哪些指标可以看呢？"></a>如果TCP连接队列溢出，有哪些指标可以看呢？</h2><p><strong>netstat –s</strong></p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">[root@server ~]<span class="comment">#  netstat -s | egrep &quot;listen|LISTEN&quot; </span></span><br><span class="line">667399 <span class="built_in">times</span> the listen queue of a socket overflowed</span><br><span class="line">667399 SYNs to LISTEN sockets ignored</span><br></pre></td></tr></table></figure>
+
+<p>​    比如上面看到的 667399 times ，表示全连接队列溢出的次数，隔几秒钟执行下，如果这个数字一直在增加的话肯定全连接队列偶尔满了。</p>
+<p><strong>ss</strong> </p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">[root@server ~]<span class="comment"># ss -lnt</span></span><br><span class="line">Recv-Q Send-Q Local Address:Port  Peer Address:Port </span><br><span class="line">0        50               *:3306             *:*</span><br></pre></td></tr></table></figure>
+
+<p>​    上面看到的第二列Send-Q 表示第三列的listen端口上的全连接队列最大为50，第一列Recv-Q为全连接队列当前使用了多少。<br>​    全连接队列的大小取决于：min(backlog, somaxconn) . backlog是在socket创建的时候传入的，somaxconn是一个os级别的系统参数&#x2F;proc&#x2F;sys&#x2F;net&#x2F;core&#x2F;somaxconn。<br>​    半连接队列的大小取决于：max(64, &#x2F;proc&#x2F;sys&#x2F;net&#x2F;ipv4&#x2F;tcp_max_syn_backlog)。 不同版本的os会有些差异。</p>
+]]></content>
+      <categories>
+        <category>Linux相关</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>Spring Boot定时任务</title>
+    <url>/2024/08/25/Spring/spring%20boot/Spring%20Boot%20%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1/</url>
+    <content><![CDATA[<p>Spring Boot 的定时任务非常简单：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">SchedulingConfig</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">    @Scheduled(fixedRate = 5000) ：上一次开始执行时间点之后5秒再执行</span></span><br><span class="line"><span class="comment">    @Scheduled(fixedDelay = 5000) ：上一次执行完毕时间点之后5秒再执行</span></span><br><span class="line"><span class="comment">    @Scheduled(initialDelay=1000, fixedRate=5000) ：第一次延迟1秒后执行，之后按fixedRate的规则每5秒执行一次</span></span><br><span class="line"><span class="comment">    @Scheduled(cron=&quot;0/5 * * * * ?&quot;) ：通过cron表达式定义规则</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line"></span><br><span class="line">    <span class="meta">@Scheduled(cron = &quot;0/5 * * * * ?&quot;)</span> <span class="comment">// 每10秒执行一次</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">scheduler</span><span class="params">()</span> &#123;</span><br><span class="line">        System.out.println(Thread.currentThread().getName() + <span class="string">&quot; scheduler&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+<p>启动类：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@EnableScheduling</span> <span class="comment">// 启用定时任务</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ApplicationBoot</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        SpringApplication.run(ApplicationBoot.class, args);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>注意，**@EnableScheduling**  <strong>这个一定要加上；否则，不会定时启动任务</strong>。</p>
+<span id="more"></span>
+
+<p>  @Scheduled注解用来标注一个定时任务方法，支持多种参数：<br>   （1）cron：cron表达式，指定任务在特定时间执行；<br>   （2）fixedDelay：表示上一次任务执行完成后多久再次执行，参数类型为long，单位ms；<br>   （3）fixedDelayString：与fixedDelay含义一样，只是参数类型变为String；<br>   （4）fixedRate：表示按一定的频率执行任务，参数类型为long，单位ms；<br>   （5）fixedRateString: 与fixedRate的含义一样，只是将参数类型变为String；<br>   （6）initialDelay：表示延迟多久再第一次执行任务，参数类型为long，单位ms；<br>   （7）initialDelayString：与initialDelay的含义一样，只是将参数类型变为String；<br>   （8）zone：时区，默认为当前时区，一般没有用到。</p>
+<p>默认情况下，定时任务是单线程处理的。可以跟代码</p>
+<p><code>EnableScheduling -&gt; SchedulingConfiguration -&gt; ScheduledAnnotationBeanPostProcessor -&gt; ScheduledTaskRegistrar, 在ScheduledTaskRegistrar中由taskScheduler</code></p>
+<p>来执行任务。</p>
+<p> 在ScheduledTaskRegistrar中有setScheduler&#x2F;setTaskScheduler方法来设置这个属性，方式有很多。</p>
+<p>一种方式是使用SchedulingConfigurer接口：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Configuration</span></span><br><span class="line"><span class="comment">//所有的定时任务都放在一个线程池中，定时任务启动时使用不同都线程。</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ScheduleConfig</span> <span class="keyword">implements</span> <span class="title class_">SchedulingConfigurer</span> &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">configureTasks</span><span class="params">(ScheduledTaskRegistrar taskRegistrar)</span> &#123;</span><br><span class="line">        <span class="comment">//设定一个长度10的定时任务线程池        taskRegistrar.setScheduler(Executors.newScheduledThreadPool(10));</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>至于这个为啥生效，请参看ScheduledAnnotationBeanPostProcessor#finishRegistration方法：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">finishRegistration</span><span class="params">()</span> &#123;</span><br><span class="line">   <span class="keyword">if</span> (<span class="built_in">this</span>.scheduler != <span class="literal">null</span>) &#123;</span><br><span class="line">      <span class="built_in">this</span>.registrar.setScheduler(<span class="built_in">this</span>.scheduler);</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   <span class="keyword">if</span> (<span class="built_in">this</span>.beanFactory <span class="keyword">instanceof</span> ListableBeanFactory) &#123;</span><br><span class="line">      Map&lt;String, SchedulingConfigurer&gt; configurers =</span><br><span class="line">            ((ListableBeanFactory) <span class="built_in">this</span>.beanFactory).getBeansOfType(SchedulingConfigurer.class);</span><br><span class="line">      <span class="keyword">for</span> (SchedulingConfigurer configurer : configurers.values()) &#123;</span><br><span class="line">         configurer.configureTasks(<span class="built_in">this</span>.registrar);</span><br><span class="line">      &#125;</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   <span class="keyword">if</span> (<span class="built_in">this</span>.registrar.hasTasks() &amp;&amp; <span class="built_in">this</span>.registrar.getScheduler() == <span class="literal">null</span>) &#123;</span><br><span class="line">      Assert.state(<span class="built_in">this</span>.beanFactory != <span class="literal">null</span>, <span class="string">&quot;BeanFactory must be set to find scheduler by type&quot;</span>);</span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">         <span class="comment">// Search for TaskScheduler bean...</span></span><br><span class="line">         <span class="built_in">this</span>.registrar.setTaskScheduler(resolveSchedulerBean(TaskScheduler.class, <span class="literal">false</span>));</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">catch</span> (NoUniqueBeanDefinitionException ex) &#123;</span><br><span class="line">         logger.debug(<span class="string">&quot;Could not find unique TaskScheduler bean&quot;</span>, ex);</span><br><span class="line">         <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="built_in">this</span>.registrar.setTaskScheduler(resolveSchedulerBean(TaskScheduler.class, <span class="literal">true</span>));</span><br><span class="line">         &#125;</span><br><span class="line">         <span class="keyword">catch</span> (NoSuchBeanDefinitionException ex2) &#123;</span><br><span class="line">            <span class="keyword">if</span> (logger.isInfoEnabled()) &#123;</span><br><span class="line">               logger.info(<span class="string">&quot;More than one TaskScheduler bean exists within the context, and &quot;</span> +</span><br><span class="line">                     <span class="string">&quot;none is named &#x27;taskScheduler&#x27;. Mark one of them as primary or name it &#x27;taskScheduler&#x27; &quot;</span> +</span><br><span class="line">                     <span class="string">&quot;(possibly as an alias); or implement the SchedulingConfigurer interface and call &quot;</span> +</span><br><span class="line">                     <span class="string">&quot;ScheduledTaskRegistrar#setScheduler explicitly within the configureTasks() callback: &quot;</span> +</span><br><span class="line">                     ex.getBeanNamesFound());</span><br><span class="line">            &#125;</span><br><span class="line">         &#125;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">catch</span> (NoSuchBeanDefinitionException ex) &#123;</span><br><span class="line">         logger.debug(<span class="string">&quot;Could not find default TaskScheduler bean&quot;</span>, ex);</span><br><span class="line">         <span class="comment">// Search for ScheduledExecutorService bean next...</span></span><br><span class="line">         <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="built_in">this</span>.registrar.setScheduler(resolveSchedulerBean(ScheduledExecutorService.class, <span class="literal">false</span>));</span><br><span class="line">         &#125;</span><br><span class="line">         <span class="keyword">catch</span> (NoUniqueBeanDefinitionException ex2) &#123;</span><br><span class="line">            logger.debug(<span class="string">&quot;Could not find unique ScheduledExecutorService bean&quot;</span>, ex2);</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">               <span class="built_in">this</span>.registrar.setScheduler(resolveSchedulerBean(ScheduledExecutorService.class, <span class="literal">true</span>));</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">catch</span> (NoSuchBeanDefinitionException ex3) &#123;</span><br><span class="line">               <span class="keyword">if</span> (logger.isInfoEnabled()) &#123;</span><br><span class="line">                  logger.info(<span class="string">&quot;More than one ScheduledExecutorService bean exists within the context, and &quot;</span> +</span><br><span class="line">                        <span class="string">&quot;none is named &#x27;taskScheduler&#x27;. Mark one of them as primary or name it &#x27;taskScheduler&#x27; &quot;</span> +</span><br><span class="line">                        <span class="string">&quot;(possibly as an alias); or implement the SchedulingConfigurer interface and call &quot;</span> +</span><br><span class="line">                        <span class="string">&quot;ScheduledTaskRegistrar#setScheduler explicitly within the configureTasks() callback: &quot;</span> +</span><br><span class="line">                        ex2.getBeanNamesFound());</span><br><span class="line">               &#125;</span><br><span class="line">            &#125;</span><br><span class="line">         &#125;</span><br><span class="line">         <span class="keyword">catch</span> (NoSuchBeanDefinitionException ex2) &#123;</span><br><span class="line">            logger.debug(<span class="string">&quot;Could not find default ScheduledExecutorService bean&quot;</span>, ex2);</span><br><span class="line">            <span class="comment">// Giving up -&gt; falling back to default scheduler within the registrar...</span></span><br><span class="line">            logger.info(<span class="string">&quot;No TaskScheduler/ScheduledExecutorService bean found for scheduled processing&quot;</span>);</span><br><span class="line">         &#125;</span><br><span class="line">      &#125;</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   <span class="built_in">this</span>.registrar.afterPropertiesSet();</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>除了上述方式还有：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="keyword">public</span> TaskScheduler <span class="title function_">taskScheduler</span><span class="params">()</span>&#123;</span><br><span class="line">    <span class="type">ThreadPoolTaskScheduler</span> <span class="variable">taskScheduler</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ThreadPoolTaskScheduler</span>();</span><br><span class="line">    taskScheduler.setPoolSize(<span class="number">2</span>);</span><br><span class="line">    taskScheduler.setThreadNamePrefix(<span class="string">&quot;scheduler-pool-&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> taskScheduler;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>至于为什么这样就可以把设置定时任务使用多线程，可以认真跟下源码。</p>
+]]></content>
+      <categories>
+        <category>Spring</category>
+        <category>Spring Boot</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>一次彻底解决因数据库全表扫描引发系统卡顿问题的实践</title>
+    <url>/2024/11/17/%E6%95%B0%E6%8D%AE%E5%BA%93&amp;%E7%BC%93%E5%AD%98/MySQL/%E4%B8%80%E6%AC%A1%E5%BD%BB%E5%BA%95%E8%A7%A3%E5%86%B3%E5%9B%A0%E6%95%B0%E6%8D%AE%E5%BA%93%E5%85%A8%E8%A1%A8%E6%89%AB%E6%8F%8F%E5%BC%95%E5%8F%91%E7%B3%BB%E7%BB%9F%E5%8D%A1%E9%A1%BF%E9%97%AE%E9%A2%98%E7%9A%84%E5%AE%9E%E8%B7%B5/</url>
+    <content><![CDATA[<p>转载自：<a href="https://mp.weixin.qq.com/s?__biz=MzU1OTgyMDc3Mg==&mid=2247485037&idx=1&sn=7d71b552adda07e6bb38d9aca72aece9&chksm=fc103ce6cb67b5f01817f2850415eec829442d077b3fdddb4a316ec23ace6efa6af768548918&token=949133520&lang=zh_CN&scene=21#wechat_redirect">https://mp.weixin.qq.com/s?__biz=MzU1OTgyMDc3Mg==&amp;mid=2247485037&amp;idx=1&amp;sn=7d71b552adda07e6bb38d9aca72aece9&amp;chksm=fc103ce6cb67b5f01817f2850415eec829442d077b3fdddb4a316ec23ace6efa6af768548918&amp;token=949133520&amp;lang=zh_CN&amp;scene=21#wechat_redirect</a></p>
+<h3 id="问题所在"><a href="#问题所在" class="headerlink" title="问题所在"></a>问题所在</h3><p>相信大家都遇到过因为数据库全表扫描生成大对象，然后系统疯狂 GC，引发系统卡顿的问题。能看到这样的 GC 日志：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">2021-11-20T01:28:52.240+0800: 108542.888: [GC pause (G1 Humongous Allocation) (young) (initial-mark), 0.1276229 secs]</span><br></pre></td></tr></table></figure>
+
+<p>然后就是常规操作，<code>jmap</code> 下，MAT 看看内存，看到底是哪条 SQL 搞的鬼。</p>
+ <span id="more"></span>
+
+<h3 id="解决思路"><a href="#解决思路" class="headerlink" title="解决思路"></a>解决思路</h3><p>我们常常会陷入这种“<strong>「知道系统可能出现这样的问题，但是无法预防和监控，只能被动地等发生问题了再排查再解决」</strong>”的尴尬境地。后来组内大佬提了一个点（我觉得这个点才是关键）“能否从 MySQL 的角度去限制 Server 端返回的数据呢”。</p>
+<p>这个点有点意思，如果真能实现，那就可以从根本上解决数据库全表扫描的问题，理了下思路：</p>
+<ol>
+<li>可以基于 MyBatis 拦截器去做，如果发现这个 SQL 可能会造成全表扫描，就给它加个 <code>limit</code>；但是这个实现有点风险，毕竟需要修改执行的 SQL，因为整个系统一堆 SQL，也无法完全保证增加的 <code>limit</code> 会不会影响 SQL 的正常执行，甚至造成 SQL 语法错误；而且系统可能已经使用了一些 MyBatis 拦截器，如 PageHelper、字段加解密拦截器等，可能会有顺序问题；</li>
+<li>能否从 MySQL 角度限制数据库返回的数据大小；</li>
+<li>都改成数据库流式查询（可参看《<a href="https://mp.weixin.qq.com/s?__biz=MzU1OTgyMDc3Mg==&mid=2247483924&idx=1&sn=459642ea2bd99da8022c83549c378c54&chksm=fc10389fcb67b1898f79ec19b0b58fc287ea03df560b0a7a2b2fb3cd13e9f2ff5aaa4a28dc2c&token=262173664&lang=zh_CN&scene=21#wechat_redirect">MySQL 流式查询初体验</a>》），但是这个也不可行，毕竟总不能所有查询都改成流式查询吧；</li>
+<li>在 Java 代码的层面进行封装，实现类似流式读取的方式，但是这个也不太行，场景太特殊；</li>
+</ol>
+<p>所以还是第二点看着简单实用点，但是 DBA 回复说“MySQL 没有限制返回包的大小”。于是翻了下 MySQL 官方文档，找到了这个参数：<code>max_allowed_packet</code>，官方文档是这么介绍的：</p>
+<blockquote>
+<p>❝</p>
+<p>A communication packet is a single SQL statement sent to the MySQL server, a single row that is sent to the client, or a binary log event sent from a replication source server to a replica.</p>
+<p>The largest possible packet that can be transmitted to or from a MySQL 8.0 server or client is 1GB.</p>
+<p>When a MySQL client or the <strong>「mysqld」</strong> server receives a packet bigger than <code>max_allowed_packet</code> bytes, it issues an <code>ER_NET_PACKET_TOO_LARGE</code> error and closes the connection. With some clients, you may also get a <code>Lost connection to MySQL server during query</code> error if the communication packet is too large.</p>
+<p>Both the client and the server have their own <code>max_allowed_packet</code> variable, so if you want to handle big packets, you must increase this variable both in the client and in the server.</p>
+<p>If you are using the <strong>「mysql」</strong> client program, its default <code>max_allowed_packet</code> variable is 16MB. To set a larger value, start <strong>「mysql」</strong> like this:</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">$&gt; mysql --max_allowed_packet=32M</span><br></pre></td></tr></table></figure>
+
+<p>That sets the packet size to 32MB.</p>
+<p>The server’s default <code>max_allowed_packet</code> value is 64MB. You can increase this if the server needs to handle big queries (for example, if you are working with big <code>BLOB</code> columns). For example, to set the variable to 128MB, start the server like this:</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">$&gt; mysqld --max_allowed_packet=128M</span><br></pre></td></tr></table></figure>
+
+<p>You can also use an option file to set <code>max_allowed_packet</code>. For example, to set the size for the server to 128MB, add the following lines in an option file:</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">[mysqld]</span><br><span class="line">max_allowed_packet=128M</span><br></pre></td></tr></table></figure>
+
+<p>It is safe to increase the value of this variable because the extra memory is allocated only when needed. For example, <strong>「mysqld」</strong> allocates more memory only when you issue a long query or when <strong>「mysqld」</strong> must return a large result row. The small default value of the variable is a precaution to catch incorrect packets between the client and server and also to ensure that you do not run out of memory by using large packets accidentally.</p>
+<p>You can also get strange problems with large packets if you are using large <code>BLOB</code> values but have not given <strong>「mysqld」</strong> access to enough memory to handle the query. If you suspect this is the case, try adding <strong>「ulimit -d 256000」</strong> to the beginning of the <strong>「mysqld_safe」</strong> script and restarting <strong>「mysqld」</strong>.</p>
+<p>❞</p>
+</blockquote>
+<p>于是又咨询了下 DBA 这个参数，但是 DBA 给的回复是“<code>max_allowed_packet</code> 是用来设置以字节发送给服务器的最大数据包大小，影响 <code>insert</code> 和 <code>update</code>，不影响 <code>select</code>”。其实当时我有点尴尬，存在怀疑，因为这段话说的很模糊：</p>
+<blockquote>
+<p>❝</p>
+<p>It is safe to increase the value of this variable because the extra memory is allocated only when needed. For example, <strong>「mysqld」</strong> allocates more memory only when you issue a long query or when <strong>「mysqld」</strong> must return a large result row. The small default value of the variable is a precaution to catch incorrect packets between the client and server and also to ensure that you do not run out of memory by using large packets accidentally.</p>
+<p>❞</p>
+</blockquote>
+<p>于是又找 DBA 确认了一下线上 MySQL 这个参数配置的是多少，DBA 给的回复是 16M。这下我彻底信了，因为最近一次线上全表查询从 MAT 上分析，有两个请求的线程堆栈就占了 2G，如果这个参数能限制 <code>select</code> 的话，那这个线上问题就不会发生。</p>
+<p>于是我又开始翻文档，功夫不负有心人，找到了一个有点意思的参数：<code>sql_select_limit</code>，官方文档是这么说的：</p>
+<blockquote>
+<p>❝</p>
+<ul>
+<li><p><code>sql_select_limit</code></p>
+<table>
+<thead>
+<tr>
+<th align="left">System Variable</th>
+<th align="left"><code>sql_select_limit</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Scope</td>
+<td align="left">Global, Session</td>
+</tr>
+<tr>
+<td align="left">Dynamic</td>
+<td align="left">Yes</td>
+</tr>
+<tr>
+<td align="left">Type</td>
+<td align="left">Integer</td>
+</tr>
+</tbody></table>
+<p>The maximum number of rows to return from <code>SELECT</code> statements. For more information, see Using Safe-Updates Mode (–safe-updates).</p>
+<p>The default value for a new connection is the maximum number of rows that the server permits per table. Typical default values are (232)−1 or (264)−1. If you have changed the limit, the default value can be restored by assigning a value of <code>DEFAULT</code>.</p>
+<p>If a <code>SELECT</code> has a <code>LIMIT</code> clause, the <code>LIMIT</code> takes precedence over the value of <code>sql_select_limit</code>.</p>
+</li>
+</ul>
+<p>❞</p>
+</blockquote>
+<p>有很关键的两句话：</p>
+<ul>
+<li>The maximum number of rows to return from <code>SELECT</code> statements.</li>
+<li>If a <code>SELECT</code> has a <code>LIMIT</code> clause, the <code>LIMIT</code> takes precedence over the value of <code>sql_select_limit</code>.</li>
+</ul>
+<p>可以的，看着很完美。那么接下来的问题就是如何去使用这个参数，发现有三种方式使用：</p>
+<ol>
+<li>MySQL 启动的时候加上；</li>
+<li><code>session</code> 级别；</li>
+<li><code>global</code> 级别；</li>
+</ol>
+<p>那还用说，肯定使用 <code>session</code> 级别，这个客户端可控，对 MySQL 服务端不用做任何修改。</p>
+<p>先玩玩试试看效果：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">set SESSION sql_select_limit=1;</span><br><span class="line">select * from bytejta;</span><br></pre></td></tr></table></figure>
+
+<p>执行后发现效果不错，再执行了几个复杂的 SQL，同样结果符合预期。</p>
+<h3 id="使用细节"><a href="#使用细节" class="headerlink" title="使用细节"></a>使用细节</h3><p>那么现在的问题是如何将这个参数用起来。平时我们在配置 MySQL 的时候都会这么配置 URL：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">jdbc:mysql://xxxx.xx.xx.xx/dbName</span><br></pre></td></tr></table></figure>
+
+<p>要想使用  <code>session</code> 级别的 <code>sql_select_limit</code> 参数，可以这么做：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">jdbc:mysql://xxxx.xx.xx.xx/dbName?sessionVariables=sql_select_limit=20000</span><br></pre></td></tr></table></figure>
+
+<p>这样就可以了。</p>
+<h3 id="测试"><a href="#测试" class="headerlink" title="测试"></a>测试</h3><p>参数已经加上了，也有一定的效果，但是毕竟没法看源码，心里还是有点虚，于是问了下 DBA，DBA 说他也没用过这个参数，但是他也提到使用 <code>session</code> 级别的参数对数据库服务是没有影响的，既然对数据库服务没有影响，那么其他程序上的风险就好控制了。</p>
+<p>于是理了一下测试方案：</p>
+<ol>
+<li>在预上线上使用下，选几个有代表性的 SQL，先按照原来不加 <code>sql_select_limit</code> 参数查一遍，再使用加了 <code>sql_select_limit</code> 参数查一遍（基于读写分离配置多数据源很容易实现），对比两者数据，不一致就报警，先跑一段时间看看；</li>
+<li>还是增加一个 SQL 返回行数的监控，我这里配置的是 20000，如果发现返回数据大于 20000 了就说明这个参数失效了，就报警，测试阶段可以这个参数设置小一遍，方便对比效果；</li>
+</ol>
+<p>我这里 SQL 返回行数的监控是基于 MyBatis 拦截器做的，也比较简单，大致代码如下：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> Dongguabai</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@description</span></span></span><br><span class="line"><span class="comment"> * <span class="doctag">@date</span> 2021-11-18 20:57</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Intercepts(&#123;</span></span><br><span class="line"><span class="meta">        @Signature(type = ResultSetHandler.class, method = &quot;handleResultSets&quot;, args = &#123;Statement.class&#125;)</span></span><br><span class="line"><span class="meta">&#125;)</span></span><br><span class="line"><span class="meta">@Slf4j</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">SqlSelectLimitMonitorInterceptor</span> <span class="keyword">implements</span> <span class="title class_">Interceptor</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Setter</span></span><br><span class="line">    <span class="keyword">private</span> String threshold;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Setter</span></span><br><span class="line">    <span class="keyword">private</span> String emails;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Setter</span></span><br><span class="line">    <span class="keyword">private</span> String project;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">int</span> <span class="variable">SQL_LIMIT</span> <span class="operator">=</span> <span class="number">20000</span>;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> Object <span class="title function_">intercept</span><span class="params">(Invocation invocation)</span> <span class="keyword">throws</span> Throwable &#123;</span><br><span class="line">        <span class="type">Object</span> <span class="variable">result</span> <span class="operator">=</span> invocation.proceed();</span><br><span class="line">        <span class="keyword">if</span> (threshold() &lt; <span class="number">1</span> || !(invocation.getTarget() <span class="keyword">instanceof</span> ResultSetHandler)) &#123;</span><br><span class="line">            <span class="keyword">return</span> result;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="keyword">if</span> (result <span class="keyword">instanceof</span> List) &#123;</span><br><span class="line">                <span class="type">List</span> <span class="variable">list</span> <span class="operator">=</span> (List) result;</span><br><span class="line">                <span class="keyword">if</span> (list.size() &gt; threshold()) &#123;</span><br><span class="line">                    <span class="type">ResultSetHandler</span> <span class="variable">defaultResultSetHandler</span> <span class="operator">=</span> (ResultSetHandler) invocation.getTarget();</span><br><span class="line">                    <span class="type">MetaObject</span> <span class="variable">metaStatementHandler</span> <span class="operator">=</span> SystemMetaObject.forObject(defaultResultSetHandler);</span><br><span class="line">                    <span class="type">MappedStatement</span> <span class="variable">mappedStatement</span> <span class="operator">=</span> (MappedStatement) metaStatementHandler.getValue(<span class="string">&quot;mappedStatement&quot;</span>);</span><br><span class="line">                    trigger(mappedStatement, list);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Throwable e) &#123;</span><br><span class="line">            log.error(<span class="string">&quot;SqlSelectLimitMonitorInterceptor.intercept error.&quot;</span>, e);</span><br><span class="line">            sendUsers(String.format(<span class="string">&quot;SqlSelectLimitMonitorInterceptor.intercept error.[%s]&quot;</span>,e.getMessage()));</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> result;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">trigger</span><span class="params">(MappedStatement mappedStatement, List list)</span> &#123;</span><br><span class="line">        <span class="type">String</span> <span class="variable">sql</span> <span class="operator">=</span> mappedStatement.getSqlSource().getBoundSql(<span class="literal">null</span>).getSql();</span><br><span class="line">        <span class="comment">//todo 报警</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> Object <span class="title function_">plugin</span><span class="params">(Object target)</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> Plugin.wrap(target, <span class="built_in">this</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setProperties</span><span class="params">(Properties properties)</span> &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="type">BeanInfo</span> <span class="variable">info</span> <span class="operator">=</span> Introspector.getBeanInfo(<span class="built_in">this</span>.getClass(), Object.class);</span><br><span class="line">            PropertyDescriptor[] propertyDescriptors = info.getPropertyDescriptors();</span><br><span class="line">            Stream.of(propertyDescriptors).filter(desc -&gt; !StringUtils.equals(<span class="string">&quot;properties&quot;</span>, desc.getName())).forEach(desc -&gt; &#123;</span><br><span class="line">                <span class="type">String</span> <span class="variable">value</span> <span class="operator">=</span> properties.getProperty(desc.getName());</span><br><span class="line">                <span class="keyword">if</span> (StringUtils.isNotBlank(value)) &#123;</span><br><span class="line">                    <span class="keyword">try</span> &#123;</span><br><span class="line">                        desc.getWriteMethod().invoke(<span class="built_in">this</span>, value);</span><br><span class="line">                    &#125; <span class="keyword">catch</span> (IllegalAccessException | InvocationTargetException e) &#123;</span><br><span class="line">                        processParseError(e);</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (IntrospectionException e) &#123;</span><br><span class="line">            processParseError(e);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">processParseError</span><span class="params">(Exception e)</span> &#123;</span><br><span class="line">        log.error(<span class="string">&quot;SqlSelectLimitMonitorInterceptor parse properties error.&quot;</span>, e);</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">MagRuntimeException</span>(CommonConstants.FIVE_HUNDRED, <span class="string">&quot;SqlSelectLimitMonitorInterceptor parse properties error.&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="type">int</span> <span class="title function_">threshold</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> Integer.valueOf(StringUtils.defaultString(threshold, <span class="string">&quot;0&quot;</span>));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在预上线跑了一段时间后，数据对比效果不错。后来选了一个项目在线上试运行，运行了一段时间也没有出现其他异常。目前来看还是比较成功的。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>思路比解决方案更重要。</p>
+]]></content>
+      <categories>
+        <category>数据库&amp;缓存</category>
+        <category>MySQL</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>Redis实现分布式锁与实现任务队列</title>
+    <url>/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93&amp;%E7%BC%93%E5%AD%98/Redis/Redis%E5%AE%9E%E7%8E%B0%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81%E4%B8%8E%E5%AE%9E%E7%8E%B0%E4%BB%BB%E5%8A%A1%E9%98%9F%E5%88%97/</url>
+    <content><![CDATA[<p>转载自：<a href="https://blog.csdn.net/wwd0501/article/details/79474368">https://blog.csdn.net/wwd0501/article/details/79474368</a></p>
+<p>&emsp;<br>&emsp;&emsp;为了确保分布式锁可用，至少要确保锁的实现同时满足以下四个条件：<br>&emsp;&emsp;1、互斥性。在任意时刻，只有一个客户端能持有锁。<br>&emsp;&emsp;2、不会发生死锁。即使有一个客户端在持有锁的期间崩溃而没有主动解锁，也能保证后续其他客户端能加锁。<br>&emsp;&emsp;3、具有容错性。只要大部分的Redis节点正常运行，客户端就可以加锁和解锁。<br>&emsp;&emsp;4、加锁和解锁必须是同一个客户端，不能把别人加的锁给解了。</p>
+ <span id="more"></span>
+
+<hr>
+<p>&emsp;&emsp;Redis分布式锁的主要思路如下：<br>&emsp;&emsp;客户端需要向Redis发送如下命令：<code>SET resource_name my_random_value NX PX 30000</code>。my_random_value是由客户端生成的一个随机字符串，它要保证在足够长的一段时间内在所有客户端的所有获取锁的请求中都是唯一的；NX表示只有当resource_name对应的key值不存在的时候才能SET成功，这保证了只有第一个请求的客户端才能获得锁，而其它客户端在锁被释放之前都无法获得锁；PX 30000 表示这个锁有一个30秒的自动过期时间。</p>
+<p>&emsp;&emsp;注意获取锁的操作，网上不少文章把它实现成了两个Redis命令：SETNX 和 EXPIRE，虽然这两个命令和前面描述中的一个SET命令执行效果相同，但却不是原子的。如果客户端在执行完SETNX后崩溃了，那么就没有机会执行EXPIRE了，导致Redis一直存在这个锁；设置一个随机字符串my_random_value是很有必要的，它保证了一个客户端释放的锁必须是自己持有的那个锁。假如获取锁时SET的不是一个随机字符串，而是一个固定值，那么可能会发生下面的执行序列：</p>
+<ol>
+<li>客户端1获取锁成功。</li>
+<li>客户端1在某个操作上阻塞了很长时间。</li>
+<li>过期时间到了，锁自动释放了。</li>
+<li>客户端2获取到了对应同一个资源的锁。</li>
+<li>客户端1从阻塞中恢复过来，释放掉了客户端2持有的锁。</li>
+</ol>
+<hr>
+<p>&emsp;&emsp;<br>&emsp;&emsp;释放锁的操作必须使用Lua脚本来实现。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="type">boolean</span> <span class="title function_">releaseDistributedLock</span><span class="params">(Jedis jedis, String lockKey, String requestId)</span> &#123;</span><br><span class="line">    <span class="type">String</span> <span class="variable">script</span> <span class="operator">=</span> <span class="string">&quot;if redis.call(&#x27;get&#x27;, KEYS[1]) == ARGV[1] then return redis.call(&#x27;del&#x27;, KEYS[1]) else return 0 end&quot;</span>;</span><br><span class="line">    <span class="type">Object</span> <span class="variable">result</span> <span class="operator">=</span> jedis.eval(script, Collections.singletonList(lockKey), Collections.singletonList(requestId));</span><br><span class="line">    <span class="keyword">if</span> (RELEASE_SUCCESS.equals(result)) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">false</span>;</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;释放锁其实包含三步操作：’GET’、判断和’DEL’，用Lua脚本和eval()保证了这三步的原子性。否则，如果把这三步操作放到客户端逻辑中去执行的话，就有可能发生下面的执行序列：</p>
+<ol>
+<li>客户端1获取锁成功。</li>
+<li>客户端1访问共享资源。</li>
+<li>客户端1为了释放锁，先执行’GET’操作获取随机字符串的值。</li>
+<li>客户端1判断随机字符串的值，与预期的值相等。</li>
+<li>客户端1由于某个原因阻塞住了很长时间。</li>
+<li>过期时间到了，锁自动释放了。</li>
+<li>客户端2获取到了对应同一个资源的锁。</li>
+<li>客户端1从阻塞中恢复过来，执行DEL操纵，释放掉了客户端2持有的锁。</li>
+</ol>
+<p>&emsp;&emsp;实际上，在上述分析中，如果不是客户端阻塞住了，而是出现了大的网络延迟，也有可能导致类似的执行序列发生。</p>
+<hr>
+<p>&emsp;&emsp;<br>&emsp;&emsp;还有一个问题需要注意的，针对于Redis集群，当Master节点不可用的时候，系统自动切到Slave上（failover）。但由于Redis的主从复制（replication）是异步的，这可能导致在failover过程中丧失锁的安全性。考虑下面的执行序列：</p>
+<ol>
+<li>客户端1从Master获取了锁。</li>
+<li>Master宕机了，存储锁的key还没有来得及同步到Slave上。</li>
+<li>Slave升级为Master。</li>
+<li>客户端2从新的Master获取到了对应同一个资源的锁。</li>
+</ol>
+<p>&emsp;&emsp;于是，客户端1和客户端2同时持有了同一个资源的锁，锁的安全性被打破。针对这个问题，有一个Redlock算法。Redlock算法是基于N个完全独立的Redis节点（通常情况下N可以设置成5）。运行Redlock算法的客户端依次执行下面各个步骤，来完成获取锁的操作：</p>
+<ol>
+<li>获取当前时间（毫秒数）。</li>
+<li>按顺序依次向N个Redis节点执行获取锁的操作。为了保证在某个Redis节点不可用的时候算法能够继续运行，这个获取锁的操作还有一个超时时间(time out)，它要远小于锁的有效时间（几十毫秒量级）。客户端在向某个Redis节点获取锁失败以后，应该立即尝试下一个Redis节点。这里的失败，应该包含任何类型的失败，比如该Redis节点不可用，或者该Redis节点上的锁已经被其它客户端持有。</li>
+<li>计算整个获取锁的过程总共消耗了多长时间，计算方法是用当前时间减去第1步记录的时间。如果客户端从大多数Redis节点（&gt;&#x3D; N&#x2F;2+1）成功获取到了锁，并且获取锁总共消耗的时间没有超过锁的有效时间(lock validity time)，那么这时客户端才认为最终获取锁成功；否则，认为最终获取锁失败。</li>
+<li>如果最终获取锁成功了，那么这个锁的有效时间应该重新计算，它等于最初的锁的有效时间减去第3步计算出来的获取锁消耗的时间。</li>
+<li>如果最终获取锁失败了（可能由于获取到锁的Redis节点个数少于N&#x2F;2+1，或者整个获取锁的过程消耗的时间超过了锁的最初有效时间），那么客户端应该立即向所有Redis节点发起释放锁的操作（即前面介绍的Redis Lua脚本）。</li>
+</ol>
+<p>&emsp;&emsp;当然，上面描述的只是获取锁的过程，而释放锁的过程比较简单：客户端向所有Redis节点发起释放锁的操作，不管这些节点当时在获取锁的时候成功与否。</p>
+<p>&emsp;&emsp;由于N个Redis节点中的大多数能正常工作就能保证Redlock正常工作，因此理论上它的可用性更高。前面讨论的单Redis节点的分布式锁在failover的时候锁失效的问题，在Redlock中不存在了，但如果有节点发生崩溃重启，还是会对锁的安全性有影响的。具体的影响程度跟Redis对数据的持久化程度有关。</p>
+<p>&emsp;&emsp;再给出了一个由客户端GC pause引发Redlock失效的例子。如下：</p>
+<ol>
+<li>客户端1向Redis节点A, B, C, D, E发起锁请求。</li>
+<li>各个Redis节点已经把请求结果返回给了客户端1，但客户端1在收到请求结果之前进入了长时间的GC pause。</li>
+<li>在所有的Redis节点上，锁过期了。</li>
+<li>客户端2在A, B, C, D, E上获取到了锁。</li>
+<li>客户端1从GC pause从恢复，收到了前面第2步来自各个Redis节点的请求结果。客户端1认为自己成功获取到了锁。</li>
+<li>客户端1和客户端2现在都认为自己持有了锁。</li>
+</ol>
+<hr>
+<p>Redisson参考：<a href="https://blog.csdn.net/lijingyao8206/article/details/51150936">https://blog.csdn.net/lijingyao8206/article/details/51150936</a></p>
+]]></content>
+      <categories>
+        <category>数据库&amp;缓存</category>
+        <category>Redis</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>如何保证 redis 的高并发和高可用？</title>
+    <url>/2024/04/06/%E6%95%B0%E6%8D%AE%E5%BA%93&amp;%E7%BC%93%E5%AD%98/Redis/%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81%20redis%20%E7%9A%84%E9%AB%98%E5%B9%B6%E5%8F%91%E5%92%8C%E9%AB%98%E5%8F%AF%E7%94%A8%EF%BC%8C%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6%EF%BC%8C%E5%93%A8%E5%85%B5%E5%8E%9F%E7%90%86/</url>
+    <content><![CDATA[<p>[toc]</p>
+<h2 id="Redis-如何才能做到高并发"><a href="#Redis-如何才能做到高并发" class="headerlink" title="Redis 如何才能做到高并发"></a>Redis 如何才能做到高并发</h2><h3 id="redis-主从架构"><a href="#redis-主从架构" class="headerlink" title="redis 主从架构"></a>redis 主从架构</h3><p>单机的 redis，能够承载的 QPS 大概就在上万到几万不等。对于缓存来说，一般都是用来支撑读高并发的。因此架构做成主从(master-slave)架构，一主多从，主负责写，并且将数据复制到其它的 slave 节点，从节点负责读。所有的读请求全部走从节点。这样也可以很轻松实现水平扩容，支撑读高并发。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171021185.jpg"></p>
+<span id="more"></span>
+
+<p><strong>redis replication 的核心机制</strong></p>
+<p><code>redis replication -&gt; 主从架构 -&gt; 读写分离 -&gt; 水平扩容支撑读高并发</code></p>
+<ul>
+<li>redis 采用异步方式复制数据到 slave 节点，不过 redis2.8 开始，slave node 会周期性地确认自己每次复制的数据量；</li>
+<li>一个 master node 是可以配置多个 slave node 的；</li>
+<li>slave node 也可以连接其他的 slave node；</li>
+<li>slave node 做复制的时候，不会 block master node 的正常工作；</li>
+<li>slave node 在做复制的时候，也不会 block 对自己的查询操作，它会用旧的数据集来提供服务；但是复制完成的时候，需要删除旧数据集，加载新数据集，这个时候就会暂停对外服务了；</li>
+<li>slave node 主要用来进行横向扩容，做读写分离，扩容的 slave  node 可以提高读的吞吐量。</li>
+</ul>
+<p>​	注意，如果采用了主从架构，那么建议必须开启 master node 的持久化，不建议用 slave node 作为 master node 的数据热备，因为那样的话，如果关掉 master 的持久化，可能在 master 宕机重启的时候数据是空的，然后可能一经过复制， slave node 的数据也丢了。</p>
+<p>​	另外，master 的各种备份方案，也需要做。万一本地的所有文件丢失了，从备份中挑选一份 rdb 去恢复 master，这样才能确保启动的时候，是有数据的，即使采用了后续讲解的高可用机制，slave node 可以自动接管 master node，但也可能 sentinel 还没检测到 master failure，master node 就自动重启了，还是可能导致上面所有的 slave node 数据被清空。</p>
+<h3 id="redis-主从复制的核心原理"><a href="#redis-主从复制的核心原理" class="headerlink" title="redis 主从复制的核心原理"></a>redis 主从复制的核心原理</h3><p>当启动一个 slave node 的时候，它会发送一个 <code>PSYNC</code> 命令给 master node。</p>
+<p>如果这是 slave node 初次连接到 master node，那么会触发一次 full resynchronization 全量复制。此时 master 会启动一个后台线程，开始生成一份 RDB 快照文件，同时还会将从客户端 client 新收到的所有写命令缓存在内存中。RDB 文件生成完毕后， master 会将这个 RDB 发送给 slave，slave 会先写入本地磁盘，然后再从本地磁盘加载到内存中，接着 master 会将内存中缓存的写命令发送到 slave，slave 也会同步这些数据。slave node 如果跟 master node 有网络故障，断开了连接，会自动重连，连接之后 master node 仅会复制给 slave 部分缺少的数据。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171047376.jpg"></p>
+<p><strong>主从复制的断点续传</strong></p>
+<p>​	从 redis2.8 开始，就支持主从复制的断点续传，如果主从复制过程中，网络连接断掉了，那么可以接着上次复制的地方，继续复制下去，而不是从头开始复制一份。</p>
+<p>​	master node 会在内存中维护一个 backlog，master 和 slave 都会保存一个 replica offset 还有一个 master run id，offset 就是保存在 backlog 中的。如果 master 和 slave 网络连接断掉了，slave 会让 master 从上次 replica offset 开始继续复制，如果没有找到对应的 offset，那么就会执行一次 resynchronization。</p>
+<p>​	如果根据 host+ip 定位 master node，是不靠谱的，如果 master node 重启或者数据出现了变化，那么 slave node 应该根据不同的 run id 区分。</p>
+<p><strong>无磁盘化复制</strong></p>
+<p>master 在内存中直接创建 RDB，然后发送给 slave，不会在自己本地落地磁盘了。只需要在配置文件中开启 repl-diskless-sync yes 即可。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">repl-diskless-sync yes</span><br><span class="line"># 等待 5s 后再开始复制，因为要等更多 slave 重新连接过来</span><br><span class="line">repl-diskless-sync-delay <span class="number">5</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>过期 key 处理</strong></p>
+<p>slave 不会过期 key，只会等待 master 过期 key。如果 master 过期了一个 key，或者通过 LRU 淘汰了一个 key，那么会模拟一条 del 命令发送给 slave。</p>
+<p><strong>完整的复制流程</strong></p>
+<ol>
+<li>slave node 启动时，会在自己本地保存 master node 的信息，包括 master node 的host和ip，但是复制流程没开始。</li>
+<li>slave node 内部有个定时任务，每秒检查是否有新的 master node 要连接和复制，如果发现，就跟 master node 建立 socket 网络连接。</li>
+<li>然后 slave node 发送 ping 命令给 master node。如果 master 设置了 requirepass，那么 slave node 必须发送 masterauth 的口令过去进行认证。</li>
+<li>master node 第一次执行全量复制，将所有数据发给slave node。</li>
+<li>而在后续，master node 持续将写命令，异步复制给 slave node。</li>
+</ol>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171050423.jpg"></p>
+<p> <strong>数据同步相关的核心机制</strong><br>（1）master和slave都会维护一个offset<br>  master会在自身不断累加offset，slave也会在自身不断累加offset。slave每秒都会上报自己的offset给master，同时master也会保存每个slave的offset<br>  这个倒不是说特定就用在全量复制的，主要是master和slave都要知道各自的数据的offset，才能知道互相之间的数据不一致的情况</p>
+<p>（2）backlog<br>  master node有一个backlog，默认是1MB大小<br>  master node给slave node复制数据时，也会将数据在backlog中同步写一份<br>  backlog主要是用来做全量复制中断候的增量复制的</p>
+<p>（3）master run id<br>  如果根据host+ip定位master node，是不靠谱的，如果master node重启或者数据出现了变化，那么slave node应该根据不同的run id区分，run id不同就做全量复制<br>  如果需要不更改run id重启redis，可以使用redis-cli debug reload命令</p>
+<p>（4）psync<br>  从节点使用psync从master node进行复制，psync runid offset。master node会根据自身的情况返回响应信息，可能是FULLRESYNC runid offset触发全量复制，可能是CONTINUE触发增量复制</p>
+<p>全量复制</p>
+<ul>
+<li>master 执行 bgsave ，在本地生成一份 rdb 快照文件。</li>
+<li>master node 将 rdb 快照文件发送给 slave node，如果 rdb 复制时间超过 60秒（repl-timeout），那么 slave node 就会认为复制失败，可以适当调大这个参数(对于千兆网卡的机器，一般每秒传输 100MB，6G 文件，很可能超过 60s)</li>
+<li>master node 在生成 rdb 时，会将所有新的写命令缓存在内存中，在 slave node 保存了 rdb 之后，再将新的写命令复制给 slave node。</li>
+<li>如果在复制期间，内存缓冲区持续消耗超过 64MB，或者一次性超过 256MB，那么停止复制，复制失败。</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">client-output-buffer-limit slave 256MB 64MB 60</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>slave node 接收到 rdb 之后，清空自己的旧数据，然后重新加载 rdb 到自己的内存中，同时基于旧的数据版本对外提供服务。</li>
+<li>如果 slave node 开启了 AOF，那么会立即执行 BGREWRITEAOF，重写 AOF。</li>
+</ul>
+<p>增量复制</p>
+<ul>
+<li>如果全量复制过程中，master-slave 网络连接断掉，那么 slave 重新连接 master 时，会触发增量复制。</li>
+<li>master 直接从自己的 backlog 中获取部分丢失的数据，发送给 slave node，默认 backlog 就是1MB。</li>
+<li>msater就是根据 slave 发送的 psync 中的 offset 来从 backlog 中获取数据的。</li>
+</ul>
+<p>heartbeat</p>
+<p>主从节点互相都会发送 heartbeat 信息。</p>
+<p>master 默认每隔 10秒 发送一次 heartbeat，slave node 每隔 1秒 发送一个 heartbeat。</p>
+<p>异步复制</p>
+<p>  master 每次接收到写命令之后，先在内部写入数据，然后异步发送给 slave node。</p>
+<h2 id="Redis-如何才能做到高可用"><a href="#Redis-如何才能做到高可用" class="headerlink" title="Redis 如何才能做到高可用"></a>Redis 如何才能做到高可用</h2><p>Redis 的高可用架构，叫做 failover故障转移。master node 在故障时，自动检测，并且将某个 slave node 自动切换位 master node的过程，叫做主备切换。这个过程，实现了 redis 的主从架构下的高可用。</p>
+<p> 在 Redis 中，实现 <strong>高可用</strong> 的技术主要包括 <strong>持久化</strong>、<strong>复制</strong>、<strong>哨兵</strong> 和 <strong>集群</strong>，下面简单说明它们的作用，以及解决了什么样的问题：</p>
+<ul>
+<li><strong>持久化</strong>：持久化是 <strong>最简单的</strong> 高可用方法。它的主要作用是 <strong>数据备份</strong>，即将数据存储在 <strong>硬盘</strong>，保证数据不会因进程退出而丢失。</li>
+<li><strong>复制</strong>：复制是高可用 Redis 的基础，<strong>哨兵</strong> 和 <strong>集群</strong> 都是在 <strong>复制基础</strong> 上实现高可用的。复制主要实现了数据的多机备份以及对于读操作的负载均衡和简单的故障恢复。缺陷是故障恢复无法自动化、写操作无法负载均衡、存储能力受到单机的限制。</li>
+<li><strong>哨兵</strong>：在复制的基础上，哨兵实现了 <strong>自动化</strong> 的 <strong>故障恢复</strong>。缺陷是 <strong>写操作</strong> 无法 <strong>负载均衡</strong>，<strong>存储能力</strong> 受到 <strong>单机</strong> 的限制。</li>
+<li><strong>集群</strong>：通过集群，Redis 解决了 <strong>写操作</strong> 无法 <strong>负载均衡</strong> 以及 <strong>存储能力</strong> 受到 <strong>单机限制</strong> 的问题，实现了较为 <strong>完善</strong> 的 <strong>高可用方案</strong>。</li>
+</ul>
+<h3 id="Redis-哨兵集群实现高可用"><a href="#Redis-哨兵集群实现高可用" class="headerlink" title="Redis 哨兵集群实现高可用"></a>Redis 哨兵集群实现高可用</h3><p>哨兵的介绍</p>
+<p>sentinel，中文名是哨兵。哨兵是 redis 集群机构中非常重要的一个组件，主要有以下功能：</p>
+<ul>
+<li>集群监控：负责监控 redis master 和 slave 进程是否正常工作。</li>
+<li>消息通知：如果某个 redis 实例有故障，那么哨兵负责发送消息作为报警通知给管理员。</li>
+<li>故障转移：如果 master node 挂掉了，会自动转移到 slave node 上。</li>
+<li>配置中心：如果故障转移发生了，通知 client 客户端新的 master 地址。</li>
+</ul>
+<p>哨兵用于实现 redis 集群的高可用，本身也是分布式的，作为一个哨兵集群去运行，互相协同工作。</p>
+<ul>
+<li>故障转移时，判断一个 master node 是否宕机了，需要大部分的哨兵都同意才行，涉及到了分布式选举的问题。</li>
+<li>即使部分哨兵节点挂掉了，哨兵集群还是能正常工作的，因为如果一个作为高可用机制重要组成部分的故障转移系统本身是单点的，那就很坑爹了。</li>
+</ul>
+<p>哨兵的核心知识</p>
+<ul>
+<li>哨兵至少需要 3 个实例，来保证自己的健壮性。</li>
+<li>哨兵 + redis 主从的部署架构，是不保证数据零丢失的，只能保证 redis 集群的高可用性。</li>
+<li>对于哨兵 + redis 主从这种复杂的部署架构，尽量在测试环境和生产环境，都进行充足的测试和演练。</li>
+</ul>
+<h3 id="redis-哨兵主备切换的数据丢失问题"><a href="#redis-哨兵主备切换的数据丢失问题" class="headerlink" title="redis 哨兵主备切换的数据丢失问题"></a>redis 哨兵主备切换的数据丢失问题</h3><p>两种情况和导致数据丢失</p>
+<p>主备切换的过程，可能会导致数据丢失：</p>
+<ul>
+<li><p><strong>异步复制导致的数据丢失</strong>     </p>
+<p>因为 master-&gt;slave 的复制是异步的，所以可能有部分数据还没复制到 slave，master 就宕机了，此时这部分数据就丢失了。</p>
+</li>
+</ul>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171053727.jpg"></p>
+<ul>
+<li><p><strong>脑裂导致的数据丢失</strong>     </p>
+<p>脑裂，也就是说，某个 master 所在机器突然脱离了正常的网络，跟其他 slave 机器不能连接，但是实际上 master 还运行着。此时哨兵可能就会认为 master 宕机了，然后开启选举，将其他 slave 切换成了 master。这个时候，集群里就会有两个 master ，也就是所谓的脑裂。</p>
+</li>
+</ul>
+<p>此时虽然某个 slave 被切换成了master，但是可能 client 还没来得及切换到新的 master，还继续向旧 master 写数据。因此旧 master 再次恢复的时候，会被作为一个 slave 挂到新的 master 上去，自己的数据会清空，重新从新的 master 复制数据。而新的 master 并没有后来 client 写入的数据，因此，这部分数据也就丢失了。</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407171053590.jpg"></p>
+<p><strong>数据丢失问题的解决方案</strong></p>
+<p>进行如下配置：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">min-slaves-to-write 1</span><br><span class="line">min-slaves-max-lag 10</span><br></pre></td></tr></table></figure>
+
+<p>表示，要求至少有 1 个 slave，数据复制和同步的延迟不能超过 10 秒。</p>
+<p>如果说一旦所有的 slave，数据复制和同步的延迟都超过了 10 秒钟，那么这个时候，master 就不会再接收任何请求了。</p>
+<ul>
+<li><p>减少异步复制数据的丢失     </p>
+<p>有了 min-slaves-max-lag 这个配置，就可以确保说，一旦 slave 复制数据和 ack 延时太长，就认为可能 master 宕机后损失的数据太多了，那么就拒绝写请求，这样可以把 master 宕机时由于部分数据未同步到 slave 导致的数据丢失降低的可控范围内。</p>
+</li>
+<li><p>减少脑裂的数据丢失     </p>
+<p>如果一个 master 出现了脑裂，跟其他 slave 丢了连接，那么上面两个配置可以确保说，如果不能继续给指定数量的 slave 发送数据，而且 slave 超过 10 秒没有给自己 ack 消息，那么就直接拒绝客户端的写请求。因此在脑裂场景下，最多就丢失 10 秒的数据。</p>
+</li>
+</ul>
+<p>这样脑裂后的旧master就不会接受client的新数据，也就避免了数据丢失。上面的配置就确保了，如果跟任何一个slave丢了连接，在10秒后发现没有slave给自己ack，那么就拒绝新的写请求。因此在脑裂场景下，最多就丢失 10 秒的数据。</p>
+<hr>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>  redis 实现高并发主要依靠主从架构，一主多从，一般来说，很多项目其实就足够了，单主用来写入数据，单机几万 QPS，多从用来查询数据，多个从实例可以提供每秒 10w 的 QPS。<br>  如果想要在实现高并发的同时，容纳大量的数据，那么就需要 redis 集群，使用 redis 集群之后，可以提供每秒几十万的读写并发。<br>  redis 高可用，如果是做主从架构部署，那么加上哨兵就可以了，就可以实现，任何一个实例宕机，可以进行主备切换。</p>
+]]></content>
+      <categories>
+        <category>数据库&amp;缓存</category>
+        <category>Redis</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>数据库事务隔离级别</title>
+    <url>/2024/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93&amp;%E7%BC%93%E5%AD%98/MySQL/%E5%8E%9F%E7%90%86/%E6%95%B0%E6%8D%AE%E5%BA%93%E4%BA%8B%E5%8A%A1%E9%9A%94%E7%A6%BB%E7%BA%A7%E5%88%AB/</url>
+    <content><![CDATA[<p>转载自：<a href="https://blog.csdn.net/wangyiyungw/article/details/81002256">https://blog.csdn.net/wangyiyungw/article/details/81002256</a></p>
+<p>&emsp;&emsp;</p>
+<h3 id="事务（Transaction）及其ACID属性"><a href="#事务（Transaction）及其ACID属性" class="headerlink" title="事务（Transaction）及其ACID属性"></a>事务（Transaction）及其ACID属性</h3><p>事务是由一组SQL语句组成的逻辑处理单元，事务具有以下4个属性，通常简称为事务的ACID属性。</p>
+<ul>
+<li><p>原子性（Atomicity）：事务是一个原子操作单元，其对数据的修改，要么全都执行，要么全都不执行。</p>
+</li>
+<li><p>一致性（Consistent）：在事务开始和完成时，数据都必须保持一致状态。这意味着所有相关的数据规则都必须应用于事务的修改，以保持数据的完整性；事务结束时，所有的内部数据结构（如B树索引或双向链表）也都必须是正确的。</p>
+</li>
+<li><p>隔离性（Isolation）：数据库系统提供一定的隔离机制，保证事务在不受外部并发操作影响的“独立”环境执行。这意味着事务处理过程中的中间状态对外部是不可见的，反之亦然。</p>
+</li>
+<li><p>持久性（Durable）：事务完成之后，它对于数据的修改是永久性的，即使出现系统故障也能够保持。</p>
+</li>
+</ul>
+<p>&emsp;&emsp;</p>
+<span id="more"></span>
+
+<h3 id="并发事务处理带来的问题"><a href="#并发事务处理带来的问题" class="headerlink" title="并发事务处理带来的问题"></a>并发事务处理带来的问题</h3><p>&emsp;&emsp;相对于串行处理来说，并发事务处理能大大增加数据库资源的利用率，提高数据库系统的事务吞吐量，从而可以支持更多的用户。但并发事务处理也会带来一些问题，主要包括以下几种情况:</p>
+<ul>
+<li><p>第一类丢失更新（Update Lost）：此种更新丢失是因为回滚的原因，所以也叫回滚丢失。此时两个事务同时更新count，两个事务都读取到100，事务一更新成功并提交，count&#x3D;100+1&#x3D;101，事务二出于某种原因更新失败了，然后回滚，事务二就把count还原为它一开始读到的100，此时事务一的更新就这样丢失了。</p>
+</li>
+<li><p>脏读（Dirty Read）：此种异常是因为一个事务读取了另一个事务修改了但是未提交的数据。举个例子，事务一更新了count&#x3D;101，但是没有提交，事务二此时读取count，值为101而不是100，然后事务一出于某种原因回滚了，然后第二个事务读取的这个值就是噩梦的开始。</p>
+</li>
+<li><p>不可重复读（Not Repeatable Read）：此种异常是一个事务对同一行数据执行了两次或更多次查询，但是却得到了不同的结果，也就是在一个事务里面不能重复（即多次）读取一行数据，不能保证每次读取的结果是一样的，有可能一样有可能不一样。造成这个结果是在两次查询之间有别的事务对该行数据做了更新操作。举个例子，事务一先查询了count，值为100，此时事务二更新了count&#x3D;101，事务一再次读取count,值就会变成101，两次读取结果不一样。</p>
+</li>
+<li><p>第二类丢失更新（Second Update Lost）：此种更新丢失是因为更新被其他事务给覆盖了，也可以叫覆盖丢失。举个例子，两个事务同时更新count，都读取100这个初始值，事务一先更新成功并提交，count&#x3D;100+1&#x3D;101，事务二后更新成功并提交，count&#x3D;100+1&#x3D;101,由于事务二count还是从100开始增加，事务一的更新就这样丢失了。</p>
+</li>
+<li><p>幻读（Phantom Read）：幻读和不可重复读有点像，只是针对的不是数据的值而是数据的数量。此种异常是一个事务在两次查询的过程中数据的数量不同。举个例子，事务一查询order表有多少条记录，事务二新增了一条记录，然后事务一查了一下order表有多少记录，发现和第一次不一样，这就是幻读。</p>
+</li>
+</ul>
+<p>&emsp;&emsp;</p>
+<h3 id="事务隔离级别"><a href="#事务隔离级别" class="headerlink" title="事务隔离级别"></a>事务隔离级别</h3><p>&emsp;&emsp;数据库事务的隔离级别有4个，由低到高依次为Read Uncommitted、Read Committed、Repeatable Read、Serializable：</p>
+<ul>
+<li><p>读未提交（Read Uncommitted）：该隔离级别指即使一个事务的更新语句没有提交,但是别的事务可以读到这个改变，上述的几种异常情况都可能出现。</p>
+</li>
+<li><p>读已提交（Read Committed）：该隔离级别指一个事务只能看到其他事务的已经提交的更新，看不到未提交的更新，消除了脏读和第一类丢失更新，这是大多数数据库的默认隔离级别，如Oracle,Sqlserver。</p>
+</li>
+<li><p>可重复读（Repeatable Read）：该隔离级别指一个事务中进行两次或多次同样的对于数据内容的查询，得到的结果是一样的，但不保证对于数据条数的查询是一样的，只要存在读改行数据就禁止写，消除了不可重复读和第二类更新丢失，这是Mysql数据库的默认隔离级别。</p>
+</li>
+<li><p>串行化（Serializable）：意思是说这个事务执行的时候不允许别的事务并发执行.完全串行化的读，只要存在读就禁止写,但可以同时读，消除了幻读。这是事务隔离的最高级别，最安全最省心，但是效率太低，一般不会用。</p>
+</li>
+</ul>
+<hr>
+<p>&emsp;&emsp;<br>&emsp;&emsp;“脏读”、“不可重复读”和“幻读”，其实都是数据库读一致性问题，必须由数据库提供一定的事务隔离机制来解决。数据库实现事务隔离的方式，基本可以分为以下两种:</p>
+<ol>
+<li>一种是在读取数据前，对其加锁，阻止其他事务对数据进行修改。</li>
+<li>另一种是不用加任何锁，通过一定机制生成一个数据请求时间点的一致性数据快照（Snapshot），并用这个快照来提供一定级别（语句级或事务级）的一致性读取。从用户的角度，好像是数据库可以提供同一数据的多个版本，因此，这种技术叫做数据多版本并发控制（ＭultiVersion Concurrency Control，简称MVCC），利用了InnoDB的undo log。</li>
+</ol>
+<p>&emsp;&emsp;<br>&emsp;&emsp;在MVCC并发控制中，读操作可以分成两类：快照读 (snapshot read)与当前读 (current read)。</p>
+<ul>
+<li>快照读，读取的是记录的可见版本 (有可能是历史版本)，不用加锁。</li>
+<li>当前读，读取的是记录的最新版本，并且，当前读返回的记录，都会加上锁，保证其他事务不会再并发修改这条记录。</li>
+</ul>
+<hr>
+<p>&emsp;&emsp;<br>&emsp;&emsp;那么在一个支持MVCC并发控制的系统中，哪些读操作是快照读？哪些操作又是当前读呢？以MySQL InnoDB为例：</p>
+<ul>
+<li>快照读：简单的select操作，属于快照读，即可重复读，不加锁。<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">select</span> <span class="operator">*</span> <span class="keyword">from</span> <span class="keyword">table</span> <span class="keyword">where</span> ?;</span><br></pre></td></tr></table></figure></li>
+<li>当前读：特殊的读操作，插入&#x2F;更新&#x2F;删除操作，属于当前读，需要加锁。 下面语句都属于当前读，读取记录的最新版本。并且，读取之后，还需要保证其他并发事务不能修改当前记录，对读取记录加锁。其中，除了第一条语句，对读取记录加S锁 (共享锁)外，其他的操作，都加的是X锁 (排它锁)。<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">select</span> <span class="operator">*</span> <span class="keyword">from</span> <span class="keyword">table</span> <span class="keyword">where</span> ? lock <span class="keyword">in</span> share mode;</span><br><span class="line"><span class="keyword">select</span> <span class="operator">*</span> <span class="keyword">from</span> <span class="keyword">table</span> <span class="keyword">where</span> ? <span class="keyword">for</span> <span class="keyword">update</span>;</span><br><span class="line"><span class="keyword">insert</span> <span class="keyword">into</span> <span class="keyword">table</span> <span class="keyword">values</span> (…);</span><br><span class="line"><span class="keyword">update</span> <span class="keyword">table</span> <span class="keyword">set</span> ? <span class="keyword">where</span> ?;</span><br><span class="line"><span class="keyword">delete</span> <span class="keyword">from</span> <span class="keyword">table</span> <span class="keyword">where</span> ?;</span><br></pre></td></tr></table></figure></li>
+</ul>
+]]></content>
+      <categories>
+        <category>数据库&amp;缓存</category>
+        <category>MySQL</category>
+        <category>原理</category>
+      </categories>
+  </entry>
 </search>

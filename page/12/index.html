@@ -187,6 +187,749 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/G1%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E5%99%A8/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/G1%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E5%99%A8/" class="post-title-link" itemprop="url">G1垃圾收集器</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/JVM/" itemprop="url" rel="index"><span itemprop="name">JVM</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/JVM/GC%E7%9B%B8%E5%85%B3/" itemprop="url" rel="index"><span itemprop="name">GC相关</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>[toc]</p>
+<h1 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h1><p>&emsp;&emsp;G1垃圾收集器（Garbage First）是一个并行的、并发的、面向服务器的垃圾收集器的垃圾收集器。G1在Oracle JDK 7 update 4 及以上版本中得到完全支持，它的长远目标时代替CMS收集器。相较于CMS，G1是一款压缩型的收集器，不会产生内存碎片；可以极高概率满足GC停顿时间，实现低停顿垃圾回收。G1优先回收存活数据较少的区域。存活数据少就表示里面的垃圾对象多，这也是名字 Garbage First 的由来。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/G1%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E5%99%A8/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/GC%E4%BC%98%E5%8C%96%E6%A1%88%E4%BE%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/GC%E4%BC%98%E5%8C%96%E6%A1%88%E4%BE%8B/" class="post-title-link" itemprop="url">GC优化案例</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/JVM/" itemprop="url" rel="index"><span itemprop="name">JVM</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/JVM/GC%E7%9B%B8%E5%85%B3/" itemprop="url" rel="index"><span itemprop="name">GC相关</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="案例一-Major-GC和Minor-GC频繁"><a href="#案例一-Major-GC和Minor-GC频繁" class="headerlink" title="案例一 Major GC和Minor GC频繁"></a><strong>案例一 Major GC和Minor GC频繁</strong></h2><p>服务情况：Minor GC每分钟100次 ，Major GC每4分钟一次，单次Minor GC耗时25ms，单次Major GC耗时200ms，接口响应时间50ms。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/GC%E4%BC%98%E5%8C%96%E6%A1%88%E4%BE%8B/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/G1%E5%AF%B9%E6%AF%94CMS/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/G1%E5%AF%B9%E6%AF%94CMS/" class="post-title-link" itemprop="url">G1对比CMS</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/JVM/" itemprop="url" rel="index"><span itemprop="name">JVM</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/JVM/GC%E7%9B%B8%E5%85%B3/" itemprop="url" rel="index"><span itemprop="name">GC相关</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>[toc]</p>
+<h2 id="如何处理跨代引用"><a href="#如何处理跨代引用" class="headerlink" title="如何处理跨代引用"></a>如何处理跨代引用</h2><p>​        在垃圾回收的时候都是从Root开始搜索，这会先经过年轻代再到老年代，对于年轻代引用老年代的这种跨代不需要单独处理。但是老年代引用年轻代的会影响young gc，这种跨代需要处理。<br>​        为了避免在回收年轻代的时候扫描整个老年代，需要记录老年代对年轻代的引用，young gc的时候只要扫描这个记录。</p>
+<p>​        CMS和G1都用到了<strong>Card Table</strong>，但是用法不太一样。JVM将内存分成一个个固定大小的card，然后有一个专门的数据结构(即这里的Card Table)维护每个Card的状态，一个字节对应一个Card，有点像内存page的概念，只是page是硬件上的，Card Table是软件上的。当一个Card上的对象的引用发生变化的时候，就将这个Card对应的Card Table上的状态置为dirty，young gc的时候扫描状态是dirty的Card即可。这是基本的用法，CMS基本上就是这么使用。<br>​        G1在Card Table的基础上引入的Remembered Set(下面简称RSet)。每个region都会维护一个RSet，记录着引用到本region中的对象的其他region的Card。比如A对象在regionA，B对象在regionB，且B.f &#x3D; A，则在regionA的RSet中需要记录B所在的Card的地址。这样的好处是可以对region进行单独回收，这要求RSet不只是维护老年代到年轻代的引用，也要维护这老年代到老年代的引用，对于跨代引用的每次只要扫描这个region的RSet上的Card即可。<br>​       上面说过年轻代到老年代的引用不需要单独处理，这带来了很大的性能上的提升，因为年轻代的对象引用变化很大，如果都需要记录下来成本会很高。同时也说明只需要在老年代维护Card Table。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/04/01/Java/JVM/GC%E7%9B%B8%E5%85%B3/G1%E5%AF%B9%E6%AF%94CMS/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Spring/spring%20boot/@Async%E7%9A%84%E4%BD%BF%E7%94%A8%E4%BB%A5%E5%8F%8A%E5%8E%9F%E7%90%86%E3%80%81%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/01/Spring/spring%20boot/@Async%E7%9A%84%E4%BD%BF%E7%94%A8%E4%BB%A5%E5%8F%8A%E5%8E%9F%E7%90%86%E3%80%81%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" class="post-title-link" itemprop="url">注解@Async的使用以及原理、源码分析</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/Spring-Boot/" itemprop="url" rel="index"><span itemprop="name">Spring Boot</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h3 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h3><p>Spring中用@Async注解标记的方法，称为异步方法，它会在调用方的当前线程之外的独立的线程中执行，其实就相当于我们自己new Thread(()-&gt; System.out.println(“hello world !”))这样在另一个线程中去执行相应的业务逻辑。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">// @Async 若把注解放在类上或者接口上，那么他所有的方法都会异步执行了~~~~（包括私有方法）</span><br><span class="line">public interface HelloService &#123;</span><br><span class="line">    Object hello();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@Service</span><br><span class="line">public class HelloServiceImpl implements HelloService &#123;</span><br><span class="line"></span><br><span class="line">    @Async // 注意此处加上了此注解</span><br><span class="line">    @Override</span><br><span class="line">    public Object hello() &#123;</span><br><span class="line">        System.out.println(&quot;当前线程：&quot; + Thread.currentThread().getName());</span><br><span class="line">        return &quot;service hello&quot;;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>然后只需要在配置里，开启对异步的支持即可：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">@Configuration</span><br><span class="line">@EnableAsync // 开启异步注解的支持</span><br><span class="line">public class RootConfig &#123;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>使用的是线程池SimpleAsyncTaskExecutor，这也是Spring默认给我们提供的线程池。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/04/01/Spring/spring%20boot/@Async%E7%9A%84%E4%BD%BF%E7%94%A8%E4%BB%A5%E5%8F%8A%E5%8E%9F%E7%90%86%E3%80%81%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Spring/spring%20boot/@Async%E6%B3%A8%E8%A7%A3%E5%BC%95%E5%8F%91%E7%9A%84Spring%E5%BE%AA%E7%8E%AF%E4%BE%9D%E8%B5%96%E5%88%86%E6%9E%90/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/01/Spring/spring%20boot/@Async%E6%B3%A8%E8%A7%A3%E5%BC%95%E5%8F%91%E7%9A%84Spring%E5%BE%AA%E7%8E%AF%E4%BE%9D%E8%B5%96%E5%88%86%E6%9E%90/" class="post-title-link" itemprop="url">注解@Async引发的Spring循环依赖分析</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/Spring-Boot/" itemprop="url" rel="index"><span itemprop="name">Spring Boot</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>首先有一点可以确定，spring可以是解决某些循环依赖的，示例：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Service</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">AService</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    <span class="keyword">private</span> BService bService;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">testA</span><span class="params">()</span> &#123;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Service</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">BService</span> &#123;</span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    <span class="keyword">private</span> AService aService;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">testB</span><span class="params">()</span> &#123;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上面的例子，AService与BService存在循环依赖，运行也是没有问题的。现在开启异步(添加<code>@EnableAsync</code>），修改AService：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Service</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">AService</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    <span class="keyword">private</span> BService bService;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Async</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">testA</span><span class="params">()</span> &#123;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>再次运行，就有会有如下报错：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">ERROR org.springframework.boot.SpringApplication - Application startup failed</span><br><span class="line">org.springframework.beans.factory.BeanCurrentlyInCreationException: </span><br><span class="line">  Error creating bean with name &#x27;AService&#x27;: </span><br><span class="line">  Bean with name &#x27;AService&#x27; has been injected into other beans [BService] in its raw version as part of a circular reference, </span><br><span class="line">  but has eventually been wrapped. </span><br><span class="line">  This means that said other beans do not use the final version of the bean. </span><br><span class="line">  This is often the result of over-eager type matching - consider using &#x27;getBeanNamesOfType&#x27; with the &#x27;allowEagerInit&#x27; flag turned off, for example.</span><br></pre></td></tr></table></figure>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/04/01/Spring/spring%20boot/@Async%E6%B3%A8%E8%A7%A3%E5%BC%95%E5%8F%91%E7%9A%84Spring%E5%BE%AA%E7%8E%AF%E4%BE%9D%E8%B5%96%E5%88%86%E6%9E%90/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Spring/spring%20boot/@Value(%E2%80%9D#{}%E2%80%9C)%20%E4%B8%8E%20@Value(%E2%80%9C${}%E2%80%9D)%20%E7%9A%84%E5%8C%BA%E5%88%AB/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/01/Spring/spring%20boot/@Value(%E2%80%9D#%7B%7D%E2%80%9C)%20%E4%B8%8E%20@Value(%E2%80%9C$%7B%7D%E2%80%9D)%20%E7%9A%84%E5%8C%BA%E5%88%AB/" class="post-title-link" itemprop="url">\@Value("#{}") 与 @Value("${}") 的区别</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/Spring-Boot/" itemprop="url" rel="index"><span itemprop="name">Spring Boot</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h3 id="Value-“-”"><a href="#Value-“-”" class="headerlink" title="@Value(“#{}”)"></a>@Value(“#{}”)</h3><p><code>@Value(&quot;#&#123;&#125;&quot;) </code>表示SpEl表达式，通常用来获取bean的属性，或者调用bean的某个方法。当然还有可以表示常量</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RestController</span>  </span><br><span class="line"><span class="meta">@RequestMapping(&quot;/login&quot;)</span>  </span><br><span class="line"><span class="meta">@Component</span>  </span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">LoginController</span> &#123;  </span><br><span class="line"></span><br><span class="line">    <span class="meta">@Value(&quot;#&#123;1&#125;&quot;)</span>  </span><br><span class="line">    <span class="keyword">private</span> <span class="type">int</span> number; <span class="comment">//获取数字 1  </span></span><br><span class="line"></span><br><span class="line">    <span class="meta">@Value(&quot;#&#123;&#x27;Spring Expression Language&#x27;&#125;&quot;)</span> <span class="comment">//获取字符串常量  </span></span><br><span class="line">    <span class="keyword">private</span> String str;  </span><br><span class="line"></span><br><span class="line">    <span class="meta">@Value(&quot;#&#123;dataSource.url&#125;&quot;)</span> <span class="comment">//获取bean的属性  </span></span><br><span class="line">    <span class="keyword">private</span> String jdbcUrl;  </span><br><span class="line"></span><br><span class="line">    <span class="meta">@Autowired</span>  </span><br><span class="line">    <span class="keyword">private</span> DataSourceTransactionManager transactionManager;  </span><br><span class="line"></span><br><span class="line">    <span class="meta">@RequestMapping(&quot;login&quot;)</span>  </span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">login</span><span class="params">(String name,String password)</span> <span class="keyword">throws</span> FileNotFoundException&#123; </span><br><span class="line">        System.out.println(number);  </span><br><span class="line">        System.out.println(str);  </span><br><span class="line">        System.out.println(jdbcUrl);  </span><br><span class="line">        <span class="keyword">return</span> <span class="string">&quot;login&quot;</span>;  </span><br><span class="line">    &#125;  </span><br><span class="line">&#125;  </span><br></pre></td></tr></table></figure>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/04/01/Spring/spring%20boot/@Value(%E2%80%9D#%7B%7D%E2%80%9C)%20%E4%B8%8E%20@Value(%E2%80%9C$%7B%7D%E2%80%9D)%20%E7%9A%84%E5%8C%BA%E5%88%AB/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Spring/spring%20boot/BeanPostProcessor/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/01/Spring/spring%20boot/BeanPostProcessor/" class="post-title-link" itemprop="url">BeanPostProcessor</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/Spring-Boot/" itemprop="url" rel="index"><span itemprop="name">Spring Boot</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>[toc]</p>
+<p>BeanPostProcessor 从名字上就能看出来，这是一个 Bean 的后置处理器，也就是说，BeanPostProcessor 其实主要是对已经创建出来的 Bean 做一些后置处理，而 BeanFactoryPostProcessor 主要是针对 BeanDefinition 做后置处理（此时 Bean 对象还没创建出来）。</p>
+<p>但是，BeanPostProcessor 家族里边也有例外，即 MergedBeanDefinitionPostProcessor，这是一个 BeanPostProcessor，但是却可以处理 BeanDefinition。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/04/01/Spring/spring%20boot/BeanPostProcessor/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Spring/spring%20boot/Controller%E5%B1%82%E8%AE%BE%E7%BD%AE%E5%88%87%E9%9D%A2%E7%9A%84%E4%B8%89%E7%A7%8D%E6%96%B9%E5%BC%8F/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/01/Spring/spring%20boot/Controller%E5%B1%82%E8%AE%BE%E7%BD%AE%E5%88%87%E9%9D%A2%E7%9A%84%E4%B8%89%E7%A7%8D%E6%96%B9%E5%BC%8F/" class="post-title-link" itemprop="url">Controller层设置切面的三种方式</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/Spring-Boot/" itemprop="url" rel="index"><span itemprop="name">Spring Boot</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>[toc]</p>
+<h2 id="1-自定义PointcutAdvisor"><a href="#1-自定义PointcutAdvisor" class="headerlink" title="1.自定义PointcutAdvisor"></a>1.自定义PointcutAdvisor</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">@Target(&#123;ElementType.METHOD, ElementType.TYPE&#125;)</span><br><span class="line">@Retention(RetentionPolicy.RUNTIME)</span><br><span class="line">@Documented</span><br><span class="line">@Inherited</span><br><span class="line">public @interface AopAnnotation &#123;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">CustomizePointcutAdvisor</span> <span class="keyword">extends</span> <span class="title class_">DefaultPointcutAdvisor</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">Logger</span> <span class="variable">log</span> <span class="operator">=</span> LoggerFactory.getLogger(CustomizePointcutAdvisor.class);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">CustomizePointcutAdvisor</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="type">Pointcut</span> <span class="variable">pointcut</span> <span class="operator">=</span> <span class="built_in">this</span>.buildPointcut();</span><br><span class="line">        <span class="type">Advice</span> <span class="variable">advice</span> <span class="operator">=</span> <span class="built_in">this</span>.buildAdvice();</span><br><span class="line">        <span class="built_in">this</span>.setAdvice(advice);</span><br><span class="line">        <span class="built_in">this</span>.setPointcut(pointcut);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> Advice <span class="title function_">buildAdvice</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="type">MethodInterceptor</span> <span class="variable">methodInterceptor</span> <span class="operator">=</span> (methodInvocation) -&gt; &#123;</span><br><span class="line">            <span class="type">Method</span> <span class="variable">method</span> <span class="operator">=</span> methodInvocation.getMethod();</span><br><span class="line">            Class&lt;?&gt; declaringClass = AopUtils.getTargetClass(methodInvocation.getThis());</span><br><span class="line">            <span class="type">Method</span> <span class="variable">specificMethod</span> <span class="operator">=</span> AopUtils.getMostSpecificMethod(method, declaringClass);</span><br><span class="line">            <span class="type">long</span> <span class="variable">start</span> <span class="operator">=</span> System.currentTimeMillis();</span><br><span class="line"></span><br><span class="line">            Object proceed;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                proceed = methodInvocation.proceed();</span><br><span class="line">            &#125; <span class="keyword">catch</span> (Throwable throwable) &#123;</span><br><span class="line">                log.error(<span class="string">&quot;&quot;</span>, throwable);</span><br><span class="line">                <span class="keyword">throw</span> throwable;</span><br><span class="line">            &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">                log.info(<span class="string">&quot;方法&#123;&#125;耗时:&#123;&#125;ms&quot;</span>, specificMethod.getName(), (System.currentTimeMillis() - start));</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">return</span> proceed;</span><br><span class="line">        &#125;;</span><br><span class="line">        <span class="keyword">return</span> methodInterceptor;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> Pointcut <span class="title function_">buildPointcut</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="comment">//ComposablePointcut 可组合的切点</span></span><br><span class="line">        <span class="type">Pointcut</span> <span class="variable">pointcut</span> <span class="operator">=</span> Pointcuts.union(</span><br><span class="line">            <span class="comment">//注解匹配切点</span></span><br><span class="line">            <span class="keyword">new</span> <span class="title class_">AnnotationMatchingPointcut</span>(AopAnnotation.class, <span class="literal">true</span>),</span><br><span class="line">            <span class="keyword">new</span> <span class="title class_">AnnotationMatchingPointcut</span>((Class) <span class="literal">null</span>, AopAnnotation.class));</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> pointcut;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">@Configuration</span><br><span class="line">public class CustomizeAutoConfiguration &#123;</span><br><span class="line">    @Bean</span><br><span class="line">    public CustomizePointcutAdvisor alertPointcutAdvisor() &#123;</span><br><span class="line">        return new CustomizePointcutAdvisor();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">@RestController</span><br><span class="line">@RequestMapping(&quot;/api/test&quot;)</span><br><span class="line">public class AopTestController &#123;</span><br><span class="line"></span><br><span class="line">    @GetMapping(&quot;/0&quot;)</span><br><span class="line">    public String test0() &#123;</span><br><span class="line">        return &quot;test0&quot;;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @AopAnnotation</span><br><span class="line">    @GetMapping(&quot;/1&quot;)</span><br><span class="line">    public String test1() &#123;</span><br><span class="line">        return &quot;test1&quot;;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/04/01/Spring/spring%20boot/Controller%E5%B1%82%E8%AE%BE%E7%BD%AE%E5%88%87%E9%9D%A2%E7%9A%84%E4%B8%89%E7%A7%8D%E6%96%B9%E5%BC%8F/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Spring/spring%20boot/Spring%20Boot%20%E4%B8%AD%E8%87%AA%E5%AE%9A%E4%B9%89%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/01/Spring/spring%20boot/Spring%20Boot%20%E4%B8%AD%E8%87%AA%E5%AE%9A%E4%B9%89%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86/" class="post-title-link" itemprop="url">Spring Boot中自定义异常处理</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/Spring-Boot/" itemprop="url" rel="index"><span itemprop="name">Spring Boot</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>Spring Boot 中提供了默认的异常处理，但是对于应用来说，这些信息并不应该直接返回或者不够明确，需要结合自己的情况进行定制。</p>
+<p>自定义处理异常有两种方式:</p>
+<ul>
+<li>org.springframework.web.servlet.HandlerExceptionResolver#resolveException</li>
+<li>org.springframework.web.bind.annotation.RestControllerAdvice或org.springframework.web.bind.annotation.ControllerAdvice和org.springframework.web.bind.annotation.ExceptionHandler注解来实现</li>
+</ul>
+<p>当两种方式都实现时，HandlerExceptionResolver要先于ControllerAdvice执行</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/04/01/Spring/spring%20boot/Spring%20Boot%20%E4%B8%AD%E8%87%AA%E5%AE%9A%E4%B9%89%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
     <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Spring/spring%20boot/%E4%BD%A0%E7%9A%84Spring%20Boot%E5%BA%94%E7%94%A8%E5%90%AF%E5%8A%A8%E5%BE%88%E6%85%A2%EF%BC%9F%E4%B8%8D%E5%A6%A8%E8%AF%95%E8%AF%95%E8%BF%99%E4%B8%AA%E5%B7%A5%E5%85%B7%EF%BC%81/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -263,781 +1006,10 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Spring/spring%20boot/%E6%B3%A8%E5%86%8Cbean%E5%88%B0IOC%E5%AE%B9%E5%99%A8/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/04/01/Spring/spring%20boot/%E6%B3%A8%E5%86%8Cbean%E5%88%B0IOC%E5%AE%B9%E5%99%A8/" class="post-title-link" itemprop="url">注册bean到IOC容器</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Spring/Spring-Boot/" itemprop="url" rel="index"><span itemprop="name">Spring Boot</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>[toc]</p>
-<h2 id="1-使用BeanFactoryPostProcessor"><a href="#1-使用BeanFactoryPostProcessor" class="headerlink" title="1.使用BeanFactoryPostProcessor"></a>1.使用BeanFactoryPostProcessor</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">@Component</span><br><span class="line">public class ConstomBeadFactoryPostProcessor implements BeanFactoryPostProcessor &#123;</span><br><span class="line"></span><br><span class="line">    private Logger log = LoggerFactory.getLogger(ConstomBeadFactoryPostProcessor.class);</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) &#123;</span><br><span class="line"></span><br><span class="line">        GenericBeanDefinition genericBeanDefinition = (GenericBeanDefinition) beanFactory.getBeanDefinition(&quot;demonBean&quot;);</span><br><span class="line"></span><br><span class="line">        /**</span><br><span class="line">         * 属性注入方式，</span><br><span class="line">         * 	 * @see #AUTOWIRE_NO   0，默认 @Autowired</span><br><span class="line">         * 	 * @see #AUTOWIRE_BY_NAME  setter方法</span><br><span class="line">         * 	 * @see #AUTOWIRE_BY_TYPE</span><br><span class="line">         * 	 * @see #AUTOWIRE_CONSTRUCTOR  构造方法注入</span><br><span class="line">         * 	 * @see #AUTOWIRE_AUTODETECT</span><br><span class="line">         */</span><br><span class="line">        int autowireMode = genericBeanDefinition.getAutowireMode();</span><br><span class="line">        log.debug(&quot;&#123;&#125;, autowireMode=&#123;&#125;&quot;, genericBeanDefinition.getBeanClassName(), autowireMode);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">        /**</span><br><span class="line">         * 修改 bean的 构造方式</span><br><span class="line">         */</span><br><span class="line">        GenericBeanDefinition personBeanDefinition = (GenericBeanDefinition) beanFactory.getBeanDefinition(&quot;person&quot;);</span><br><span class="line">        ConstructorArgumentValues constructorArgumentValues = new ConstructorArgumentValues();</span><br><span class="line">        constructorArgumentValues.addIndexedArgumentValue(0,&quot;zero&quot;);</span><br><span class="line">        personBeanDefinition.setConstructorArgumentValues(constructorArgumentValues);</span><br><span class="line"></span><br><span class="line">//        log.debug(&quot;beanFactory=&#123;&#125;&quot;, beanFactory);</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/04/01/Spring/spring%20boot/%E6%B3%A8%E5%86%8Cbean%E5%88%B0IOC%E5%AE%B9%E5%99%A8/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Spring/spring%20boot/%E8%87%AA%E5%AE%9A%E4%B9%89%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2-%E8%A1%A8%E5%8D%95%E8%AF%B7%E6%B1%82%E6%88%96JSON%E8%AF%B7%E6%B1%82%E7%9A%84%E8%BD%AC%E6%8D%A2%E5%99%A8/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/04/01/Spring/spring%20boot/%E8%87%AA%E5%AE%9A%E4%B9%89%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2-%E8%A1%A8%E5%8D%95%E8%AF%B7%E6%B1%82%E6%88%96JSON%E8%AF%B7%E6%B1%82%E7%9A%84%E8%BD%AC%E6%8D%A2%E5%99%A8/" class="post-title-link" itemprop="url">自定义类型转换-表单请求或JSON请求的转换器</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Spring/Spring-Boot/" itemprop="url" rel="index"><span itemprop="name">Spring Boot</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="表单类型参数"><a href="#表单类型参数" class="headerlink" title="表单类型参数"></a>表单类型参数</h2><p>有时候需要将前台传来一些特定格式的数据对象转化成特定的Java对象，这个时候类型转换器就派上用场了。这里简单介绍使用比较简单的Converter接口。Converter是Spring 3.0后的一个函数式接口，只有一个方法，将source转化成target。</p>
-<p>首先需要定义自己的转换器，需要实现Converter&lt;S,T&gt;接口，convert就是具体的转换方法。</p>
-<p>一般推荐使用<code>ConditionalGenericConverter</code></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line">import java.util.Set;</span><br><span class="line">import org.springframework.core.convert.TypeDescriptor;</span><br><span class="line">import org.springframework.core.convert.converter.ConditionalGenericConverter;</span><br><span class="line">import org.springframework.stereotype.Component;</span><br><span class="line"></span><br><span class="line">public class CustomConditionalConverter implements ConditionalGenericConverter &#123;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public boolean matches(TypeDescriptor sourceType, TypeDescriptor targetType) &#123;</span><br><span class="line">        return targetType.hasAnnotation(Key.class);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public Set&lt;ConvertiblePair&gt; getConvertibleTypes() &#123;</span><br><span class="line">        // getConvertibleTypes方法返回可转换的源类型和目标类型的配对，</span><br><span class="line">        // 如果只关心，字符串类型的转换。</span><br><span class="line">        // return Collections.singleton(new ConvertiblePair(String.class, String.class));</span><br><span class="line"></span><br><span class="line">        // 如果全部都关注</span><br><span class="line">        return null;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public Object convert(Object source, TypeDescriptor sourceType, TypeDescriptor targetType) &#123;</span><br><span class="line">        if (source == null) &#123;</span><br><span class="line">            return null;</span><br><span class="line">        &#125;</span><br><span class="line">        Key annotation = targetType.getAnnotation(Key.class);</span><br><span class="line">        try &#123;</span><br><span class="line">            return annotation.using().newInstance().convert(source);</span><br><span class="line">        &#125; catch (Exception e) &#123;</span><br><span class="line">            throw new RuntimeException(e);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>然后需要将自定义的转换器进行注册：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">@Configuration</span><br><span class="line">public class CustomWebMvcConfig extends WebMvcConfigurerAdapter&#123;</span><br><span class="line">	@Override</span><br><span class="line">	public void addFormatters(FormatterRegistry registry) &#123;</span><br><span class="line">	    registry.addConverter(new CustomConditionalConverter());</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/04/01/Spring/spring%20boot/%E8%87%AA%E5%AE%9A%E4%B9%89%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2-%E8%A1%A8%E5%8D%95%E8%AF%B7%E6%B1%82%E6%88%96JSON%E8%AF%B7%E6%B1%82%E7%9A%84%E8%BD%AC%E6%8D%A2%E5%99%A8/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Java/JVM/GC%E6%97%A5%E5%BF%97%E4%B8%AD%E7%9A%84stop-the-world/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/04/01/Java/JVM/GC%E6%97%A5%E5%BF%97%E4%B8%AD%E7%9A%84stop-the-world/" class="post-title-link" itemprop="url">GC日志中的stop-the-world</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/JVM/" itemprop="url" rel="index"><span itemprop="name">JVM</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>通常使用下面的JVM选项在GC日志中打印”stop-the-world”（STW）暂停时间。</p>
-<p><code>-XX:+PrintGCApplicationStoppedTime</code></p>
-<p>但是在GC日志中看，会发现有许多这样的暂停时间，时间很短，肯定不是垃圾回收引起的。</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Total time for which application threads were stopped: 0.0013102 seconds, Stopping threads took: 0.0001792 seconds</span><br><span class="line">Total time for which application threads were stopped: 0.0012521 seconds, Stopping threads took: 0.0001591 seconds</span><br><span class="line">Total time for which application threads were stopped: 0.0008090 seconds, Stopping threads took: 0.0001030 seconds</span><br><span class="line">Total time for which application threads were stopped: 0.0010226 seconds, Stopping threads took: 0.0001058 seconds</span><br></pre></td></tr></table></figure>
-
-<p>​    实际上，触发STW暂停的原因除了垃圾回收外，还有一些其他的操作会触发STW，例如一些JIT活动、偏向锁擦除、特定的JVMTI操作，以及许多场景也可能会导致应用程序暂停。</p>
-<p>上述例子中application threads stopped的时间表示应用暂停时间，Stopping threads took 的时间表示等待所有的应用线程都到达安全点花费的时间。只有应用程序线程到达安全点后，JVM才会做些特殊处理，比如垃圾收集、偏向锁擦除等等。</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Java/JVM/JVM%E6%80%A7%E8%83%BD%E7%9B%91%E6%8E%A7%E5%B7%A5%E5%85%B7jps%E3%80%81jstack%E3%80%81jmap%E3%80%81jhat/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/04/01/Java/JVM/JVM%E6%80%A7%E8%83%BD%E7%9B%91%E6%8E%A7%E5%B7%A5%E5%85%B7jps%E3%80%81jstack%E3%80%81jmap%E3%80%81jhat/" class="post-title-link" itemprop="url">JVM性能监控工具jps、jstack、jmap、jhat</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/JVM/" itemprop="url" rel="index"><span itemprop="name">JVM</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><strong>jps</strong>是可以查看当前Java进程。</p>
-<p>命令格式：jps [options ] [ hostid ] </p>
-<p>[options]选项 ：</p>
-<p>-q：仅输出java进程号</p>
-<p>-m：输出传递给Java进程（主函数）的参数</p>
-<p>-l：输出主函数的完整路径</p>
-<p>-v：输出jvm启动参数 </p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/04/01/Java/JVM/JVM%E6%80%A7%E8%83%BD%E7%9B%91%E6%8E%A7%E5%B7%A5%E5%85%B7jps%E3%80%81jstack%E3%80%81jmap%E3%80%81jhat/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Java/JVM/OutOfMemoryError%20unable%20to%20create%20new%20native%20thread/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/04/01/Java/JVM/OutOfMemoryError%20unable%20to%20create%20new%20native%20thread/" class="post-title-link" itemprop="url">OutOfMemoryError unable to create new native thread</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/JVM/" itemprop="url" rel="index"><span itemprop="name">JVM</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>java.lang.OutOfMemoryError共有8种类型，其中java.lang.OutOfMemoryError: unable to create new native thread是很常见的一种，这类错误通常发生在应用试图创建新线程时。</p>
-<p>可能原因</p>
-<blockquote>
-<ol>
-<li>系统内存耗尽，无法为新线程分配内存</li>
-<li>创建线程数超过了操作系统的限制</li>
-</ol>
-</blockquote>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/04/01/Java/JVM/OutOfMemoryError%20unable%20to%20create%20new%20native%20thread/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Java/JVM/%E4%B8%BA%E4%BB%80%E4%B9%88%E6%96%B0%E7%94%9F%E4%BB%A3%E9%9C%80%E8%A6%81%E6%9C%89%E4%B8%A4%E4%B8%AASurvivor%E5%8C%BA/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/04/01/Java/JVM/%E4%B8%BA%E4%BB%80%E4%B9%88%E6%96%B0%E7%94%9F%E4%BB%A3%E9%9C%80%E8%A6%81%E6%9C%89%E4%B8%A4%E4%B8%AASurvivor%E5%8C%BA/" class="post-title-link" itemprop="url">为什么新生代需要有两个Survivor区</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/JVM/" itemprop="url" rel="index"><span itemprop="name">JVM</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p> 1 为什么要有Survivor区</p>
-<p>   首先思考设置Survivor区的意义在哪里？</p>
-<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202408172335105.jpeg" alt="堆内存分类"></p>
-<p>   如果没有Survivor，Eden区每进行一次Minor GC，存活的对象就会被送到老年代。老年代很快被填满，触发Major GC（也可以看做触发了Full GC）。老年代的内存空间远大于新生代，进行一次Full GC消耗的时间比Minor GC长得多。频发的Full GC消耗的时间是非常多的，这一点会影响大型程序的执行和响应速度。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/04/01/Java/JVM/%E4%B8%BA%E4%BB%80%E4%B9%88%E6%96%B0%E7%94%9F%E4%BB%A3%E9%9C%80%E8%A6%81%E6%9C%89%E4%B8%A4%E4%B8%AASurvivor%E5%8C%BA/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Linux%E7%9B%B8%E5%85%B3/linux%E9%87%8C%E7%9A%84VIRT%E5%92%8CRES/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/04/01/Linux%E7%9B%B8%E5%85%B3/linux%E9%87%8C%E7%9A%84VIRT%E5%92%8CRES/" class="post-title-link" itemprop="url">linux里的VIRT和RES</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Linux%E7%9B%B8%E5%85%B3/" itemprop="url" rel="index"><span itemprop="name">Linux相关</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>对 VIRT 和 RES 两个区域做下解释：</p>
-<ul>
-<li>VIRT（virtual memory usage）：进程“需要的”虚拟内存大小，包括进程使用的库、代码、数据，以及malloc、new分配的堆空间和分配的栈空间等，另外 VIRT &#x3D; SWAP + RES，其中 swap 区域是需要内存置换的区域（可参考操作系统虚拟内存原理）。</li>
-<li>RES（resident memory usage）：又称为 RSS，是进程在 RAM 中真正占用的内存大小。RES 包含了它所链接的动态库被加载到物理内存中的内存、栈内存和堆内存。动态链接库占用的内存会被多个进程共享，所以RSS并不能准确反映单进程的内存占用情况。
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/04/01/Linux%E7%9B%B8%E5%85%B3/linux%E9%87%8C%E7%9A%84VIRT%E5%92%8CRES/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Linux%E7%9B%B8%E5%85%B3/%E6%83%8A%E7%BE%A4%E6%95%88%E5%BA%94/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/04/01/Linux%E7%9B%B8%E5%85%B3/%E6%83%8A%E7%BE%A4%E6%95%88%E5%BA%94/" class="post-title-link" itemprop="url">惊群效应</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Linux%E7%9B%B8%E5%85%B3/" itemprop="url" rel="index"><span itemprop="name">Linux相关</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>[toc]</p>
-<h1 id="1-惊群效应"><a href="#1-惊群效应" class="headerlink" title="1. 惊群效应"></a>1. 惊群效应</h1><h2 id="1-1-简介"><a href="#1-1-简介" class="headerlink" title="1.1 简介"></a>1.1 简介</h2><p>惊群问题又名惊群效应。简单来说就是多个进程或者线程在等待同一个事件，当事件发生时，所有线程和进程都会被内核唤醒。唤醒后通常只有一个进程获得了该事件并进行处理，其他进程发现获取事件失败后又继续进入了等待状态，在一定程度上降低了系统性能。</p>
-<p>打个比方就是：当你往一群鸽子中间扔一块食物，虽然最终只有一个鸽子抢到食物，但所有鸽子都会被惊动来争夺，没有抢到食物的鸽子只好回去继续睡觉， 等待下一块食物到来。这样，每扔一块食物，都会惊动所有的鸽子，即为惊群。</p>
-<h2 id="1-2-引发的问题"><a href="#1-2-引发的问题" class="headerlink" title="1.2 引发的问题"></a>1.2 引发的问题</h2><p>惊群效应会占用系统资源，降低系统性能。</p>
-<p>多进程&#x2F;线程的唤醒，涉及到的一个问题是上下文切换问题。频繁的上下文切换带来的一个问题是数据将频繁的在寄存器与运行队列中流转。极端情况下，时间更多的消耗在进程&#x2F;线程的调度上，而不是执行。</p>
-<h1 id="2-常见的惊群效应"><a href="#2-常见的惊群效应" class="headerlink" title="2. 常见的惊群效应"></a>2. 常见的惊群效应</h1><p>在 Linux 下，我们常见的惊群效应发生于我们使用 accept 以及我们 select 、poll 或 epoll 等系统提供的 API 来处理我们的网络链接。</p>
-<h2 id="2-1-accept-惊群"><a href="#2-1-accept-惊群" class="headerlink" title="2.1 accept 惊群"></a>2.1 accept 惊群</h2><p>以多进程为例，在主进程创建监听描述符listenfd后，fork()多个子进程，多个进程共享listenfd，accept是在每个子进程中，当一个新连接来的时候，会发生惊群。</p>
-<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202407141112654.png"></p>
-<p>由上图所示：</p>
-<ol>
-<li>主线程创建了监听描述符listenfd &#x3D; 3</li>
-<li>主线程fork 三个子进程共享listenfd&#x3D;3</li>
-<li>当有新连接进来时，内核进行处理</li>
-</ol>
-<p>在内核2.6之前，所有进程accept都会惊醒，但只有一个可以accept成功，其他返回EGAIN。</p>
-<p>在内核2.6及之后，解决了惊群，在内核中增加了一个互斥等待变量。一个互斥等待的行为与睡眠基本类似，主要的不同点在于：</p>
-<p>1.当一个等待队列入口有 WQ_FLAG_EXCLUSEVE 标志置位, 它被添加到等待队列的尾部. 没有这个标志的入口项, 相反, 添加到开始.</p>
-<p>2.当 wake_up 被在一个等待队列上调用时, 它在唤醒第一个有 WQ_FLAG_EXCLUSIVE 标志的进程后停止。（内核只会唤醒一个用户进程 task 就会退出唤醒过程，从而不存在了”惊群”现象）<br>3.对于互斥等待的行为，比如如对一个listen后的socket描述符，多线程阻塞accept时，系统内核只会唤醒所有正在等待此事件的队列 的第一个，队列中的其他人则继续等待下一次事件的发生，这样就避免的多个线程同时监听同一个socket描述符时的惊群问题。</p>
-<h2 id="2-2-epoll惊群"><a href="#2-2-epoll惊群" class="headerlink" title="2.2 epoll惊群"></a>2.2 epoll惊群</h2><p>epoll惊群分两种：</p>
-<ul>
-<li>在fork之前创建epollfd,所有进程共用一个epoll;</li>
-<li>在fork之后创建epollfd,每个进程独用一个epoll.</li>
-</ul>
-<h3 id="2-2-1-fork之前创建epollfd-内核2-6已解决"><a href="#2-2-1-fork之前创建epollfd-内核2-6已解决" class="headerlink" title="2.2.1 fork之前创建epollfd(内核2.6已解决)"></a>2.2.1 fork之前创建epollfd(内核2.6已解决)</h3><ol>
-<li>主进程创建listenfd, 创建epollfd</li>
-<li>主进程fork多个子进程</li>
-<li>每个子进程把listenfd,加到epollfd中</li>
-<li>当一个连接进来时，会触发epoll惊群，多个子进程的epoll同时会触发</li>
-</ol>
-<p>分析：这里的epoll惊群跟accept惊群是类似的，共享一个epollfd, 加锁或标记解决。在新版本的epoll中已解决。但在内核2.6及之前是存在的。</p>
-<h3 id="2-2-2-fork之后创建epollfd-内核未解决"><a href="#2-2-2-fork之后创建epollfd-内核未解决" class="headerlink" title="2.2.2 fork之后创建epollfd(内核未解决)"></a>2.2.2 fork之后创建epollfd(内核未解决)</h3><ol>
-<li>主进程创建listendfd</li>
-<li>主进程创建多个子进程</li>
-<li>每个子进程创建自已的epollfd</li>
-<li>每个子进程把listenfd加入到epollfd中</li>
-<li>当一个连接进来时，会触发epoll惊群，多个子进程epoll同时会触发</li>
-</ol>
-<p>分析：因为每个子进程的epoll是不同的epoll, 虽然listenfd是同一个，但新连接过来时, accept会触发惊群，但内核不知道该发给哪个监听进程，因为不是同一个epoll。所以这种惊群内核并没有处理。惊群还是会出现。</p>
-<h1 id="3-内核解决惊群问题详解"><a href="#3-内核解决惊群问题详解" class="headerlink" title="3. 内核解决惊群问题详解"></a>3. 内核解决惊群问题详解</h1><p>首先如前面所说，Accept 的惊群问题在 Linux Kernel 2.6 之后就被从内核的层面上解决了。但是 EPOLL 怎么办？在 2016 年一月，Linux 之父 Linus 向内核提交了一个补丁，其中的关键代码是</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (epi-&gt;event.events &amp; EPOLLEXCLUSIVE)</span><br><span class="line">            add_wait_queue_exclusive(whead, &amp;pwq-&gt;wait);</span><br><span class="line">        <span class="keyword">else</span></span><br><span class="line">            add_wait_queue(whead, &amp;pwq-&gt;wait);</span><br></pre></td></tr></table></figure>
-<p>简而言之，通过增加一个 EPOLLEXCLUSIVE 标志位作为辅助。如果用户开启了 EPOLLEXCLUSIVE ，那么在加入内核等待队列时，使用 add_wait_queue_exclusive 否则则使用 add_wait_queue。 EPOLLEXCLUSIVE 只保证唤醒的进程数小于等于我们开启的进程数，而不是直接唤醒所有进程，也不是只保证唤醒一个进程。</p>
-<h1 id="4-Nginx解决惊群效应"><a href="#4-Nginx解决惊群效应" class="headerlink" title="4. Nginx解决惊群效应"></a>4. Nginx解决惊群效应</h1><p>目前而言，应用解决惊群有两种策略</p>
-<ol>
-<li>这是可以接受的代价，那么我们暂时不管。这是我们大多数的时候的策略</li>
-<li>通过加锁或其余的手段来解决这个问题，最典型的例子是 Nginx</li>
-</ol>
-<p>我们来看看 Nginx 怎么解决这样的问题的：<br>Nginx通过 <strong>控制争抢处理socket的进程数量</strong> 和 <strong>抢占ngx_accept_mutex锁</strong> 解决惊群现象。只有一个ngx_accept_mutex锁，谁拿到锁，谁处理该socket的请求。</p>
-<p>同时：如果当前进程的连接数&gt;最大连接数*7&#x2F;8，则该进程不参与本轮竞争。</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//nginx的每个worker进程在函数ngx_process_events_and_timers中处理事件。下面代码是ngx_process_events_and_timers()函数的核心部分。</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">ngx_process_events_and_timers</span><span class="params">(<span class="type">ngx_cycle_t</span> *cycle)</span>  </span><br><span class="line">&#123;  </span><br><span class="line">    <span class="comment">//ngx_use_accept_mutex表示是否需要通过对accept加锁来解决惊群问题。当nginx worker进程数&gt;1时且配置文件中打开accept_mutex时，这个标志置为1         </span></span><br><span class="line">    <span class="keyword">if</span> (ngx_use_accept_mutex) </span><br><span class="line">    &#123;</span><br><span class="line">    <span class="comment">//ngx_accept_disabled表示此时满负荷，没必要再处理新连接了，nginx.conf配置了每一个nginx worker进程能够处理的最大连接数，当达到最大数的7/8时，ngx_accept_disabled为正，说明本nginx worker进程非常繁忙，将不再去处理新连接，这也是个简单的负载均衡  </span></span><br><span class="line">        <span class="keyword">if</span> (ngx_accept_disabled &gt; <span class="number">0</span>) </span><br><span class="line">        &#123;      </span><br><span class="line">            ngx_accept_disabled--;  </span><br><span class="line">        &#125; </span><br><span class="line">        <span class="keyword">else</span> </span><br><span class="line">        &#123;  </span><br><span class="line">            <span class="comment">//工作进程抢占锁，抢占成功的进程将ngx_accept_mutex_held变量置为1。拿到锁，意味着socket被放到本进程的epoll中了，如果没有拿到锁，则socket会被从epoll中取出。  </span></span><br><span class="line">            <span class="comment">//此处trylock是非阻塞锁，如果没有抢占到锁，进程会立刻返回，处理自己监听的描述符上的读写事件。</span></span><br><span class="line">            <span class="keyword">if</span>(pthread_mutex_trylock(&amp;ngx_accept_mutex))</span><br><span class="line">            &#123;</span><br><span class="line">                ngx_accept_mutex_held = <span class="number">1</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">else</span></span><br><span class="line">            &#123;</span><br><span class="line">                <span class="comment">//设置time时间，500ms后就去争抢锁，使得没有拿到锁的worker进程，去拿锁的频繁更高，确保每个进程可以处理几乎相同数量的fd的读写。</span></span><br><span class="line">                timer = <span class="number">500</span>;</span><br><span class="line">                ngx_accept_mutex_held = <span class="number">0</span>;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">             <span class="comment">//拿到锁的话，置flag为NGX_POST_EVENTS，这意味着ngx_process_events函数中，任何事件都将延后处理，会把accept事件都放到ngx_posted_accept_events链表中，epollin|epollout事件都放到ngx_posted_events链表中  </span></span><br><span class="line">            <span class="keyword">if</span> (ngx_accept_mutex_held) </span><br><span class="line">            &#123;   </span><br><span class="line">                flags |= NGX_POST_EVENTS;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">//继续epoll_wait等待处理事件</span></span><br><span class="line">        <span class="type">int</span> num = epoll_wait(epollfd, events, length, timer);</span><br><span class="line">        <span class="keyword">for</span>(<span class="type">int</span> i=<span class="number">0</span>; i&lt;num; ++i)</span><br><span class="line">        &#123;</span><br><span class="line">            ......</span><br><span class="line">            <span class="comment">//如果是读事件</span></span><br><span class="line">            <span class="keyword">if</span> (revents &amp; EPOLLIN)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="comment">//有NGX_POST_EVENTS标志的话，就把accept事件放到ngx_posted_accept_events队列中，把正常的事件放到ngx_posted_events队列中延迟处理</span></span><br><span class="line">                <span class="comment">//新连接事件队列ngx_posted_accept_events</span></span><br><span class="line">                <span class="comment">//用户读写事件队列ngx_posted_events</span></span><br><span class="line">                <span class="keyword">if</span> (flags &amp; NGX_POST_EVENTS)</span><br><span class="line">                &#123;</span><br><span class="line">                    <span class="built_in">queue</span> = rev-&gt;accept ? </span><br><span class="line">                        &amp;ngx_posted_accept_events:</span><br><span class="line">                        &amp;ngx_posted_events;</span><br><span class="line">     </span><br><span class="line">                    ngx_post_event(rev, <span class="built_in">queue</span>);</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">else</span><span class="comment">//处理</span></span><br><span class="line">                &#123;</span><br><span class="line">                    rev-&gt;handler(rev);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">     </span><br><span class="line">            <span class="comment">//如果是写事件</span></span><br><span class="line">            <span class="keyword">if</span> (revents &amp; EPOLLOUT)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="comment">//同理，有NGX_POST_EVENTS标志的话，写事件延迟处理，放到ngx_posted_events队列中 </span></span><br><span class="line">            <span class="keyword">if</span> (flags &amp; NGX_POST_EVENTS) </span><br><span class="line">            &#123;</span><br><span class="line">                ngx_post_event(rev, &amp;ngx_posted_events);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">else</span><span class="comment">//处理</span></span><br><span class="line">            &#123;</span><br><span class="line">                rev-&gt;handler(rev);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">     </span><br><span class="line">    <span class="comment">//先处理新用户的连接事件</span></span><br><span class="line">        ngx_event_process_posted(cycle, &amp;ngx_posted_accept_events);</span><br><span class="line">     </span><br><span class="line">    <span class="comment">//释放处理新连接的锁</span></span><br><span class="line">    <span class="keyword">if</span>(ngx_accept_mutex_held)</span><br><span class="line">    &#123;</span><br><span class="line">        pthread_mutex_unlock(&amp;ngx_accept_mutex);</span><br><span class="line">    &#125;</span><br><span class="line">     </span><br><span class="line">      <span class="comment">//再处理已建立连接的用户读写事件</span></span><br><span class="line">      ngx_event_process_posted(cycle, &amp;ngx_posted_events);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>nginx从抢锁、释放锁到处理事件的整个过程，我已经结合代码做了注释，相信大家对整个过程应该已经不陌生了。至于<code>pthread_mutex_trylock()</code>中进程是如何抢占锁的，这就有赖于实现抢占的算法了，此处只是解释处理过程，并不关心抢占实现原理。感兴趣的同学可以自己搜索相关资料。</p>
-<ol>
-<li>先处理新用户的连接事件，再释放处理新连接的锁：如果刚释放锁，就有新连接，刚获得锁的进程要给等待队列中添加sockfd时，此时原获得锁的进程也要从等待队列中删除sockfd，TCP的三次握手的连接是非线程安全的。为了避免产生错误，使得将sockfd从等待队列中删除后，再让新的进程抢占锁，处理新连接。</li>
-<li>拿到锁，将任务放在任务队列中，不是立刻去处理：每个进程要处理新连接事件，必须拿到锁，当前进程将新连接事件的sokect添加到任务队列中，立即释放锁，让其他进程尽快获得锁，处理用户的连接。</li>
-</ol>
-<p>你可能有个疑问，如果没有加锁，有新事件连接时，所有的进程都会被唤醒执行accept，有且仅有一个进程会accept返回成功，其他进程都重新进入睡眠状态。现在有了锁，在发生accept之前，进程们要去抢占锁，也是有且仅有一个进程会抢到锁，其他进程也是重新进入睡眠状态。即：不论是否有accept锁，都会有很多进程被唤醒再重新进入睡眠状态的过程，那惊群现象如何解释？</p>
-<p>其实，锁不能解决惊群现象，惊群现象是没办法解决的，很多进程被同时唤醒是一个必然的过程。Nginx中通过检查当前进程的连接数是否&gt;最大连接数*7&#x2F;8来判断当前进程是否能处理新连接，减少被唤醒的进程数量，也实现了简单的负载均衡。锁只能保证不让所有的进程去调用accept函数，解决了很多进程调用accept返回错误，锁解决的是惊群现象的错误，并不是解决了惊群现象！</p>
-<hr>
-<p>转载自：<br><a target="_blank" rel="noopener" href="https://blog.csdn.net/fedorafrog/article/details/114068524?spm=1001.2014.3001.5502">https://blog.csdn.net/fedorafrog/article/details/114068524?spm=1001.2014.3001.5502</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/01/Java/JVM/%E6%A0%88%E4%B8%8A%E5%88%86%E9%85%8D%E5%92%8CTLAB/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/04/01/Java/JVM/%E6%A0%88%E4%B8%8A%E5%88%86%E9%85%8D%E5%92%8CTLAB/" class="post-title-link" itemprop="url">栈上分配和TLAB</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-01T00:00:00+08:00">2024-04-01</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/JVM/" itemprop="url" rel="index"><span itemprop="name">JVM</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="栈上分配"><a href="#栈上分配" class="headerlink" title="栈上分配"></a>栈上分配</h1><p>JVM允许将线程私有的对象打散分配在栈上，而不是分配在堆上。分配在栈上的好处是可以在函数调用结束后自行销毁，而不需要垃圾回收器的介入，从而提高系统性能。</p>
-<p>栈上分配的一个技术基础是进行逃逸分析，逃逸分析的目的是判断对象的作用域是否有可能逃逸出函数体。</p>
-<p>另一个是标量替换，允许将对象打散分配在栈上，比如若一个对象拥有两个字段，会将这两个字段视作局部变量进行分配。</p>
-<p>只能在server模式下才能启用逃逸分析，参数-XX:DoEscapeAnalysis启用逃逸分析，参数-XX:+EliminateAllocations开启标量替换（默认打开）。在JDK 6u23版本之后，HotSpot中默认就开启了逃逸分析，可以通过选项”-XX:+PrintEscapeAnalysis”查看逃逸分析的筛选结果。</p>
-<h1 id="TLAB"><a href="#TLAB" class="headerlink" title="TLAB"></a>TLAB</h1><p>  TLAB的全称是Thread Local Allocation Buffer，即线程本地分配缓存区。这是一个线程专用的内存分配区域。</p>
-<p>由于对象一般会分配在堆上，而堆是全局共享的。因此在同一时间，可能会有多个线程在堆上申请空间。因此，每次对象分配都必须要进行同步，而在竞争激烈的场合分配的效率又会进一步下降。JVM使用TLAB来避免多线程冲突，每个线程使用自己的TLAB，这样就保证了不使用同步，提高了对象分配的效率。</p>
-<p>TLAB本身占用eden区空间，在开启TLAB的情况下，虚拟机会为每个Java线程分配一块TLAB空间。参数-XX:+UseTLAB开启TLAB，默认是开启的。TLAB空间的内存非常小，缺省情况下仅占有整个Eden空间的1%，当然可以通过选项-XX:TLABWasteTargetPercent设置TLAB空间所占用Eden空间的百分比大小。</p>
-<p> 由于TLAB空间一般不会很大，因此大对象无法在TLAB上进行分配，总是会直接分配在堆上。TLAB空间由于比较小，因此很容易装满。比如，一个100K的空间，已经使用了80KB，当需要再分配一个30KB的对象时，肯定就无能为力了。这时虚拟机会有两种选择，第一，废弃当前TLAB，这样就会浪费20KB空间；第二，将这30KB的对象直接分配在堆上，保留当前的TLAB，这样可以希望将来有小于20KB的对象分配请求可以直接使用这块空间。实际上虚拟机内部会维护一个叫作refill_waste的值，当请求对象大于refill_waste时，会选择在堆中分配，若小于该值，则会废弃当前TLAB，新建TLAB来分配对象。这个阈值可以使用TLABRefillWasteFraction来调整，它表示TLAB中允许产生这种浪费的比例。默认值为64，即表示使用约为1&#x2F;64的TLAB空间作为refill_waste。默认情况下，TLAB和refill_waste都会在运行时不断调整的，使系统的运行状态达到最优。如果想要禁用自动调整TLAB的大小，可以使用-XX:-ResizeTLAB禁用ResizeTLAB，并使用-XX:TLABSize手工指定一个TLAB的大小。</p>
-<p>-XX:+PrintTLAB可以跟踪TLAB的使用情况。一般不建议手工修改TLAB相关参数，推荐使用虚拟机默认行为。</p>
-<p>那么总结一下虚拟机对象分配流程：首先如果开启栈上分配，JVM会先进行栈上分配，如果没有开启栈上分配或则不符合条件的则会进行TLAB分配，如果TLAB分配不成功，再尝试在eden区分配，如果对象满足了直接进入老年代的条件，那就直接分配在老年代。</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/11/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/11/">11</a><span class="page-number current">12</span><a class="page-number" href="/page/13/">13</a><span class="space">&hellip;</span><a class="page-number" href="/page/21/">21</a><a class="extend next" rel="next" href="/page/13/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/11/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/11/">11</a><span class="page-number current">12</span><a class="page-number" href="/page/13/">13</a><span class="space">&hellip;</span><a class="page-number" href="/page/23/">23</a><a class="extend next" rel="next" href="/page/13/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -1103,7 +1075,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">210</span>
+          <span class="site-state-item-count">224</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>

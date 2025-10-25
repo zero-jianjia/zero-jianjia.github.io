@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="[toc] 什么是TCP半连接队列和全连接队列？在TCP进行三次握手时，Liunx会为其维护两个队列：  syns queue，半连接队列； accpet queue，全连接队列；    在client端发送SYN给server后，server端变成SYN_RCVD状态，内核会把该连接存储到半连接队列，并向客户端响应 SYN+ACK；  server端收到client端的ACK后，如果全连接队列没">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Tcp半连接队列和全连接队列">
+<meta property="og:url" content="http://example.com/2024/10/05/Linux%E7%9B%B8%E5%85%B3/Tcp%E5%8D%8A%E8%BF%9E%E6%8E%A5%E9%98%9F%E5%88%97%E5%92%8C%E5%85%A8%E8%BF%9E%E6%8E%A5%E9%98%9F%E5%88%97/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="[toc] 什么是TCP半连接队列和全连接队列？在TCP进行三次握手时，Liunx会为其维护两个队列：  syns queue，半连接队列； accpet queue，全连接队列；    在client端发送SYN给server后，server端变成SYN_RCVD状态，内核会把该连接存储到半连接队列，并向客户端响应 SYN+ACK；  server端收到client端的ACK后，如果全连接队列没">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202510251051646.png">
+<meta property="article:published_time" content="2024-10-04T16:00:00.000Z">
+<meta property="article:modified_time" content="2025-10-25T03:35:06.283Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202510251051646.png">
+
+<link rel="canonical" href="http://example.com/2024/10/05/Linux%E7%9B%B8%E5%85%B3/Tcp%E5%8D%8A%E8%BF%9E%E6%8E%A5%E9%98%9F%E5%88%97%E5%92%8C%E5%85%A8%E8%BF%9E%E6%8E%A5%E9%98%9F%E5%88%97/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>Tcp半连接队列和全连接队列 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/10/05/Linux%E7%9B%B8%E5%85%B3/Tcp%E5%8D%8A%E8%BF%9E%E6%8E%A5%E9%98%9F%E5%88%97%E5%92%8C%E5%85%A8%E8%BF%9E%E6%8E%A5%E9%98%9F%E5%88%97/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Tcp半连接队列和全连接队列
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-10-05 00:00:00" itemprop="dateCreated datePublished" datetime="2024-10-05T00:00:00+08:00">2024-10-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Linux%E7%9B%B8%E5%85%B3/" itemprop="url" rel="index"><span itemprop="name">Linux相关</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>[toc]</p>
+<h2 id="什么是TCP半连接队列和全连接队列？"><a href="#什么是TCP半连接队列和全连接队列？" class="headerlink" title="什么是TCP半连接队列和全连接队列？"></a>什么是TCP半连接队列和全连接队列？</h2><p>在TCP进行三次握手时，Liunx会为其维护两个队列：</p>
+<ul>
+<li>syns queue，半连接队列；</li>
+<li>accpet queue，全连接队列；</li>
+</ul>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/202510251051646.png" alt="img"></p>
+<ol>
+<li><p>在client端发送SYN给server后，server端变成SYN_RCVD状态，<strong>内核会把该连接存储到半连接队列</strong>，并向客户端响应 SYN+ACK；</p>
+</li>
+<li><p>server端收到client端的ACK后，如果全连接队列没有满，<strong>内核会把连接从半连接队列移除，然后创建新的完全的 socket 连接，并将其添加到 accept 队列，等待进程调用 accept 函数时把连接取出来</strong>。</p>
+</li>
+</ol>
+ <span id="more"></span>
+
+
+
+<h2 id="为什么要存在半连接队列"><a href="#为什么要存在半连接队列" class="headerlink" title="为什么要存在半连接队列"></a>为什么要存在半连接队列</h2><p>因为根据TCP协议的特点，会存在半连接这样的网络攻击存在，叫做syn攻击,syn flood泛洪，</p>
+<blockquote>
+<p>即不停的发SYN包，而从不回应SYN_ACK。</p>
+</blockquote>
+<p>如果发一个SYN包就让Kernel建立一个消耗极大的socket，那么很容易就内存耗尽。</p>
+<p>只需要一直对服务端发送syn包，但是不回ack回应包，这样就会使得服务端有大量请求处于syn_recv状态，这就是所谓的syn flood泛洪，syn攻击，DDos攻击.</p>
+<p><strong>半连接队列, 是解决 syn flood洪泛的 一个关键措施。</strong></p>
+<p>所以内核在三次握手成功之前，只分配一个占用内存极小的request_sock，以防止这种攻击的现象，再配合syn_cookie机制，尽量抵御这种半连接攻击的风险。</p>
+<h3 id="如何抵御syn攻击"><a href="#如何抵御syn攻击" class="headerlink" title="如何抵御syn攻击"></a>如何抵御syn攻击</h3><p><strong>开启tcp_syncookies功能</strong></p>
+<p>开启tcp_syncookies ， 服务端根本不创建 request_sock对象，也不建立sock连接。</p>
+<p>如果启用了syncookies，服务端将客户端SYN报文中的一些信息保存在了序号中，就不需要保留此连接的request_sock结构了，在发送完SYN+ACK报文之后，将已经申请的资源释放，降低DDos攻击时的资源消耗。</p>
+<p>syncookies在接收到客户端的syn报文时，计算出一个cookies值，放到syn+ack报文中发出。cookies值通过调用secure_tcp_syn_cookie函数，根据报文中的源&#x2F;目的IP地址，TCP源&#x2F;目的端口号，TCP序号和MSS索引值，计算出来；当客户端返回ack报文时，取出该值验证，成功则建立连接。</p>
+<p>如下proc文件tcp_syncookies默认值为1，表明在套接口的SYN backlog队列溢出时，将开启SYNCOOKIES功能，抵御SYN泛洪攻击。如果tcp_syncookies设置为2，将会无条件的开启SYNCOOKIES功能。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">cat</span> /proc/sys/net/ipv4/tcp_syncookies</span><br><span class="line">1</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>增大全连接队列</strong><br>由于全连接队列里面保存的是占用内存很大的普通socket，所以Kernel给其加了一个最大长度的限制。相关的三个参数</p>
+<ul>
+<li><p>1 - listen系统调用中传进去的backlog</p>
+</li>
+<li><p>2 - &#x2F;proc&#x2F;sys&#x2F;inet&#x2F;ipv4&#x2F;tcp_max_syn_backlog</p>
+</li>
+<li><p>3 - &#x2F;proc&#x2F;sys&#x2F;net&#x2F;core&#x2F;somaxconn</p>
+</li>
+</ul>
+<p>所以不能只增大tcp_max_syn_backlog, 还需要一同增大somaconn和backlog，也就是增大全连接队列</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">cat</span> /proc/sys/net/ipv4/tcp_max_syn_backlog</span><br><span class="line">256</span><br><span class="line"></span><br><span class="line">$ <span class="built_in">cat</span> /proc/sys/net/core/somaxconn</span><br><span class="line">128</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>减少syn+ack报文的重传次数</strong></p>
+<p>因为我们在收到syn攻击时，服务端会重传syn+ack报文到最大次数，才会断开连接。</p>
+<p>针对syn攻击的场景，我们可以减少ack+syn报文的重传次数，使处于syn_recv状态的它们更快断开连接</p>
+<p>修改重传次数: <code>/proc/sys/net/ipv4/tcp_synack_retries</code></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">cat</span> /proc/sys/net/ipv4/tcp_synack_retries</span><br><span class="line">5</span><br></pre></td></tr></table></figure>
+
+<p>Linux下默认会进行5次重发SYN-ACK包，重试的间隔时间从1s开始，下次的重试间隔时间是前一次的双倍，5次的重试时间间隔为1s, 2s, 4s, 8s, 16s，总共31s，第5次发出后还要等32s都知道第5次也超时了，所以，总共需要 1s + 2s + 4s+ 8s+ 16s + 32s &#x3D; 63s，TCP才会把断开这个连接。</p>
+<p>由于，SYN超时需要63秒，那么就给攻击者一个攻击服务器的机会，攻击者在短时间内发送大量的SYN包给Server(俗称 SYN flood 攻击)。</p>
+<h2 id="全连接队列、半连接队列、backlog-限制设置"><a href="#全连接队列、半连接队列、backlog-限制设置" class="headerlink" title="全连接队列、半连接队列、backlog 限制设置"></a>全连接队列、半连接队列、backlog 限制设置</h2><blockquote>
+<ol>
+<li>&#x2F;proc&#x2F;sys&#x2F;inet&#x2F;ipv4&#x2F;tcp_max_syn_backlog</li>
+<li>&#x2F;proc&#x2F;sys&#x2F;net&#x2F;core&#x2F;somaxconn</li>
+<li>backlog</li>
+</ol>
+</blockquote>
+<p><strong>backlog</strong><br>listen 的 backlog 参数。netty里边，默认设置了 200</p>
+<p><strong>全连接队列的最大值</strong><br>全连接队列的最大值是 <code>min(somaxconn, backlog)</code>；默认情况下， min(128, 200)&#x3D;128</p>
+<p><strong>somaxconn</strong><br>somaxconn它用于限制 tcp 的全连接队列和半连接队列的长度。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">cat</span> /proc/sys/net/core/somaxconn</span><br><span class="line">128</span><br></pre></td></tr></table></figure>
+
+<p>该内核参数默认值一般是128（定义了系统中每一个端口最大的监听队列的长度），</p>
+<h3 id="如何增大全连接队列呢？"><a href="#如何增大全连接队列呢？" class="headerlink" title="如何增大全连接队列呢？"></a>如何增大全连接队列呢？</h3><p>当全连接队列溢出后，我们需要增大全连接队列的长度，以提高请求容量；</p>
+<p>TCP 全连接队列的最大值取决于 somaxconn 和 backlog 之间的最小值，也就是 <code>min(somaxconn, backlog)</code>；</p>
+<p>所以我们需要提高这两个参数的大小才能拿增大全连接队列。</p>
+<h3 id="如何增大半连接队列呢？"><a href="#如何增大半连接队列呢？" class="headerlink" title="如何增大半连接队列呢？"></a>如何增大半连接队列呢？</h3><p>半连接队列的最大值 与 tcp_max_syn_backlog 配置项 关系最为紧密的。但要想增大半连接队列，不能只单纯增大 tcp_max_syn_backlog 的值，还需一同增大 somaxconn 和 backlog，也就是增大全连接队列。否则，只单纯增大 tcp_max_syn_backlog 是无效的。</p>
+<p>在 Linux 2.6.32 内核版本，它们之间的关系，总体可以概况为：</p>
+<blockquote>
+<p>当 tcp_max_syn_backlog &gt; accept_queue大小时， 半连接队列最大值 max_qlen_log &#x3D; accept_queue大小 * 2;<br>当 tcp_max_syn_backlog&lt; accept_queue大小 时， 半连接队列最大值 max_qlen_log &#x3D; tcp_max_syn_backlog * 2;</p>
+</blockquote>
+<p>其中，<strong>accept_queue大小 &#x3D; min(somaxconn, backlog)</strong></p>
+<h2 id="全连接队列溢出"><a href="#全连接队列溢出" class="headerlink" title="全连接队列溢出"></a>全连接队列溢出</h2><p>当服务端的全连接队列过小时，容易发生全连接队列溢出。发生全连接队列溢出，后续的请求就会被丢弃。</p>
+<p>Linux有个参数，可以指定TCP全连接队列满了，会使用什么策略来回应客户端。</p>
+<ul>
+<li><p>可以丢弃客户端的ack报文，当然， 只是liunx的默认行为，</p>
+</li>
+<li><p>可以向客户端发送RST报文，终止连接，告诉客户端连接失败</p>
+</li>
+</ul>
+<p>可以查看<code>/proc/sys/net/ipv4/tcp_abort_on_overflow</code>了解配置，tcp_abort_on_overflow共有两个值分别是0和1</p>
+<blockquote>
+<p>0：如果全连接队列满了，那么 server 扔掉 client 发过来的 ack ；</p>
+<p>1：如果全连接队列满了，server 发送一个 RST 包给 client，表示废掉这个握手过程和这个连接，终止这个握手连接;</p>
+</blockquote>
+<p>如果设置tcp_abort_on_overflow为0的话，此时服务端全连接队列满了，客户端发送过来的ack报文，服务端丢弃。而此时客户端还会继续重传，如果此时服务端的全连接队列有空闲，那么就会接受重传的ack包，这样就能直接建立连接了。<strong>通常情况下设置为0更好，可以提高效率。</strong></p>
+<p>而设置tcp_abort_on_overflow为1的话，还需要重新连接；但 <strong>设置为 1排查问题比较方便</strong>；如果要想知道客户端连接不上服务端，是不是服务端 TCP 全连接队列满的原因，那么可以把 tcp_abort_on_overflow 设置为 1，这时如果在客户端异常中可以看到很多 <code>connection reset by peer</code> 的错误，那么就可以证明是由于服务端 TCP 全连接队列溢出的问题。</p>
+<p><strong>连接队列溢出会导致无法与服务器建立新连接 或者 客户端出现大量 connection reset by peer 错误。</strong></p>
+<h2 id="如果TCP连接队列溢出，有哪些指标可以看呢？"><a href="#如果TCP连接队列溢出，有哪些指标可以看呢？" class="headerlink" title="如果TCP连接队列溢出，有哪些指标可以看呢？"></a>如果TCP连接队列溢出，有哪些指标可以看呢？</h2><p><strong>netstat –s</strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[root@server ~]<span class="comment">#  netstat -s | egrep &quot;listen|LISTEN&quot; </span></span><br><span class="line">667399 <span class="built_in">times</span> the listen queue of a socket overflowed</span><br><span class="line">667399 SYNs to LISTEN sockets ignored</span><br></pre></td></tr></table></figure>
+
+<p>​    比如上面看到的 667399 times ，表示全连接队列溢出的次数，隔几秒钟执行下，如果这个数字一直在增加的话肯定全连接队列偶尔满了。</p>
+<p><strong>ss</strong> </p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[root@server ~]<span class="comment"># ss -lnt</span></span><br><span class="line">Recv-Q Send-Q Local Address:Port  Peer Address:Port </span><br><span class="line">0        50               *:3306             *:*</span><br></pre></td></tr></table></figure>
+
+<p>​    上面看到的第二列Send-Q 表示第三列的listen端口上的全连接队列最大为50，第一列Recv-Q为全连接队列当前使用了多少。<br>​    全连接队列的大小取决于：min(backlog, somaxconn) . backlog是在socket创建的时候传入的，somaxconn是一个os级别的系统参数&#x2F;proc&#x2F;sys&#x2F;net&#x2F;core&#x2F;somaxconn。<br>​    半连接队列的大小取决于：max(64, &#x2F;proc&#x2F;sys&#x2F;net&#x2F;ipv4&#x2F;tcp_max_syn_backlog)。 不同版本的os会有些差异。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/10/04/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E5%BE%AE%E6%9C%8D%E5%8A%A1/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%8E%A5%E5%8F%A3%E8%AE%BE%E8%AE%A1%E5%8E%9F%E5%88%99/" rel="prev" title="微服务架构">
+      <i class="fa fa-chevron-left"></i> 微服务架构
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/11/09/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/Redis/Redis%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2%EF%BC%8C%E9%94%81%E5%A4%B1%E6%95%88%20%E6%80%8E%E4%B9%88%E5%8A%9E%EF%BC%9F/" rel="next" title="Redis主从切换，锁失效 怎么办？">
+      Redis主从切换，锁失效 怎么办？ <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AFTCP%E5%8D%8A%E8%BF%9E%E6%8E%A5%E9%98%9F%E5%88%97%E5%92%8C%E5%85%A8%E8%BF%9E%E6%8E%A5%E9%98%9F%E5%88%97%EF%BC%9F"><span class="nav-number">1.</span> <span class="nav-text">什么是TCP半连接队列和全连接队列？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E8%A6%81%E5%AD%98%E5%9C%A8%E5%8D%8A%E8%BF%9E%E6%8E%A5%E9%98%9F%E5%88%97"><span class="nav-number">2.</span> <span class="nav-text">为什么要存在半连接队列</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%A6%82%E4%BD%95%E6%8A%B5%E5%BE%A1syn%E6%94%BB%E5%87%BB"><span class="nav-number">2.1.</span> <span class="nav-text">如何抵御syn攻击</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%A8%E8%BF%9E%E6%8E%A5%E9%98%9F%E5%88%97%E3%80%81%E5%8D%8A%E8%BF%9E%E6%8E%A5%E9%98%9F%E5%88%97%E3%80%81backlog-%E9%99%90%E5%88%B6%E8%AE%BE%E7%BD%AE"><span class="nav-number">3.</span> <span class="nav-text">全连接队列、半连接队列、backlog 限制设置</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%A6%82%E4%BD%95%E5%A2%9E%E5%A4%A7%E5%85%A8%E8%BF%9E%E6%8E%A5%E9%98%9F%E5%88%97%E5%91%A2%EF%BC%9F"><span class="nav-number">3.1.</span> <span class="nav-text">如何增大全连接队列呢？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%A6%82%E4%BD%95%E5%A2%9E%E5%A4%A7%E5%8D%8A%E8%BF%9E%E6%8E%A5%E9%98%9F%E5%88%97%E5%91%A2%EF%BC%9F"><span class="nav-number">3.2.</span> <span class="nav-text">如何增大半连接队列呢？</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%A8%E8%BF%9E%E6%8E%A5%E9%98%9F%E5%88%97%E6%BA%A2%E5%87%BA"><span class="nav-number">4.</span> <span class="nav-text">全连接队列溢出</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A6%82%E6%9E%9CTCP%E8%BF%9E%E6%8E%A5%E9%98%9F%E5%88%97%E6%BA%A2%E5%87%BA%EF%BC%8C%E6%9C%89%E5%93%AA%E4%BA%9B%E6%8C%87%E6%A0%87%E5%8F%AF%E4%BB%A5%E7%9C%8B%E5%91%A2%EF%BC%9F"><span class="nav-number">5.</span> <span class="nav-text">如果TCP连接队列溢出，有哪些指标可以看呢？</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">224</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">31</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

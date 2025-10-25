@@ -187,6 +187,405 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/07/06/Java/Java%E6%8F%90%E9%AB%98/Java%20Parser%E4%BB%8B%E7%BB%8D/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/07/06/Java/Java%E6%8F%90%E9%AB%98/Java%20Parser%E4%BB%8B%E7%BB%8D/" class="post-title-link" itemprop="url">Java Parser介绍</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-07-06 00:00:00" itemprop="dateCreated datePublished" datetime="2024-07-06T00:00:00+08:00">2024-07-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E6%8F%90%E9%AB%98/" itemprop="url" rel="index"><span itemprop="name">Java提高</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>[toc]</p>
+<h1 id="Java-Parser基本信息"><a href="#Java-Parser基本信息" class="headerlink" title="Java Parser基本信息"></a>Java Parser基本信息</h1><p>JavaParser是一个Java库，用于将Java源代码解析为抽象语法树（AST），在AST基础上进行类型推断<strong>分析</strong>，支持修改AST从而生成新的Java文件内容（<strong>解析</strong>、<strong>修改</strong>和<strong>生成</strong> Java 代码）。官网：<a target="_blank" rel="noopener" href="https://javaparser.org/">https://javaparser.org</a></p>
+<p>通过使用JavaParser，你可以执行以下任务：</p>
+<ul>
+<li>分析Java源代码并获取详细信息。</li>
+<li>修改现有的Java代码，并生成新的Java源代码。</li>
+<li>自动化代码转换和重构任务。</li>
+<li>构建静态代码分析工具。</li>
+</ul>
+<p>JavaParser的特点</p>
+<ul>
+<li>基于ANTLR 4的高性能解析器。ANTLR 4是一个流行的词法分析器和语法分析器生成器，用于构建语言、工具和服务。</li>
+<li>完全符合Java语法规则。JavaParser遵循最新的Java语言规范，支持Java 8至17的所有版本。</li>
+<li>简洁易用的API。JavaParser提供了清晰、直观的API，使您可以轻松地在Java代码上工作。</li>
+<li>广泛的生态系统。JavaParser与其他流行的技术（如Junit、Mockito和Checkstyle）兼容，拥有丰富的生态系统。</li>
+<li>开源免费。JavaParser是根据Apache 2.0许可证发布的，可以自由使用和扩展。</li>
+</ul>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/07/06/Java/Java%E6%8F%90%E9%AB%98/Java%20Parser%E4%BB%8B%E7%BB%8D/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/07/06/Java/Java%E6%8F%90%E9%AB%98/javapoet%20%E6%96%B9%E4%BE%BF%E5%BF%AB%E6%8D%B7%E5%9C%B0%E7%94%9F%E6%88%90.class%E6%96%87%E4%BB%B6/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/07/06/Java/Java%E6%8F%90%E9%AB%98/javapoet%20%E6%96%B9%E4%BE%BF%E5%BF%AB%E6%8D%B7%E5%9C%B0%E7%94%9F%E6%88%90.class%E6%96%87%E4%BB%B6/" class="post-title-link" itemprop="url">javapoet:方便快捷地生成.class文件</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-07-06 00:00:00" itemprop="dateCreated datePublished" datetime="2024-07-06T00:00:00+08:00">2024-07-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E6%8F%90%E9%AB%98/" itemprop="url" rel="index"><span itemprop="name">Java提高</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>[toc]<br>javapoet可以更加快捷地生成字节码，实现原理其实也就是对JavaAPT的封装，然而Javapoet有一个局限性，就是只能生成新的.class文件，却无法修改原有的类，这也是它的一大局限性所在。接下来就让我们看看它的使用方法把。</p>
+<h2 id="01-简单使用"><a href="#01-简单使用" class="headerlink" title="01 简单使用"></a>01 简单使用</h2><p>使用之前要先引入这个库</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">compile &#x27;com.squareup:javapoet:1.7.0&#x27;</span><br></pre></td></tr></table></figure>
+<p>javapoet是用来生成代码的，需要借助如下几个常用类</p>
+<table>
+<thead>
+<tr>
+<th align="left">类名</th>
+<th align="left">作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">MethodSpec</td>
+<td align="left">代表一个构造函数或方法声明</td>
+</tr>
+<tr>
+<td align="left">TypeSpec</td>
+<td align="left">代表一个类，接口，或者枚举声明</td>
+</tr>
+<tr>
+<td align="left">FieldSpec</td>
+<td align="left">代表一个成员变量，一个字段声明</td>
+</tr>
+<tr>
+<td align="left">JavaFile</td>
+<td align="left">包含一个顶级类的Java文件</td>
+</tr>
+<tr>
+<td align="left">ParameterSpec</td>
+<td align="left">用来创建参数</td>
+</tr>
+<tr>
+<td align="left">AnnotationSpec</td>
+<td align="left">用来创建注解</td>
+</tr>
+<tr>
+<td align="left">ClassName</td>
+<td align="left">用来包装一个类</td>
+</tr>
+<tr>
+<td align="left">TypeName</td>
+<td align="left">类型，如在添加返回值类型是使用 TypeName.VOID</td>
+</tr>
+</tbody></table>
+<p>除此之外 JavaPoet提供了一套自定义的字符串格式化规则，常用的有</p>
+<table>
+<thead>
+<tr>
+<th align="left">格式化规则</th>
+<th align="left">表示含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">$L</td>
+<td align="left">字面量</td>
+</tr>
+<tr>
+<td align="left">$S</td>
+<td align="left">字符串</td>
+</tr>
+<tr>
+<td align="left">$T</td>
+<td align="left">类、接口</td>
+</tr>
+<tr>
+<td align="left">$N</td>
+<td align="left">变量</td>
+</tr>
+</tbody></table>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/07/06/Java/Java%E6%8F%90%E9%AB%98/javapoet%20%E6%96%B9%E4%BE%BF%E5%BF%AB%E6%8D%B7%E5%9C%B0%E7%94%9F%E6%88%90.class%E6%96%87%E4%BB%B6/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/07/06/Java/Java%E6%8F%90%E9%AB%98/%E5%85%B3%E4%BA%8EJava%20NIO%E7%9A%84Selector/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/07/06/Java/Java%E6%8F%90%E9%AB%98/%E5%85%B3%E4%BA%8EJava%20NIO%E7%9A%84Selector/" class="post-title-link" itemprop="url">关于Java NIO的Selector</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-07-06 00:00:00" itemprop="dateCreated datePublished" datetime="2024-07-06T00:00:00+08:00">2024-07-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/Java%E6%8F%90%E9%AB%98/" itemprop="url" rel="index"><span itemprop="name">Java提高</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>[toc]</p>
+<h1 id="Selector-简介"><a href="#Selector-简介" class="headerlink" title="Selector 简介"></a>Selector 简介</h1><p>Selector（选择器）是 Channel 的多路复用器，它可以同时监控多个 Channel 的 IO 状况，允许单个线程来操作多个 Channel。如下：</p>
+<p><img src="https://zero-pic.oss-cn-beijing.aliyuncs.com/img/20240712204746.png" alt="img"></p>
+<p>Selector 的作用是什么？</p>
+<p>Selector 提供选择执行已经就绪的任务的能力。从底层来看，Selector 提供了询问 Channel 是否已经准备好执行每个 I&#x2F;O 操作的能力。Selector 允许单线程处理多个 Channel。仅用单个线程来处理多个 Channels 的好处是，只需要更少的线程来处理 Channel 。事实上，可以只用一个线程处理所有的通道，这样会大量的减少线程之间上下文切换的开销。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/07/06/Java/Java%E6%8F%90%E9%AB%98/%E5%85%B3%E4%BA%8EJava%20NIO%E7%9A%84Selector/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/07/06/Spring/%E8%AE%B0%E4%B8%80%E6%AC%A1HandlerMethodArgumentResolver%E5%A4%B1%E6%95%88%E7%9A%84%E9%97%AE%E9%A2%98/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/07/06/Spring/%E8%AE%B0%E4%B8%80%E6%AC%A1HandlerMethodArgumentResolver%E5%A4%B1%E6%95%88%E7%9A%84%E9%97%AE%E9%A2%98/" class="post-title-link" itemprop="url">记一次HandlerMethodArgumentResolver失效的问题</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-07-06 00:00:00" itemprop="dateCreated datePublished" datetime="2024-07-06T00:00:00+08:00">2024-07-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><strong>起因:</strong><br>对代码进行重构,把解析token的方法从Controller迁移到自定义的参数解析器中,实现代码复用。</p>
+<p><strong>问题:</strong><br>按照正常流程搭建自定义参数解析器,发现最终请求未进入该自定义参数解析器。</p>
+<p>Controller</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@PostMapping</span></span><br><span class="line"><span class="meta">@NeedDistinct</span></span><br><span class="line"><span class="keyword">public</span> Result&lt;Void&gt; <span class="title function_">livenessDetect</span><span class="params">(<span class="meta">@RequestHeader</span> Map&lt;String, String&gt; headers, <span class="meta">@RequestBody</span> LivenessParam livenessParam)</span> &#123;</span><br><span class="line">	<span class="comment">//重构前的token解析方法</span></span><br><span class="line">    <span class="comment">//Long uid = userService.getUidByToken(getToken(headers));</span></span><br><span class="line">    <span class="keyword">if</span> (uid == <span class="literal">null</span>)&#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">UserNotExistException</span>();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//todo 代码逻辑</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/07/06/Spring/%E8%AE%B0%E4%B8%80%E6%AC%A1HandlerMethodArgumentResolver%E5%A4%B1%E6%95%88%E7%9A%84%E9%97%AE%E9%A2%98/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
     <link itemprop="mainEntityOfPage" href="http://example.com/2024/07/06/Spring/%E5%AE%9E%E7%94%A8%EF%BC%9A%E4%BC%98%E9%9B%85%E8%AE%BE%E8%AE%A1%E6%8E%A5%E5%8F%A3%E7%89%88%E6%9C%AC%E5%8F%B7/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -418,6 +817,81 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/07/06/Spring/%E7%94%B1%20RedisTemplate%20%E4%BA%8B%E5%8A%A1%20enableTransactionSupport%20%E5%BC%95%E5%8F%91%E7%9A%84%E8%A1%80%E6%A1%88/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/07/06/Spring/%E7%94%B1%20RedisTemplate%20%E4%BA%8B%E5%8A%A1%20enableTransactionSupport%20%E5%BC%95%E5%8F%91%E7%9A%84%E8%A1%80%E6%A1%88/" class="post-title-link" itemprop="url">由RedisTemplate事务enableTransactionSupport引发的血案</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-07-06 00:00:00" itemprop="dateCreated datePublished" datetime="2024-07-06T00:00:00+08:00">2024-07-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>转载自：<a target="_blank" rel="noopener" href="https://carlzone.blog.csdn.net/article/details/108629864">https://carlzone.blog.csdn.net/article/details/108629864</a></p>
+<p>在最近的项目当中因为使用了类似字典表的数据，所以使用的 Spring Farmework 当中的 Cache 抽象，通过 Redis 来做为缓存。<br>因为原有项目当中配置了 Redis，而且项目是基于 Spring Boot 构建的，并没有去除 Redis 的自动依赖(RedisAutoConfiguration)。导致有些 Redis 的有些类是基于项目中自己配置的 RedisTemplate，而有些又是引用的 Spring Boot 中 Redis 的自动配置生成的 RedisTemplate。所以就把 Spring Boot 中的 Redis 自动配置去除了。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/07/06/Spring/%E7%94%B1%20RedisTemplate%20%E4%BA%8B%E5%8A%A1%20enableTransactionSupport%20%E5%BC%95%E5%8F%91%E7%9A%84%E8%A1%80%E6%A1%88/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
     <link itemprop="mainEntityOfPage" href="http://example.com/2024/07/02/Java/Java%E8%BF%9B%E9%98%B6/%E5%90%8C%E6%AD%A5&%E9%94%81&volatile/ObjectMonitor%E5%AF%B9%E8%B1%A1/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -601,424 +1075,10 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/06/12/k8s&docker/%E8%AF%A6%E8%A7%A3Pod%E5%8F%8A%E5%AE%B9%E5%99%A8%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/06/12/k8s&docker/%E8%AF%A6%E8%A7%A3Pod%E5%8F%8A%E5%AE%B9%E5%99%A8%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" class="post-title-link" itemprop="url">详解 Pod 及容器设计模式</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-06-12 00:00:00" itemprop="dateCreated datePublished" datetime="2024-06-12T00:00:00+08:00">2024-06-12</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/k8s-docker/" itemprop="url" rel="index"><span itemprop="name">k8s&docker</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>[toc]</p>
-<h1 id="一、为什么需要-Pod"><a href="#一、为什么需要-Pod" class="headerlink" title="一、为什么需要 Pod"></a>一、为什么需要 Pod</h1><h2 id="容器的基本概念"><a href="#容器的基本概念" class="headerlink" title="容器的基本概念"></a>容器的基本概念</h2><p>Pod 是 Kubernetes 项目里面一个非常重要的概念，也是非常重要的一个原子调度单位，但是为什么我们会需要这样一个概念呢？在使用容器 Docker 的时候，也没有这个说法。其实，如果想要理解 Pod，首先要理解容器，所以来回顾一下容器的概念：</p>
-<p><strong>容器的本质实际上是一个进程，是一个视图被隔离，资源受限的进程。</strong></p>
-<p>容器里面 PID&#x3D;1 的进程就是应用本身，这意味着管理虚拟机等于管理基础设施，因为我们是在管理机器，但管理容器却等于直接管理应用本身。这也是之前说过的不可变基础设施的一个最佳体现，这个时候，你的应用就等于你的基础设施，它一定是不可变的。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/06/12/k8s&docker/%E8%AF%A6%E8%A7%A3Pod%E5%8F%8A%E5%AE%B9%E5%99%A8%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/06/11/k8s&docker/%E6%8E%A7%E5%88%B6%E5%99%A8/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/06/11/k8s&docker/%E6%8E%A7%E5%88%B6%E5%99%A8/" class="post-title-link" itemprop="url">控制器</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-06-11 09:00:00" itemprop="dateCreated datePublished" datetime="2024-06-11T09:00:00+08:00">2024-06-11</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/k8s-docker/" itemprop="url" rel="index"><span itemprop="name">k8s&docker</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>[toc]</p>
-<h2 id="控制器类型"><a href="#控制器类型" class="headerlink" title="控制器类型"></a>控制器类型</h2><ul>
-<li>ReplicationController 和 ReplicaSet</li>
-<li>Deployment</li>
-<li>DaemonSet</li>
-<li>StateFulSet</li>
-<li>Job&#x2F;CronJob</li>
-<li>Horizontal Pod Autoscaling</li>
-</ul>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/06/11/k8s&docker/%E6%8E%A7%E5%88%B6%E5%99%A8/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/06/11/k8s&docker/%E5%AE%B9%E5%99%A8%E5%92%8C%E8%99%9A%E6%8B%9F%E6%9C%BA%E7%9A%84%E5%8E%9F%E7%90%86/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/06/11/k8s&docker/%E5%AE%B9%E5%99%A8%E5%92%8C%E8%99%9A%E6%8B%9F%E6%9C%BA%E7%9A%84%E5%8E%9F%E7%90%86/" class="post-title-link" itemprop="url">虚拟机（VM）的工作原理</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-06-11 09:00:00" itemprop="dateCreated datePublished" datetime="2024-06-11T09:00:00+08:00">2024-06-11</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/k8s-docker/" itemprop="url" rel="index"><span itemprop="name">k8s&docker</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>[toc]</p>
-<h2 id="容器"><a href="#容器" class="headerlink" title="容器"></a>容器</h2><p>容器的工作原理主要依赖于操作系统层面的资源隔离和限制技术。</p>
-<p>与传统的虚拟机不同，容器不需要运行完整的操作系统，而是直接在宿主机的操作系统上运行。容器共享宿主机的内核，但在文件系统、进程、网络和其他资源方面实现了隔离。以下是容器工作原理的关键技术：</p>
-<h3 id="命名空间（Namespaces）"><a href="#命名空间（Namespaces）" class="headerlink" title="命名空间（Namespaces）"></a>命名空间（Namespaces）</h3><p><code>namespaces</code>是Linux内核提供的一种资源隔离机制，它可以将系统资源（如进程、文件系统、网络等）划分为多个独立的命名空间。容器内进程拥有独立视图：</p>
-<ul>
-<li>PID命名空间隔离进程ID，网络命名空间提供独立网络栈。‌</li>
-<li>其他类型包括Mount（文件系统挂载点）、IPC（进程通信）、UTS（主机名）和User（用户ID）命名空间。‌</li>
-</ul>
-<p>每个容器运行在自己的名字空间中，互不干扰。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/06/11/k8s&docker/%E5%AE%B9%E5%99%A8%E5%92%8C%E8%99%9A%E6%8B%9F%E6%9C%BA%E7%9A%84%E5%8E%9F%E7%90%86/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/06/11/k8s&docker/Kubernetes%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/06/11/k8s&docker/Kubernetes%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/" class="post-title-link" itemprop="url">Kubernetes快速入门</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-06-11 00:00:00" itemprop="dateCreated datePublished" datetime="2024-06-11T00:00:00+08:00">2024-06-11</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/k8s-docker/" itemprop="url" rel="index"><span itemprop="name">k8s&docker</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>[toc]</p>
-<h1 id="一、Docker"><a href="#一、Docker" class="headerlink" title="一、Docker"></a>一、Docker</h1><p>在介绍docker之前，先简单回顾一下操作系统是如何管理进程的。</p>
-<p>首先，当我们登录到操作系统之后，可以通过 ps 等操作看到各式各样的进程，这些进程包括系统自带的服务和用户的应用进程。那么，这些进程都有什么样的特点？</p>
-<ul>
-<li>第一，这些进程可以相互看到、相互通信；</li>
-<li>第二，它们使用的是同一个文件系统，可以对同一个文件进行读写操作；</li>
-<li>第三，这些进程会使用相同的系统资源。</li>
-</ul>
-<p>这样的三个特点会带来什么问题呢？</p>
-<ul>
-<li>因为这些进程能够相互看到并且进行通信，高级权限的进程可以攻击其他进程；</li>
-<li>因为它们使用的是同一个文件系统，因此会带来两个问题：这些进程可以对于已有的数据进行增删改查，具有高级权限的进程可能会将其他进程的数据删除掉，破坏掉其他进程的正常运行；此外，进程与进程之间的依赖可能会存在冲突，如此一来就会给运维带来很大的压力；</li>
-<li>因为这些进程使用的是同一个宿主机的资源，应用之间可能会存在资源抢占的问题，当一个应用需要消耗大量 CPU 和内存资源的时候，就可能会破坏其他应用的运行，导致其他应用无法正常地提供服务。</li>
-</ul>
-<p>针对上述的三个问题，如何为进程提供一个独立的运行环境呢？</p>
-<ul>
-<li>针对不同进程使用同一个文件系统所造成的问题而言，Linux 和 Unix 操作系统可以通过 chroot 系统调用将子目录变成根目录，达到视图级别的隔离；进程在 chroot 的帮助下可以具有独立的文件系统，对于这样的文件系统进行增删改查不会影响到其他进程；</li>
-<li>因为进程之间相互可见并且可以相互通信，使用 Namespace 技术来实现进程在资源的视图上进行隔离。在 chroot 和 Namespace 的帮助下，进程就能够运行在一个独立的环境下了；</li>
-<li>但在独立的环境下，进程所使用的还是同一个操作系统的资源，一些进程可能会侵蚀掉整个系统的资源。为了减少进程彼此之间的影响，可以通过 Cgroup 来限制其资源使用率，设置其能够使用的 CPU 以及内存量。</li>
-</ul>
-<p><strong>容器就是一个视图隔离、资源可限制、独立文件系统的进程集合。</strong>容器就是一个进程集合，它将系统的其他资源隔离开来，具有自己独立的资源视图。Docker 就是基于上述技术实现的。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/06/11/k8s&docker/Kubernetes%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/06/10/%E7%9B%AE%E5%BD%95%E5%BE%85%E5%AE%9A/leaf%E5%88%86%E5%B8%83%E5%BC%8Fid%E7%94%9F%E6%88%90-%E5%8F%B7%E6%AE%B5%E6%A8%A1%E5%BC%8F%E5%8E%9F%E7%90%86/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="jianjia">
-      <meta itemprop="description" content="笔记库&知识库">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="zero's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/06/10/%E7%9B%AE%E5%BD%95%E5%BE%85%E5%AE%9A/leaf%E5%88%86%E5%B8%83%E5%BC%8Fid%E7%94%9F%E6%88%90-%E5%8F%B7%E6%AE%B5%E6%A8%A1%E5%BC%8F%E5%8E%9F%E7%90%86/" class="post-title-link" itemprop="url">leaf分布式id生成-号段模式原理</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2024-06-10 00:00:00" itemprop="dateCreated datePublished" datetime="2024-06-10T00:00:00+08:00">2024-06-10</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E7%9B%AE%E5%BD%95%E5%BE%85%E5%AE%9A/" itemprop="url" rel="index"><span itemprop="name">目录待定</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>[toc]</p>
-<h2 id="基于mysql最简单分布式ID实现"><a href="#基于mysql最简单分布式ID实现" class="headerlink" title="基于mysql最简单分布式ID实现"></a>基于mysql最简单分布式ID实现</h2><p>mysql自带自增主键功能，我们可以建一个表，主键id设置成自增，然后需要获取id，就往该表中插入一条数据，获取一下新增id即可。<br>这种方式优点就是简单。缺点也很明显</p>
-<ul>
-<li>随着时间推移，表中数据越来越多，毕竟获得一个id就要插入一条数据。</li>
-<li>所有获取id的都去请求这个数据库，很显然，高并发场景下单机会很乏力。</li>
-</ul>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2024/06/10/%E7%9B%AE%E5%BD%95%E5%BE%85%E5%AE%9A/leaf%E5%88%86%E5%B8%83%E5%BC%8Fid%E7%94%9F%E6%88%90-%E5%8F%B7%E6%AE%B5%E6%A8%A1%E5%BC%8F%E5%8E%9F%E7%90%86/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/2/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><a class="page-number" href="/page/2/">2</a><span class="page-number current">3</span><a class="page-number" href="/page/4/">4</a><span class="space">&hellip;</span><a class="page-number" href="/page/21/">21</a><a class="extend next" rel="next" href="/page/4/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
+    <a class="extend prev" rel="prev" href="/page/2/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><a class="page-number" href="/page/2/">2</a><span class="page-number current">3</span><a class="page-number" href="/page/4/">4</a><span class="space">&hellip;</span><a class="page-number" href="/page/23/">23</a><a class="extend next" rel="next" href="/page/4/"><i class="fa fa-angle-right" aria-label="Next page"></i></a>
   </nav>
 
 
@@ -1084,7 +1144,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">210</span>
+          <span class="site-state-item-count">224</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>

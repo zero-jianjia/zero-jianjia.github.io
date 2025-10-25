@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="转载自：https:&#x2F;&#x2F;mp.weixin.qq.com&#x2F;s?__biz&#x3D;MzU1OTgyMDc3Mg&#x3D;&#x3D;&amp;mid&#x3D;2247485037&amp;idx&#x3D;1&amp;sn&#x3D;7d71b552adda07e6bb38d9aca72aece9&amp;chksm&#x3D;fc103ce6cb67b5f01817f2850415eec829442d077b3fdddb4a316ec23ace6efa6af">
+<meta property="og:type" content="article">
+<meta property="og:title" content="一次彻底解决因数据库全表扫描引发系统卡顿问题的实践">
+<meta property="og:url" content="http://example.com/2024/11/17/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/MySQL/%E4%B8%80%E6%AC%A1%E5%BD%BB%E5%BA%95%E8%A7%A3%E5%86%B3%E5%9B%A0%E6%95%B0%E6%8D%AE%E5%BA%93%E5%85%A8%E8%A1%A8%E6%89%AB%E6%8F%8F%E5%BC%95%E5%8F%91%E7%B3%BB%E7%BB%9F%E5%8D%A1%E9%A1%BF%E9%97%AE%E9%A2%98%E7%9A%84%E5%AE%9E%E8%B7%B5/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="转载自：https:&#x2F;&#x2F;mp.weixin.qq.com&#x2F;s?__biz&#x3D;MzU1OTgyMDc3Mg&#x3D;&#x3D;&amp;mid&#x3D;2247485037&amp;idx&#x3D;1&amp;sn&#x3D;7d71b552adda07e6bb38d9aca72aece9&amp;chksm&#x3D;fc103ce6cb67b5f01817f2850415eec829442d077b3fdddb4a316ec23ace6efa6af">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2024-11-16T16:00:00.000Z">
+<meta property="article:modified_time" content="2025-10-25T04:54:54.219Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2024/11/17/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/MySQL/%E4%B8%80%E6%AC%A1%E5%BD%BB%E5%BA%95%E8%A7%A3%E5%86%B3%E5%9B%A0%E6%95%B0%E6%8D%AE%E5%BA%93%E5%85%A8%E8%A1%A8%E6%89%AB%E6%8F%8F%E5%BC%95%E5%8F%91%E7%B3%BB%E7%BB%9F%E5%8D%A1%E9%A1%BF%E9%97%AE%E9%A2%98%E7%9A%84%E5%AE%9E%E8%B7%B5/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>一次彻底解决因数据库全表扫描引发系统卡顿问题的实践 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/11/17/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/MySQL/%E4%B8%80%E6%AC%A1%E5%BD%BB%E5%BA%95%E8%A7%A3%E5%86%B3%E5%9B%A0%E6%95%B0%E6%8D%AE%E5%BA%93%E5%85%A8%E8%A1%A8%E6%89%AB%E6%8F%8F%E5%BC%95%E5%8F%91%E7%B3%BB%E7%BB%9F%E5%8D%A1%E9%A1%BF%E9%97%AE%E9%A2%98%E7%9A%84%E5%AE%9E%E8%B7%B5/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          一次彻底解决因数据库全表扫描引发系统卡顿问题的实践
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-11-17 00:00:00" itemprop="dateCreated datePublished" datetime="2024-11-17T00:00:00+08:00">2024-11-17</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93-%E7%BC%93%E5%AD%98/" itemprop="url" rel="index"><span itemprop="name">数据库&缓存</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93-%E7%BC%93%E5%AD%98/MySQL/" itemprop="url" rel="index"><span itemprop="name">MySQL</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>转载自：<a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s?__biz=MzU1OTgyMDc3Mg==&mid=2247485037&idx=1&sn=7d71b552adda07e6bb38d9aca72aece9&chksm=fc103ce6cb67b5f01817f2850415eec829442d077b3fdddb4a316ec23ace6efa6af768548918&token=949133520&lang=zh_CN&scene=21#wechat_redirect">https://mp.weixin.qq.com/s?__biz=MzU1OTgyMDc3Mg==&amp;mid=2247485037&amp;idx=1&amp;sn=7d71b552adda07e6bb38d9aca72aece9&amp;chksm=fc103ce6cb67b5f01817f2850415eec829442d077b3fdddb4a316ec23ace6efa6af768548918&amp;token=949133520&amp;lang=zh_CN&amp;scene=21#wechat_redirect</a></p>
+<h3 id="问题所在"><a href="#问题所在" class="headerlink" title="问题所在"></a>问题所在</h3><p>相信大家都遇到过因为数据库全表扫描生成大对象，然后系统疯狂 GC，引发系统卡顿的问题。能看到这样的 GC 日志：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">2021-11-20T01:28:52.240+0800: 108542.888: [GC pause (G1 Humongous Allocation) (young) (initial-mark), 0.1276229 secs]</span><br></pre></td></tr></table></figure>
+
+<p>然后就是常规操作，<code>jmap</code> 下，MAT 看看内存，看到底是哪条 SQL 搞的鬼。</p>
+ <span id="more"></span>
+
+<h3 id="解决思路"><a href="#解决思路" class="headerlink" title="解决思路"></a>解决思路</h3><p>我们常常会陷入这种“<strong>「知道系统可能出现这样的问题，但是无法预防和监控，只能被动地等发生问题了再排查再解决」</strong>”的尴尬境地。后来组内大佬提了一个点（我觉得这个点才是关键）“能否从 MySQL 的角度去限制 Server 端返回的数据呢”。</p>
+<p>这个点有点意思，如果真能实现，那就可以从根本上解决数据库全表扫描的问题，理了下思路：</p>
+<ol>
+<li>可以基于 MyBatis 拦截器去做，如果发现这个 SQL 可能会造成全表扫描，就给它加个 <code>limit</code>；但是这个实现有点风险，毕竟需要修改执行的 SQL，因为整个系统一堆 SQL，也无法完全保证增加的 <code>limit</code> 会不会影响 SQL 的正常执行，甚至造成 SQL 语法错误；而且系统可能已经使用了一些 MyBatis 拦截器，如 PageHelper、字段加解密拦截器等，可能会有顺序问题；</li>
+<li>能否从 MySQL 角度限制数据库返回的数据大小；</li>
+<li>都改成数据库流式查询（可参看《<a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s?__biz=MzU1OTgyMDc3Mg==&mid=2247483924&idx=1&sn=459642ea2bd99da8022c83549c378c54&chksm=fc10389fcb67b1898f79ec19b0b58fc287ea03df560b0a7a2b2fb3cd13e9f2ff5aaa4a28dc2c&token=262173664&lang=zh_CN&scene=21#wechat_redirect">MySQL 流式查询初体验</a>》），但是这个也不可行，毕竟总不能所有查询都改成流式查询吧；</li>
+<li>在 Java 代码的层面进行封装，实现类似流式读取的方式，但是这个也不太行，场景太特殊；</li>
+</ol>
+<p>所以还是第二点看着简单实用点，但是 DBA 回复说“MySQL 没有限制返回包的大小”。于是翻了下 MySQL 官方文档，找到了这个参数：<code>max_allowed_packet</code>，官方文档是这么介绍的：</p>
+<blockquote>
+<p>❝</p>
+<p>A communication packet is a single SQL statement sent to the MySQL server, a single row that is sent to the client, or a binary log event sent from a replication source server to a replica.</p>
+<p>The largest possible packet that can be transmitted to or from a MySQL 8.0 server or client is 1GB.</p>
+<p>When a MySQL client or the <strong>「mysqld」</strong> server receives a packet bigger than <code>max_allowed_packet</code> bytes, it issues an <code>ER_NET_PACKET_TOO_LARGE</code> error and closes the connection. With some clients, you may also get a <code>Lost connection to MySQL server during query</code> error if the communication packet is too large.</p>
+<p>Both the client and the server have their own <code>max_allowed_packet</code> variable, so if you want to handle big packets, you must increase this variable both in the client and in the server.</p>
+<p>If you are using the <strong>「mysql」</strong> client program, its default <code>max_allowed_packet</code> variable is 16MB. To set a larger value, start <strong>「mysql」</strong> like this:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$&gt; mysql --max_allowed_packet=32M</span><br></pre></td></tr></table></figure>
+
+<p>That sets the packet size to 32MB.</p>
+<p>The server’s default <code>max_allowed_packet</code> value is 64MB. You can increase this if the server needs to handle big queries (for example, if you are working with big <code>BLOB</code> columns). For example, to set the variable to 128MB, start the server like this:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$&gt; mysqld --max_allowed_packet=128M</span><br></pre></td></tr></table></figure>
+
+<p>You can also use an option file to set <code>max_allowed_packet</code>. For example, to set the size for the server to 128MB, add the following lines in an option file:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[mysqld]</span><br><span class="line">max_allowed_packet=128M</span><br></pre></td></tr></table></figure>
+
+<p>It is safe to increase the value of this variable because the extra memory is allocated only when needed. For example, <strong>「mysqld」</strong> allocates more memory only when you issue a long query or when <strong>「mysqld」</strong> must return a large result row. The small default value of the variable is a precaution to catch incorrect packets between the client and server and also to ensure that you do not run out of memory by using large packets accidentally.</p>
+<p>You can also get strange problems with large packets if you are using large <code>BLOB</code> values but have not given <strong>「mysqld」</strong> access to enough memory to handle the query. If you suspect this is the case, try adding <strong>「ulimit -d 256000」</strong> to the beginning of the <strong>「mysqld_safe」</strong> script and restarting <strong>「mysqld」</strong>.</p>
+<p>❞</p>
+</blockquote>
+<p>于是又咨询了下 DBA 这个参数，但是 DBA 给的回复是“<code>max_allowed_packet</code> 是用来设置以字节发送给服务器的最大数据包大小，影响 <code>insert</code> 和 <code>update</code>，不影响 <code>select</code>”。其实当时我有点尴尬，存在怀疑，因为这段话说的很模糊：</p>
+<blockquote>
+<p>❝</p>
+<p>It is safe to increase the value of this variable because the extra memory is allocated only when needed. For example, <strong>「mysqld」</strong> allocates more memory only when you issue a long query or when <strong>「mysqld」</strong> must return a large result row. The small default value of the variable is a precaution to catch incorrect packets between the client and server and also to ensure that you do not run out of memory by using large packets accidentally.</p>
+<p>❞</p>
+</blockquote>
+<p>于是又找 DBA 确认了一下线上 MySQL 这个参数配置的是多少，DBA 给的回复是 16M。这下我彻底信了，因为最近一次线上全表查询从 MAT 上分析，有两个请求的线程堆栈就占了 2G，如果这个参数能限制 <code>select</code> 的话，那这个线上问题就不会发生。</p>
+<p>于是我又开始翻文档，功夫不负有心人，找到了一个有点意思的参数：<code>sql_select_limit</code>，官方文档是这么说的：</p>
+<blockquote>
+<p>❝</p>
+<ul>
+<li><p><code>sql_select_limit</code></p>
+<table>
+<thead>
+<tr>
+<th align="left">System Variable</th>
+<th align="left"><code>sql_select_limit</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Scope</td>
+<td align="left">Global, Session</td>
+</tr>
+<tr>
+<td align="left">Dynamic</td>
+<td align="left">Yes</td>
+</tr>
+<tr>
+<td align="left">Type</td>
+<td align="left">Integer</td>
+</tr>
+</tbody></table>
+<p>The maximum number of rows to return from <code>SELECT</code> statements. For more information, see Using Safe-Updates Mode (–safe-updates).</p>
+<p>The default value for a new connection is the maximum number of rows that the server permits per table. Typical default values are (232)−1 or (264)−1. If you have changed the limit, the default value can be restored by assigning a value of <code>DEFAULT</code>.</p>
+<p>If a <code>SELECT</code> has a <code>LIMIT</code> clause, the <code>LIMIT</code> takes precedence over the value of <code>sql_select_limit</code>.</p>
+</li>
+</ul>
+<p>❞</p>
+</blockquote>
+<p>有很关键的两句话：</p>
+<ul>
+<li>The maximum number of rows to return from <code>SELECT</code> statements.</li>
+<li>If a <code>SELECT</code> has a <code>LIMIT</code> clause, the <code>LIMIT</code> takes precedence over the value of <code>sql_select_limit</code>.</li>
+</ul>
+<p>可以的，看着很完美。那么接下来的问题就是如何去使用这个参数，发现有三种方式使用：</p>
+<ol>
+<li>MySQL 启动的时候加上；</li>
+<li><code>session</code> 级别；</li>
+<li><code>global</code> 级别；</li>
+</ol>
+<p>那还用说，肯定使用 <code>session</code> 级别，这个客户端可控，对 MySQL 服务端不用做任何修改。</p>
+<p>先玩玩试试看效果：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">set SESSION sql_select_limit=1;</span><br><span class="line">select * from bytejta;</span><br></pre></td></tr></table></figure>
+
+<p>执行后发现效果不错，再执行了几个复杂的 SQL，同样结果符合预期。</p>
+<h3 id="使用细节"><a href="#使用细节" class="headerlink" title="使用细节"></a>使用细节</h3><p>那么现在的问题是如何将这个参数用起来。平时我们在配置 MySQL 的时候都会这么配置 URL：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jdbc:mysql://xxxx.xx.xx.xx/dbName</span><br></pre></td></tr></table></figure>
+
+<p>要想使用  <code>session</code> 级别的 <code>sql_select_limit</code> 参数，可以这么做：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jdbc:mysql://xxxx.xx.xx.xx/dbName?sessionVariables=sql_select_limit=20000</span><br></pre></td></tr></table></figure>
+
+<p>这样就可以了。</p>
+<h3 id="测试"><a href="#测试" class="headerlink" title="测试"></a>测试</h3><p>参数已经加上了，也有一定的效果，但是毕竟没法看源码，心里还是有点虚，于是问了下 DBA，DBA 说他也没用过这个参数，但是他也提到使用 <code>session</code> 级别的参数对数据库服务是没有影响的，既然对数据库服务没有影响，那么其他程序上的风险就好控制了。</p>
+<p>于是理了一下测试方案：</p>
+<ol>
+<li>在预上线上使用下，选几个有代表性的 SQL，先按照原来不加 <code>sql_select_limit</code> 参数查一遍，再使用加了 <code>sql_select_limit</code> 参数查一遍（基于读写分离配置多数据源很容易实现），对比两者数据，不一致就报警，先跑一段时间看看；</li>
+<li>还是增加一个 SQL 返回行数的监控，我这里配置的是 20000，如果发现返回数据大于 20000 了就说明这个参数失效了，就报警，测试阶段可以这个参数设置小一遍，方便对比效果；</li>
+</ol>
+<p>我这里 SQL 返回行数的监控是基于 MyBatis 拦截器做的，也比较简单，大致代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> Dongguabai</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@description</span></span></span><br><span class="line"><span class="comment"> * <span class="doctag">@date</span> 2021-11-18 20:57</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Intercepts(&#123;</span></span><br><span class="line"><span class="meta">        @Signature(type = ResultSetHandler.class, method = &quot;handleResultSets&quot;, args = &#123;Statement.class&#125;)</span></span><br><span class="line"><span class="meta">&#125;)</span></span><br><span class="line"><span class="meta">@Slf4j</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">SqlSelectLimitMonitorInterceptor</span> <span class="keyword">implements</span> <span class="title class_">Interceptor</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Setter</span></span><br><span class="line">    <span class="keyword">private</span> String threshold;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Setter</span></span><br><span class="line">    <span class="keyword">private</span> String emails;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Setter</span></span><br><span class="line">    <span class="keyword">private</span> String project;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">int</span> <span class="variable">SQL_LIMIT</span> <span class="operator">=</span> <span class="number">20000</span>;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> Object <span class="title function_">intercept</span><span class="params">(Invocation invocation)</span> <span class="keyword">throws</span> Throwable &#123;</span><br><span class="line">        <span class="type">Object</span> <span class="variable">result</span> <span class="operator">=</span> invocation.proceed();</span><br><span class="line">        <span class="keyword">if</span> (threshold() &lt; <span class="number">1</span> || !(invocation.getTarget() <span class="keyword">instanceof</span> ResultSetHandler)) &#123;</span><br><span class="line">            <span class="keyword">return</span> result;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="keyword">if</span> (result <span class="keyword">instanceof</span> List) &#123;</span><br><span class="line">                <span class="type">List</span> <span class="variable">list</span> <span class="operator">=</span> (List) result;</span><br><span class="line">                <span class="keyword">if</span> (list.size() &gt; threshold()) &#123;</span><br><span class="line">                    <span class="type">ResultSetHandler</span> <span class="variable">defaultResultSetHandler</span> <span class="operator">=</span> (ResultSetHandler) invocation.getTarget();</span><br><span class="line">                    <span class="type">MetaObject</span> <span class="variable">metaStatementHandler</span> <span class="operator">=</span> SystemMetaObject.forObject(defaultResultSetHandler);</span><br><span class="line">                    <span class="type">MappedStatement</span> <span class="variable">mappedStatement</span> <span class="operator">=</span> (MappedStatement) metaStatementHandler.getValue(<span class="string">&quot;mappedStatement&quot;</span>);</span><br><span class="line">                    trigger(mappedStatement, list);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Throwable e) &#123;</span><br><span class="line">            log.error(<span class="string">&quot;SqlSelectLimitMonitorInterceptor.intercept error.&quot;</span>, e);</span><br><span class="line">            sendUsers(String.format(<span class="string">&quot;SqlSelectLimitMonitorInterceptor.intercept error.[%s]&quot;</span>,e.getMessage()));</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> result;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">trigger</span><span class="params">(MappedStatement mappedStatement, List list)</span> &#123;</span><br><span class="line">        <span class="type">String</span> <span class="variable">sql</span> <span class="operator">=</span> mappedStatement.getSqlSource().getBoundSql(<span class="literal">null</span>).getSql();</span><br><span class="line">        <span class="comment">//todo 报警</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> Object <span class="title function_">plugin</span><span class="params">(Object target)</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> Plugin.wrap(target, <span class="built_in">this</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setProperties</span><span class="params">(Properties properties)</span> &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="type">BeanInfo</span> <span class="variable">info</span> <span class="operator">=</span> Introspector.getBeanInfo(<span class="built_in">this</span>.getClass(), Object.class);</span><br><span class="line">            PropertyDescriptor[] propertyDescriptors = info.getPropertyDescriptors();</span><br><span class="line">            Stream.of(propertyDescriptors).filter(desc -&gt; !StringUtils.equals(<span class="string">&quot;properties&quot;</span>, desc.getName())).forEach(desc -&gt; &#123;</span><br><span class="line">                <span class="type">String</span> <span class="variable">value</span> <span class="operator">=</span> properties.getProperty(desc.getName());</span><br><span class="line">                <span class="keyword">if</span> (StringUtils.isNotBlank(value)) &#123;</span><br><span class="line">                    <span class="keyword">try</span> &#123;</span><br><span class="line">                        desc.getWriteMethod().invoke(<span class="built_in">this</span>, value);</span><br><span class="line">                    &#125; <span class="keyword">catch</span> (IllegalAccessException | InvocationTargetException e) &#123;</span><br><span class="line">                        processParseError(e);</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (IntrospectionException e) &#123;</span><br><span class="line">            processParseError(e);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">processParseError</span><span class="params">(Exception e)</span> &#123;</span><br><span class="line">        log.error(<span class="string">&quot;SqlSelectLimitMonitorInterceptor parse properties error.&quot;</span>, e);</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">MagRuntimeException</span>(CommonConstants.FIVE_HUNDRED, <span class="string">&quot;SqlSelectLimitMonitorInterceptor parse properties error.&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="type">int</span> <span class="title function_">threshold</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> Integer.valueOf(StringUtils.defaultString(threshold, <span class="string">&quot;0&quot;</span>));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在预上线跑了一段时间后，数据对比效果不错。后来选了一个项目在线上试运行，运行了一段时间也没有出现其他异常。目前来看还是比较成功的。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>思路比解决方案更重要。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/11/10/MQ/%E8%A7%A3%E6%9E%90RocketMQ%E4%B8%AD%E7%9A%84NameServer/" rel="prev" title="解析RocketMQ中的NameServer">
+      <i class="fa fa-chevron-left"></i> 解析RocketMQ中的NameServer
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/11/17/%E6%95%B0%E6%8D%AE%E5%BA%93&%E7%BC%93%E5%AD%98/MySQL/%E5%85%AD%E4%B8%AA%E6%A1%88%E4%BE%8B%E6%90%9E%E6%87%82%E9%97%B4%E9%9A%99%E9%94%81/" rel="next" title="六个案例搞懂间隙锁">
+      六个案例搞懂间隙锁 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%97%AE%E9%A2%98%E6%89%80%E5%9C%A8"><span class="nav-number">1.</span> <span class="nav-text">问题所在</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%A7%A3%E5%86%B3%E6%80%9D%E8%B7%AF"><span class="nav-number">2.</span> <span class="nav-text">解决思路</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8%E7%BB%86%E8%8A%82"><span class="nav-number">3.</span> <span class="nav-text">使用细节</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B5%8B%E8%AF%95"><span class="nav-number">4.</span> <span class="nav-text">测试</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">5.</span> <span class="nav-text">总结</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">224</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">31</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

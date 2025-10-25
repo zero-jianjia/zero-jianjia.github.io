@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="引言在人工智能与大型语言模型（LLM）快速发展的今天，如何让模型安全高效地访问外部数据和服务成为关键挑战。MCP（Model Context Protocol） 协议应运而生，它通过标准化的通信机制，为AI模型与外部资源架起桥梁。MCP 协议使用 JSON-RPC 来编码消息，JSON-RPC 消息必须使用 UTF-8 编码。MCP协议目前定义了三种传输机制用于客户端-服务器通信：  stdio：">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MCP传输机制Stdio、SSE与StreamableHTTP的核心区别">
+<meta property="og:url" content="http://example.com/2025/06/06/AI/MCP%20%E4%BC%A0%E8%BE%93%E6%9C%BA%E5%88%B6%20Stdio%E3%80%81SSE%20%E4%B8%8E%20Streamable%20HTTP%20%E7%9A%84%E6%A0%B8%E5%BF%83%E5%8C%BA%E5%88%AB/index.html">
+<meta property="og:site_name" content="zero&#39;s Blog">
+<meta property="og:description" content="引言在人工智能与大型语言模型（LLM）快速发展的今天，如何让模型安全高效地访问外部数据和服务成为关键挑战。MCP（Model Context Protocol） 协议应运而生，它通过标准化的通信机制，为AI模型与外部资源架起桥梁。MCP 协议使用 JSON-RPC 来编码消息，JSON-RPC 消息必须使用 UTF-8 编码。MCP协议目前定义了三种传输机制用于客户端-服务器通信：  stdio：">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2025-06-05T16:00:00.000Z">
+<meta property="article:modified_time" content="2025-10-25T04:24:56.012Z">
+<meta property="article:author" content="jianjia">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2025/06/06/AI/MCP%20%E4%BC%A0%E8%BE%93%E6%9C%BA%E5%88%B6%20Stdio%E3%80%81SSE%20%E4%B8%8E%20Streamable%20HTTP%20%E7%9A%84%E6%A0%B8%E5%BF%83%E5%8C%BA%E5%88%AB/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>MCP传输机制Stdio、SSE与StreamableHTTP的核心区别 | zero's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">zero's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">持续迭代</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2025/06/06/AI/MCP%20%E4%BC%A0%E8%BE%93%E6%9C%BA%E5%88%B6%20Stdio%E3%80%81SSE%20%E4%B8%8E%20Streamable%20HTTP%20%E7%9A%84%E6%A0%B8%E5%BF%83%E5%8C%BA%E5%88%AB/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="jianjia">
+      <meta itemprop="description" content="笔记库&知识库">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zero's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          MCP传输机制Stdio、SSE与StreamableHTTP的核心区别
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2025-06-06 00:00:00" itemprop="dateCreated datePublished" datetime="2025-06-06T00:00:00+08:00">2025-06-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/AI/" itemprop="url" rel="index"><span itemprop="name">AI</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><p>在人工智能与大型语言模型（LLM）快速发展的今天，如何让模型安全高效地访问外部数据和服务成为关键挑战。MCP（Model Context Protocol） 协议应运而生，它通过标准化的通信机制，为AI模型与外部资源架起桥梁。MCP 协议使用 JSON-RPC 来编码消息，JSON-RPC 消息必须使用 UTF-8 编码。MCP协议目前定义了三种传输机制用于客户端-服务器通信：</p>
+<ul>
+<li><p>stdio：通过标准输入和标准输出进行通信</p>
+</li>
+<li><p>SSE：通过 HTTP 进行通信，支持流式传输。（协议版本 2024-11-05 开始支持，即将废弃）</p>
+</li>
+<li><p>Streamble HTTP：通过 HTTP 进行通信，支持流式传输。（协议版本 2025-03-26 开始支持，用于替代 SSE）</p>
+</li>
+</ul>
+<p>MCP 协议要求客户端应尽可能支持 stdio。MCP 协议的传输机制是可插拔的，也就是说，客户端和服务器不局限于 MCP 协议标准定义的这几种传输机制，也可以通过自定义的传输机制来实现通信。</p>
+<p>Streamable HTTP是MCP协议推荐的下一代传输机制，基于标准HTTP实现动态流式升级，支持无状态服务和云原生部署。相比SSE，它无需专用端点，兼容CDN&#x2F;API网关，灵活切换流式响应（如长文本生成进度推送），适合分布式系统与弹性扩展场景。官方计划逐步淘汰SSE，推荐优先采用Streamable HTTP以实现高效、可扩展的远程通信。</p>
+<span id="more"></span>
+
+<h2 id="stdio-传输"><a href="#stdio-传输" class="headerlink" title="stdio 传输"></a>stdio 传输</h2><p>stdio 即 standard input &amp; output（标准输入 &#x2F; 输出），主要用于本地进程通信。Stdio（标准输入&#x2F;输出）通过本地进程间通信实现，客户端以子进程形式启动服务器，双方通过stdin&#x2F;stdout交换JSON-RPC消息，每条消息以换行符分隔。</p>
+<p>适用场景：本地工具集成、隐私数据处理、快速原型开发。</p>
+<p>stdio通信流程：</p>
+<blockquote>
+<ol>
+<li>客户端以子进程的形式启动服务器;</li>
+<li>客户端往服务器的 stdin 写入消息;</li>
+<li>服务器从其标准输入（stdin）读取 JSON-RPC 消息，并将消息发送到其标准输出（stdout）,消息可能是单个 JSON-RPC 请求、通知、响应，或者包含多个请求、通知、响应的 JSON-RPC 批处理，消息由换行符分隔；</li>
+<li>客户端从服务器的 stdout 读取消息；</li>
+<li>客户端终止子进程，关闭服务器的 stdin；</li>
+<li>服务器关闭自身的 stdout；</li>
+</ol>
+</blockquote>
+<p>优缺点：</p>
+<table>
+<thead>
+<tr>
+<th>优势</th>
+<th>劣势</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>零网络依赖：无需配置网络环境，适合本地开发调试。<br />高安全性：数据仅在本地流转，避免远程泄露风险。<br />低延迟：直接通过内存或管道传输，性能高效。</td>
+<td>单进程限制：无法同时处理多客户端请求，扩展性差。<br />仅限本地：无法支持分布式或远程资源访问。<br />资源消耗大：进程通信的资源开销大，很难在本地运行非常多的服务。</td>
+</tr>
+</tbody></table>
+<h2 id="SSE-传输"><a href="#SSE-传输" class="headerlink" title="SSE 传输"></a>SSE 传输</h2><p>MCP 协议使用 SSE（Server-Sent Events） 传输来解决远程资源访问的问题。底层是基于HTTP长连接，通过类似 API 的方式，让 MCP 客户端直接访问远程资源。在 SSE 传输中，服务器作为一个独立进程运行，可以处理多个客户端连接。</p>
+<p>服务器必须提供两个端点：</p>
+<blockquote>
+<p>&#x2F;sse（GET请求）：建立长连接，用于客户端接收服务器推送的事件流。</p>
+<p>&#x2F;messages（POST请求）：供客户端向服务器发送消息。</p>
+</blockquote>
+<p>当客户端连接时，服务器必须发送一个包含客户端用于发送消息的 URL 的端点事件。所有后续客户端消息必须作为 HTTP POST 请求发送到该端点。服务器消息作为 SSE 消息事件发送，消息内容以 JSON 格式编码在事件数据中。</p>
+<p>SSE 通信流程：</p>
+<blockquote>
+<ol>
+<li>客户端向服务器的 &#x2F;sse 端点发送请求（一般是 GET 请求），建立 SSE 连接；</li>
+<li>服务器给客户端返回一个包含 sessionId 的事件消息；</li>
+<li>客户端给 &#x2F;messages 发送消息，携带sessionId；</li>
+<li>服务器给客户端响应消息已接收状态码；</li>
+<li>服务器给双方建立的 SSE 连接推送事件消息；</li>
+<li>客户端从 SSE 连接读取服务器发送的事件消息；</li>
+<li>客户端关闭 SSE 连接；</li>
+</ol>
+</blockquote>
+<p>优缺点：</p>
+<table>
+<thead>
+<tr>
+<th>优势</th>
+<th>劣势</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>支持远程资源访问，让 MCP 客户端可以直接访问远程服务，解决了 stdio 传输仅适用于本地资源的局限；<br />基于标准 HTTP 协议实现，兼容性好，便于与现有 Web 基础设施集成;<br />服务器可作为独立进程运行，支持处理多个客户端连接;<br />相比 WebSocket 实现简单，是普通 HTTP 的扩展，不需要协议升级;</td>
+<td>浏览器连接限制：每个浏览器和域名的最大打开连接数很低(6 个)，当用户打开多个标签页时会出现问题;<br />复杂的双通道响应机制：MCP 中的 SSE 实现要求服务器在接收客户端消息后，既要给当前请求响应，也要给之前建立的 SSE 连接发送响应消息;<br /> 需要大量会话管理：需要为每个 SSE 连接分配唯一标识(sessionId)来防止数据混淆，增加了实现复杂度</td>
+</tr>
+</tbody></table>
+<p>MCP 协议已经引入了新的 Streamable HTTP 传输机制(2025-03-26 版本)来替代 SSE，并计划废弃 SSE 传输。新的传输机制保留了 HTTP 的基础，但支持更灵活的连接方式，更适合现代云架构和无服务器环境。</p>
+<h2 id="Streamable-HTTP"><a href="#Streamable-HTTP" class="headerlink" title="Streamable HTTP"></a>Streamable HTTP</h2><p>Streamable HTTP 传输是 MCP 协议在 2025-03-26 版本中引入的新传输机制，用于替代之前的 SSE 传输。Streamable HTTP 是SSE的升级方案，完全基于标准HTTP协议，移除了专用SSE端点，所有消息通过**&#x2F;message**端点传输</p>
+<p>在 Streamable HTTP 传输中，服务器作为一个独立进程运行，可以处理多个客户端连接。此传输使用 HTTP POST 和 GET 请求，服务器可以选择使用服务器发送事件（SSE）来流式传输多个服务器消息。</p>
+<p>服务器必须提供一个同时支持 POST 和 GET 方法的单个 HTTP 端点。</p>
+<p>Streamable HTTP 通信流程：</p>
+<blockquote>
+<ol>
+<li>客户端给服务器的通信端点发消息;</li>
+<li>服务器给客户端响应消息;</li>
+<li>客户端根据服务器的响应类型，继续给服务器发消息;</li>
+<li>服务器继续响应客户端消息</li>
+</ol>
+</blockquote>
+<p>跟 SSE 传输不同的点在于，Streamable HTTP 传输中，客户端与服务器的消息交互，基本上是“一来一回”的（单通道响应）。而这个“一来一回”的消息交互，可能会有很多种组合类型。</p>
+<blockquote>
+<p>客户端发送 GET 请求给服务器，服务器返回 SSE 连接;</p>
+<p>客户端 POST JSON-RPC 编码的消息给服务器，服务器返回 JSON-RPC 编码的消息响应;</p>
+<p>客户端 POST JSON-RPC 编码的消息给服务器，服务器返回一个 SSE 连接;</p>
+<p>客户端给 SSE 连接发消息，服务器收到后给 SSE 连接响应消息;</p>
+<p>服务器响应的消息，可能包含状态标识：Mcp-Session-Id;</p>
+<p>客户端发消息时候需要带上状态标识：Mcp-Session-Id;</p>
+</blockquote>
+<p>Streamable HTTP 传输机制下，MCP 客户端与服务器通信的几个要点：</p>
+<ul>
+<li><p>客户端可以给服务器发送不包含请求体的 GET 请求，用于建立 SSE 连接，让服务器可以主动给客户端先发消息;</p>
+</li>
+<li><p>客户端给服务器发送 JSON-RPC 消息的情况，必须使用 POST 请求</p>
+</li>
+<li><p>服务器接到客户端的 GET 请求时，要么返回 Contet-Type: text&#x2F;event-stream 开启 SSE 连接，要么返回 HTTP 405 状态码，表示不支持 SSE 连接。</p>
+</li>
+<li><p>服务器接到客户端的 POST 请求时，从请求体里面读取 JSON-RPC 消息，如果是通知消息，就响应 HTTP 202 状态码，表示消息已收到。如果是非通知消息，服务器可以选择返回 Content-Type: text&#x2F;event-stream 开启 SSE 传输，或者返回 Content-Type: application&#x2F;json 同步响应一条 JSON-RPC 消息。</p>
+</li>
+</ul>
+<p>优缺点：</p>
+<table>
+<thead>
+<tr>
+<th>优势</th>
+<th>劣势</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>无状态支持：服务器可完全无状态运行，降低运维复杂度。<br />基础设施兼容：与CDN、API网关、负载均衡无缝集成。<br />灵活流式处理：支持按需切换为流式传输（如长文本生成进度推送）。</td>
+<td>实现复杂度：需处理会话ID和状态管理（可选）。<br /></td>
+</tr>
+</tbody></table>
+<p>整体对比</p>
+<table>
+<thead>
+<tr>
+<th>特性</th>
+<th>Stdio</th>
+<th>SEE</th>
+<th>Streamable HTTP</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>通信方式</strong></td>
+<td>本地进程管道</td>
+<td>HTTP长连接 + SSE</td>
+<td>标准HTTP + 动态流式升级</td>
+</tr>
+<tr>
+<td><strong>通信方向</strong></td>
+<td>双向同步</td>
+<td>单向（Server-&gt;Client）</td>
+<td>双向异步</td>
+</tr>
+<tr>
+<td><strong>适用场景</strong></td>
+<td>本地隐私数据处理</td>
+<td>实时远程通知（逐步淘汰）</td>
+<td>云原生、分布式系统</td>
+</tr>
+<tr>
+<td><strong>网络依赖</strong></td>
+<td>无</td>
+<td>必需</td>
+<td>必需</td>
+</tr>
+<tr>
+<td><strong>延迟</strong></td>
+<td>高（100-500ms）</td>
+<td>中（50-200ms）</td>
+<td>低（10-100ms）</td>
+</tr>
+<tr>
+<td><strong>多客户端支持</strong></td>
+<td>否</td>
+<td>是</td>
+<td>是</td>
+</tr>
+<tr>
+<td><strong>协议演进</strong></td>
+<td>长期支持</td>
+<td>即将废弃</td>
+<td>官方推荐替代方案</td>
+</tr>
+</tbody></table>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2025/01/16/%E7%9B%AE%E5%BD%95%E5%BE%85%E5%AE%9A/%E5%88%9D%E7%BA%A7%E7%A8%8B%E5%BA%8F%E5%91%98%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98/" rel="prev" title="初级程序员常见问题">
+      <i class="fa fa-chevron-left"></i> 初级程序员常见问题
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%BC%95%E8%A8%80"><span class="nav-number">1.</span> <span class="nav-text">引言</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#stdio-%E4%BC%A0%E8%BE%93"><span class="nav-number">1.1.</span> <span class="nav-text">stdio 传输</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#SSE-%E4%BC%A0%E8%BE%93"><span class="nav-number">1.2.</span> <span class="nav-text">SSE 传输</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Streamable-HTTP"><span class="nav-number">1.3.</span> <span class="nav-text">Streamable HTTP</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">jianjia</p>
+  <div class="site-description" itemprop="description">笔记库&知识库</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">224</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">31</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:jianjia_z@163.com" title="E-Mail → mailto:jianjia_z@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/zero__007" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;zero__007" rel="noopener" target="_blank"><i class="csdn fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">jianjia</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
